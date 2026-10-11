@@ -57,9 +57,9 @@ export const api = {
   exportDocumentPdf: (id: string) => call<DocumentView>('exportDocumentPdf', { id }),
   previewDocument: (id: string) => call<{ html: string }>('previewDocument', { id }),
 
-  addQuestion: (applicationId: string, question: string, maxLength?: number | null) => call<Question>('addQuestion', { applicationId, question, maxLength }),
+  addQuestion: (applicationId: string, question: string, maxSentences?: number | null) => call<Question>('addQuestion', { applicationId, question, maxSentences }),
   answerQuestion: (id: string, answer: string) => call<Question>('answerQuestion', { id, answer }),
-  updateQuestion: (id: string, patch: { question?: string; maxLength?: number | null }) => call<Question>('updateQuestion', { id, ...patch }),
+  updateQuestion: (id: string, patch: { question?: string; maxSentences?: number | null }) => call<Question>('updateQuestion', { id, ...patch }),
   removeQuestion: (id: string) => call<null>('removeQuestion', { id }),
 
   addCommunication: (applicationId: string, input: CommunicationInput) => call<Communication>('addCommunication', { applicationId, ...input }),

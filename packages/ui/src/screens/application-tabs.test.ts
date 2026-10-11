@@ -20,11 +20,11 @@ async function open(tabName: RegExp): Promise<string> {
 }
 
 describe('Questions tab', () => {
-  it('lists questions, saves an answer and shows the character counter', async () => {
+  it('lists questions, saves an answer and shows the sentence counter', async () => {
     const id = await open(/Questions/);
     const field = await screen.findByLabelText('Answer');
     await fireEvent.input(field, { target: { value: 'Because I like the product.' } });
-    expect(screen.getByText('27 / 300')).toBeInTheDocument();
+    expect(screen.getByText('1 / 3 sentences')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getApplication(id)).questions[0]!.status).toBe('answered'));
     expect(toasts.map((t) => t.text)).toContain('Answer saved');
@@ -46,9 +46,9 @@ describe('Questions tab', () => {
 
   it('reports an answer over the limit instead of saving it', async () => {
     const id = await open(/Questions/);
-    await fireEvent.input(await screen.findByLabelText('Answer'), { target: { value: 'x'.repeat(301) } });
+    await fireEvent.input(await screen.findByLabelText('Answer'), { target: { value: 'One. Two. Three. Four.' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(toasts.some((t) => /limit is 300/.test(t.text))).toBe(true));
+    await waitFor(() => expect(toasts.some((t) => /limit is 3/.test(t.text))).toBe(true));
     expect((await api.getApplication(id)).questions[0]!.answer).toBe('');
   });
 
@@ -57,7 +57,7 @@ describe('Questions tab', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'Add question' }));
     const dialog = screen.getByRole('dialog', { name: 'Add question' });
     await fireEvent.input(within(dialog).getByLabelText('Question'), { target: { value: 'Salary expectations?' } });
-    await fireEvent.input(within(dialog).getByLabelText('Maximum length (characters)'), { target: { value: '120' } });
+    await fireEvent.input(within(dialog).getByLabelText('Maximum number of sentences'), { target: { value: '120' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
     await waitFor(async () => expect((await api.getApplication(id)).questions).toHaveLength(2));
     await screen.findByText('Salary expectations?');

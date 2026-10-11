@@ -41,10 +41,9 @@ describe('buildSetupPlan', () => {
     expect(remote?.values).toEqual(['yes', 'no', 'hybrid']);
   });
 
-  it('seeds Settings with every setting, INSTRUCTIONS in English and the default prompts', () => {
+  it('seeds Settings with every setting, INSTRUCTIONS in English', () => {
     expect(sheet('Settings').seedRows.map((r) => r[0])).toEqual([...SETTING_KEYS]);
     expect(sheet('INSTRUCTIONS').seedRows.length).toBeGreaterThan(5);
-    expect(sheet('Prompts').seedRows.map((r) => r[0])).toEqual(['cover_letter', 'resume_tailor', 'answer_question']);
     for (const p of plan) for (const row of p.seedRows) expect(row).toHaveLength(p.headers.length);
   });
 

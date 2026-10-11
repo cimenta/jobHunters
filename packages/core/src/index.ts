@@ -20,3 +20,4 @@ export * from './status';
 export * from './status-style';
 export * from './types';
 export * from './util';
+export * from './prompt';

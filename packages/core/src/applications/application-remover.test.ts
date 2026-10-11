@@ -31,8 +31,8 @@ function setup(drive: FakeDrive = new FakeDrive()) {
       makeDocument({ id: 'd3', application_id: 'a2', doc_url: otherDoc.url }),
     ]),
     questions: new InMemoryRepository<Question>([
-      { id: 'q1', application_id: 'a1', position: 1, question: 'Why?', answer: '', max_length: null, status: 'open', created_at: '', updated_at: '' },
-      { id: 'q2', application_id: 'a2', position: 1, question: 'How?', answer: '', max_length: null, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q1', application_id: 'a1', position: 1, question: 'Why?', answer: '', max_sentences: null, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q2', application_id: 'a2', position: 1, question: 'How?', answer: '', max_sentences: null, status: 'open', created_at: '', updated_at: '' },
     ]),
     communications: new InMemoryRepository<Communication>([
       { id: 'm1', application_id: 'a1', datetime: '2026-10-01T10:00:00.000Z', direction: 'note', channel: 'other', contact_id: '', summary: 'x', details: '', attachment_url: '' },

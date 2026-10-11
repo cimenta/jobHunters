@@ -121,6 +121,7 @@ export function buildContainer(deps: ContainerDeps) {
     tasks, jobs, companies, documents, questions, applications, newId: deps.newId, now: deps.now,
     experience: () => settings.get().settings.candidate_experience,
     language: () => settings.get().settings.ui_language,
+    prompt: (type) => settings.get().settings[`ai_prompt_${type}`],
   });
 
   return {

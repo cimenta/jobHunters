@@ -3,6 +3,7 @@ import { isLocale, type Locale } from './i18n';
 import type { KeyValueStore } from './key-value';
 import { NO_LOCK, type Lock } from './lock';
 import type { AppWarning } from './row-codec';
+import { DEFAULT_PROMPTS, type PromptType } from './seed';
 import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
 
@@ -18,6 +19,11 @@ export const SETTING_KEYS = [
   'pdf_service_order',
   'default_document_set',
   'status_styles',
+  'ai_prompt_resume_tailor',
+  'ai_prompt_cover_letter',
+  'ai_prompt_other',
+  'ai_prompt_answer_question',
+  'ai_prompt_match_job',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -41,7 +47,15 @@ export interface Settings {
   default_document_set: string[];
   /** Custom status labels as JSON, see status-style.ts. */
   status_styles: StatusStyles;
+  /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
+  ai_prompt_resume_tailor: string;
+  ai_prompt_cover_letter: string;
+  ai_prompt_other: string;
+  ai_prompt_answer_question: string;
+  ai_prompt_match_job: string;
 }
+
+const defaultPrompt = (type: PromptType): string => DEFAULT_PROMPTS.find((p) => p.type === type)?.instruction ?? '';
 
 /** Raw sheet values; setup writes these into the Settings sheet. */
 export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
@@ -56,12 +70,19 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
   status_styles: '{}',
+  ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
+  ai_prompt_cover_letter: defaultPrompt('cover_letter'),
+  ai_prompt_other: defaultPrompt('other'),
+  ai_prompt_answer_question: defaultPrompt('answer_question'),
+  ai_prompt_match_job: defaultPrompt('match_job'),
 };
 
 const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'];
 
 const items = (raw: string, separator: RegExp): string[] =>
   raw.split(separator).map((part) => part.trim()).filter((part) => part !== '');
+
+const parsePrompt = (raw: string): string | undefined => (raw.trim() !== '' && raw.length <= 10000 ? raw : undefined);
 
 /** Each parser returns undefined for an invalid value. */
 const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } = {
@@ -82,6 +103,11 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
     return parts.every((part) => DOCUMENT_TYPES.includes(part)) ? parts : undefined;
   },
   status_styles: (raw) => parseStatusStyles(raw),
+  ai_prompt_resume_tailor: parsePrompt,
+  ai_prompt_cover_letter: parsePrompt,
+  ai_prompt_other: parsePrompt,
+  ai_prompt_answer_question: parsePrompt,
+  ai_prompt_match_job: parsePrompt,
 };
 
 function isSettingKey(key: string): key is SettingKey {

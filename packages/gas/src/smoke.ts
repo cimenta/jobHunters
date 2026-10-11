@@ -95,8 +95,8 @@ export function runSmokeTest(deps: SmokeDeps): SmokeResult {
   if (created) {
     const applicationId = created.application.id;
     step('question limit', () => {
-      const question = data<{ id: string }>('addQuestion', { applicationId, question: 'Why us?', maxLength: 5 });
-      expectError('answerQuestion', { id: question.id, answer: 'this is too long' }, 'answer_too_long');
+      const question = data<{ id: string }>('addQuestion', { applicationId, question: 'Why us?', maxSentences: 2 });
+      expectError('answerQuestion', { id: question.id, answer: 'One. Two. Three.' }, 'answer_too_long');
       data('answerQuestion', { id: question.id, answer: 'fine' });
     });
     step('communication', () => data('addCommunication', { applicationId, direction: 'note', channel: 'other', summary: 'Smoke test note' }));

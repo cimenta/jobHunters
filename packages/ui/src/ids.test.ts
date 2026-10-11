@@ -38,7 +38,7 @@ describe('element identifiers', () => {
       [`#/applications/${applicationId}`, 'status-control.change', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'documents', /^doc\.export\./]],
       ['#/companies', 'companies.list', ['companies', `company.${companyId}`]],
       [`#/companies/${companyId}`, 'company-detail.save', ['company-detail', 'company-detail.jobs', 'company-detail.applications']],
-      ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.profile', 'tab.templates', 'tab.statuses', 'tab.about']],
+      ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.prompts', 'tab.profile', 'tab.templates', 'tab.statuses', 'tab.about']],
     ];
     for (const [hash, waitForId, expected] of screens) {
       const found = await visit(hash, waitForId);

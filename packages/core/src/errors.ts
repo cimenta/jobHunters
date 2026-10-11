@@ -32,7 +32,7 @@ export const ERROR_CODES = [
   'document_not_found',
   'question_not_found',
   'question_required',
-  'max_length_invalid',
+  'max_sentences_invalid',
   'answer_too_long',
   'communication_not_found',
   'communication_invalid',

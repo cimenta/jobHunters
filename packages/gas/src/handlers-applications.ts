@@ -206,8 +206,8 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const input = asRecord(args, 'addQuestion');
       const applicationId = requireString(input, 'applicationId', 'addQuestion');
       const question = requireString(input, 'question', 'addQuestion');
-      const maxLength = optionalNumber(input, 'maxLength', 'addQuestion');
-      return c.lock.run(() => c.questionService.add(applicationId, { question, maxLength }));
+      const maxSentences = optionalNumber(input, 'maxSentences', 'addQuestion');
+      return c.lock.run(() => c.questionService.add(applicationId, { question, maxSentences }));
     },
 
     answerQuestion: (args) => {
@@ -222,8 +222,8 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const input = asRecord(args, 'updateQuestion');
       const id = requireString(input, 'id', 'updateQuestion');
       const question = optionalString(input, 'question', 'updateQuestion');
-      const maxLength = optionalNumber(input, 'maxLength', 'updateQuestion');
-      return c.lock.run(() => c.questionService.update(id, { question, maxLength }));
+      const maxSentences = optionalNumber(input, 'maxSentences', 'updateQuestion');
+      return c.lock.run(() => c.questionService.update(id, { question, maxSentences }));
     },
 
     removeQuestion: (args) => {

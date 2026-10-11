@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ALLOWED_VALUES, columnType, isNullableNumber, SHEETS } from './schema';
 
-const KEYLESS = ['StatusHistory', 'Profile', 'Prompts', 'Settings', 'INSTRUCTIONS', 'Log'];
+const KEYLESS = ['StatusHistory', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log'];
 
 describe('sheet schema', () => {
   it('defines every sheet of the spec, in order', () => {
     expect(Object.keys(SHEETS)).toEqual([
       'Companies', 'Jobs', 'Applications', 'Documents', 'Questions', 'Communications', 'Reminders',
-      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Prompts', 'Settings', 'INSTRUCTIONS', 'Log',
+      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log',
     ]);
   });
 

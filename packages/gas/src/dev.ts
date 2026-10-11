@@ -98,7 +98,7 @@ function seed(backend: DevBackend, now: () => string): void {
 
   const first = call<{ application: { id: string } }>('createApplication', { jobId: android }).application.id;
   call('setApplicationStatus', { id: first, to: 'sent' });
-  call('addQuestion', { applicationId: first, question: 'Why do you want to work with us?', maxLength: 300 });
+  call('addQuestion', { applicationId: first, question: 'Why do you want to work with us?', maxSentences: 3 });
   call('addCommunication', { applicationId: first, direction: 'outgoing', channel: 'email', summary: 'Sent the application' });
   call('addReminder', { applicationId: first, dueAt: addDays(today, 3), text: 'Ask about the status' });
   const second = call<{ application: { id: string } }>('createApplication', { jobId: analyst }).application.id;

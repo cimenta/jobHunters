@@ -114,7 +114,7 @@ export interface Question {
   position: number;
   question: string;
   answer: string;
-  max_length: number | null;
+  max_sentences: number | null;
   /** open or answered. */
   status: string;
   created_at: string;

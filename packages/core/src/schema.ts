@@ -28,7 +28,7 @@ const DOCUMENT_COLUMNS = [
   'id', 'application_id', 'type', 'doc_url', 'pdf_url', 'template_id', 'created_at', 'pdf_exported_at',
 ] as const satisfies readonly (keyof ApplicationDocument)[];
 const QUESTION_COLUMNS = [
-  'id', 'application_id', 'position', 'question', 'answer', 'max_length', 'status', 'created_at', 'updated_at',
+  'id', 'application_id', 'position', 'question', 'answer', 'max_sentences', 'status', 'created_at', 'updated_at',
 ] as const satisfies readonly (keyof Question)[];
 const COMMUNICATION_COLUMNS = [
   'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url',
@@ -62,7 +62,6 @@ export const SHEETS = {
   Tasks: ['id', 'created_at', 'application_id', 'job_id', 'type', 'target_type', 'target_id', 'instructions', 'status', 'ai_note', 'completed_at'],
   Templates: TEMPLATE_COLUMNS,
   Profile: ['key', 'value'],
-  Prompts: ['type', 'language', 'instruction'],
   Settings: ['key', 'value'],
   INSTRUCTIONS: ['text'],
   Log: LOG_COLUMNS,
@@ -72,8 +71,8 @@ export type SheetName = keyof typeof SHEETS;
 
 export type ColumnType = 'string' | 'number' | 'boolean';
 
-const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_length']);
-const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_length']);
+const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences']);
+const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences']);
 const BOOLEAN_COLUMNS = new Set(['is_gig']);
 
 export function columnType(column: string): ColumnType {

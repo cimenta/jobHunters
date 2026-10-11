@@ -1,5 +1,5 @@
 import { PROFILE_KEYS } from './applications/placeholders';
-import { DEFAULT_PROMPTS, INSTRUCTIONS_LINES } from './seed';
+import { INSTRUCTIONS_LINES } from './seed';
 import { ALLOWED_VALUES, columnType, SHEETS } from './schema';
 import { SETTING_KEYS, SETTINGS_DEFAULTS } from './settings';
 
@@ -24,7 +24,6 @@ function seedRowsFor(name: string): string[][] {
   if (name === 'Settings') return SETTING_KEYS.map((key) => [key, SETTINGS_DEFAULTS[key]]);
   if (name === 'Profile') return PROFILE_KEYS.map((key) => [key, '']);
   if (name === 'INSTRUCTIONS') return INSTRUCTIONS_LINES.map((line) => [line]);
-  if (name === 'Prompts') return DEFAULT_PROMPTS.map((p) => [p.type, p.language, p.instruction]);
   return [];
 }
 

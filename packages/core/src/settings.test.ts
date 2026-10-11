@@ -97,6 +97,17 @@ describe('SettingsService', () => {
   });
 });
 
+describe('prompt settings', () => {
+  it('default to the built-in templates, refuse an empty or too long one and fall back to the default', () => {
+    expect(parseSettings({}).settings.ai_prompt_cover_letter).toMatch(/at most 250 words/);
+    expect(parseSettings({ ai_prompt_match_job: 'Evaluate {{job_id}}' }).settings.ai_prompt_match_job).toBe('Evaluate {{job_id}}');
+    const empty = parseSettings({ ai_prompt_other: '  ' });
+    expect(empty.settings.ai_prompt_other).toMatch(/the sheet Documents/);
+    expect(empty.warnings).toMatchObject([{ code: 'setting_invalid', params: { key: 'ai_prompt_other' } }]);
+    expect(parseSettings({ ai_prompt_answer_question: 'x'.repeat(10001) }).warnings).toHaveLength(1);
+  });
+});
+
 describe('SettingsService status_styles', () => {
   it('stores valid styles and rejects invalid ones without writing', () => {
     const store = new InMemoryKeyValueStore();

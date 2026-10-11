@@ -3,9 +3,10 @@ import { InMemoryRepository } from '../repository';
 import { errorOf } from '../testing/errors';
 import { makeApplication, makeJob, sequentialIds } from '../testing/fixtures';
 import type { AiTask, Application, ApplicationDocument, Company, Job, Question } from '../types';
+import { DEFAULT_PROMPTS, type PromptType } from '../seed';
 import { AiTaskService } from './ai-task-service';
 
-function setup(experience = 'Ten years of TypeScript') {
+function setup(experience = 'Ten years of TypeScript', templates: Partial<Record<PromptType, string>> = {}) {
   const tasks = new InMemoryRepository<AiTask>();
   const service = new AiTaskService({
     tasks,
@@ -13,9 +14,9 @@ function setup(experience = 'Ten years of TypeScript') {
     companies: new InMemoryRepository<Company>([{ id: 'c1', name: 'Example s.r.o.', website: '', notes: '' }]),
     applications: new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', language: 'cs' })]),
     questions: new InMemoryRepository<Question>([
-      { id: 'q1', application_id: 'a1', position: 1, question: 'Why us?', answer: '', max_length: 500, status: 'open', created_at: '', updated_at: '' },
-      { id: 'q2', application_id: 'a1', position: 2, question: 'Salary?', answer: '', max_length: null, status: 'open', created_at: '', updated_at: '' },
-      { id: 'q3', application_id: 'a1', position: 3, question: 'Notice period?', answer: 'Two months', max_length: null, status: 'answered', created_at: '', updated_at: '' },
+      { id: 'q1', application_id: 'a1', position: 1, question: 'Why us?', answer: '', max_sentences: 500, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q2', application_id: 'a1', position: 2, question: 'Salary?', answer: '', max_sentences: null, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q3', application_id: 'a1', position: 3, question: 'Notice period?', answer: 'Two months', max_sentences: null, status: 'answered', created_at: '', updated_at: '' },
     ]),
     documents: new InMemoryRepository<ApplicationDocument>([
       { id: 'd1', application_id: 'a1', type: 'cover_letter', doc_url: 'https://docs.google.com/document/d/x/edit', pdf_url: '', template_id: '', created_at: '', pdf_exported_at: '' },
@@ -25,9 +26,36 @@ function setup(experience = 'Ten years of TypeScript') {
     now: () => '2026-10-11T08:00:00.000Z',
     experience: () => experience,
     language: () => 'cs',
+    prompt: (type) => templates[type] ?? DEFAULT_PROMPTS.find((p) => p.type === type)!.instruction,
   });
   return { tasks, service };
 }
+
+describe('AiTaskService prompts', () => {
+  it('fills the placeholders of the template from Settings and drops lines left empty', () => {
+    const { service } = setup('Ten years of TypeScript', {
+      cover_letter: 'Doc {{document_id}} of {{application_id}} in {{language}}.\n{{notes}}\nKeep it short. {{unknown}}',
+      answer_question: 'Q {{question_id}}\n{{limit}}\nEnd',
+      match_job: 'Job {{job_id}} in {{language}}',
+    });
+    expect(service.requestDocument('d1').instructions).toBe('Doc d1 of a1 in Czech.\nKeep it short. {{unknown}}');
+    expect(service.requestDocument('d2', 'Be bold').instructions).toContain('Instructions from the user: Be bold');
+    expect(service.requestQuestion('q1').instructions).toBe('Q q1\nThe answer must not exceed 500 sentences.\nEnd');
+    expect(service.requestQuestion('q2').instructions).toBe('Q q2\nEnd');
+    expect(service.requestMatch('j1').instructions).toBe('Job j1 in Czech');
+  });
+
+  it('uses the default templates with the ids the AI needs to find the rows', () => {
+    const { service } = setup();
+    const text = service.requestDocument('d1').instructions;
+    expect(text).toContain('the sheet Documents, the row with id d1');
+    expect(text).toContain('the sheet Tasks, the row with id t');
+    expect(text).toContain('the row with key candidate_experience');
+    expect(text).toContain('at most 250 words');
+    expect(text).not.toMatch(/{{(task_id|document_id|application_id|job_id|language|notes)}}/);
+    expect(service.requestDocument('d2').instructions).toContain('Tailor the resume');
+  });
+});
 
 describe('AiTaskService', () => {
   it('queues a match task and asks for the language of the app', () => {
@@ -71,7 +99,7 @@ describe('AiTaskService', () => {
     expect(errorOf(() => service.remove(first.id))).toMatchObject({ code: 'task_not_found' });
   });
 
-  it('queues the writing of a document in the language of the application, with the standing and the user instructions', () => {
+  it('queues the writing of a document in the language of the application, with the template and the user instructions', () => {
     const { service } = setup();
     const letter = service.requestDocument('d1', 'Mention my open-source work');
     expect(letter).toMatchObject({ type: 'cover_letter', target_type: 'document', target_id: 'd1', application_id: 'a1', job_id: 'j1', status: 'pending' });
@@ -97,7 +125,7 @@ describe('AiTaskService', () => {
     const task = service.requestQuestion('q1', 'Stress remote work');
     expect(task).toMatchObject({ type: 'answer_question', target_type: 'question', target_id: 'q1', application_id: 'a1', job_id: 'j1', status: 'pending' });
     expect(task.instructions).toContain('Czech');
-    expect(task.instructions).toContain('500 characters');
+    expect(task.instructions).toContain('500 sentences');
     expect(task.instructions).toContain('Stress remote work');
     expect(service.requestQuestion('q1').id).toBe(task.id);
     expect(service.questionTaskFor('q1')?.id).toBe(task.id);

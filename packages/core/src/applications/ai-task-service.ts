@@ -1,6 +1,7 @@
 import { NotFoundError, ValidationError } from '../errors';
+import { renderPrompt } from '../prompt';
 import type { Repository } from '../repository';
-import { DEFAULT_PROMPTS } from '../seed';
+import type { PromptType } from '../seed';
 import type { AiTask, Application, ApplicationDocument, Company, Job, Question } from '../types';
 
 export interface AiTaskServiceDeps {
@@ -17,6 +18,8 @@ export interface AiTaskServiceDeps {
   experience: () => string;
   /** Language the AI should write in: the language of the app. */
   language: () => string;
+  /** The prompt template of a task type from Settings. */
+  prompt: (type: PromptType) => string;
 }
 
 export interface AiTaskRow extends AiTask {
@@ -67,18 +70,16 @@ export class AiTaskService {
     const current = this.documentTaskFor(documentId);
     if (current && ACTIVE.includes(current.status)) return current;
     const type = doc.type === 'resume' ? 'resume_tailor' : doc.type === 'cover_letter' ? 'cover_letter' : 'other';
-    const standing = DEFAULT_PROMPTS.find((p) => p.type === type)?.instruction ?? '';
-    const language = LANGUAGE_NAMES[application.language] ?? 'English';
     const extra = notes.trim();
+    const id = newId();
+    const instructions = renderPrompt(this.deps.prompt(type), {
+      task_id: id, document_id: doc.id, application_id: application.id, job_id: application.job_id,
+      language: LANGUAGE_NAMES[application.language] ?? 'English',
+      notes: extra === '' ? '' : `Instructions from the user: ${extra}`,
+    });
     return tasks.insert({
-      id: newId(), created_at: now(), application_id: application.id, job_id: application.job_id, type, target_type: 'document', target_id: doc.id,
-      instructions: [
-        `Write the content of the Google Doc in the Documents sheet row ${doc.id} (doc_url) for the application ${application.id}. Replace placeholders and fill an empty Doc; keep the layout of the template.`,
-        `Use the job ad in the Jobs sheet row ${application.job_id}, the Profile sheet and the candidate_experience setting. Write in ${language}. Never invent experience.`,
-        standing,
-        extra === '' ? '' : `Instructions from the user: ${extra}`,
-        'When finished set the status to done and put a short note in ai_note.',
-      ].filter((line) => line !== '').join(' '),
+      id, created_at: now(), application_id: application.id, job_id: application.job_id, type, target_type: 'document', target_id: doc.id,
+      instructions,
       status: 'pending', ai_note: '', completed_at: '',
     });
   }
@@ -99,20 +100,17 @@ export class AiTaskService {
     if (experience().trim() === '') throw new ValidationError('match_experience_required', 'The experience setting is empty', {});
     const current = this.questionTaskFor(questionId);
     if (current && ACTIVE.includes(current.status)) return current;
-    const standing = DEFAULT_PROMPTS.find((p) => p.type === 'answer_question')?.instruction ?? '';
-    const language = LANGUAGE_NAMES[application.language] ?? 'English';
     const extra = notes.trim();
-    const limit = question.max_length === null ? '' : `The answer must not exceed ${question.max_length} characters.`;
+    const id = newId();
+    const instructions = renderPrompt(this.deps.prompt('answer_question'), {
+      task_id: id, question_id: question.id, application_id: application.id, job_id: application.job_id,
+      language: LANGUAGE_NAMES[application.language] ?? 'English',
+      limit: question.max_sentences === null ? '' : `The answer must not exceed ${question.max_sentences} sentences.`,
+      notes: extra === '' ? '' : `Instructions from the user: ${extra}`,
+    });
     return tasks.insert({
-      id: newId(), created_at: now(), application_id: application.id, job_id: application.job_id, type: 'answer_question', target_type: 'question', target_id: question.id,
-      instructions: [
-        `Answer the question in the Questions sheet row ${question.id} (column question) for the application ${application.id}: write the answer into the column answer and set its status to answered.`,
-        `Use the job ad in the Jobs sheet row ${application.job_id}, the Profile sheet and the candidate_experience setting. Write in ${language}. Never invent experience.`,
-        limit,
-        standing,
-        extra === '' ? '' : `Instructions from the user: ${extra}`,
-        'When finished set the task status to done and put a short note in ai_note.',
-      ].filter((line) => line !== '').join(' '),
+      id, created_at: now(), application_id: application.id, job_id: application.job_id, type: 'answer_question', target_type: 'question', target_id: question.id,
+      instructions,
       status: 'pending', ai_note: '', completed_at: '',
     });
   }
@@ -143,11 +141,10 @@ export class AiTaskService {
     const current = this.matchFor(jobId);
     if (current && ACTIVE.includes(current.status)) return current;
     const name = LANGUAGE_NAMES[language()] ?? 'English';
+    const id = newId();
     return tasks.insert({
-      id: newId(), created_at: now(), application_id: '', job_id: jobId, type: 'match_job', target_type: 'job', target_id: jobId,
-      instructions:
-        `Evaluate whether the candidate described in the Settings sheet (key candidate_experience, plus the Profile sheet) is a suitable candidate for the job in the Jobs sheet with id ${jobId}. ` +
-        `Write a concise evaluation (strengths, gaps, overall verdict) in ${name} into ai_note and set the status to done.`,
+      id, created_at: now(), application_id: '', job_id: jobId, type: 'match_job', target_type: 'job', target_id: jobId,
+      instructions: renderPrompt(this.deps.prompt('match_job'), { task_id: id, job_id: jobId, language: name }),
       status: 'pending', ai_note: '', completed_at: '',
     });
   }

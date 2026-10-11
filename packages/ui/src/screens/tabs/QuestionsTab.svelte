@@ -20,8 +20,8 @@
   let limit = $state('');
   let removing = $state<string>();
 
-  const maxLength = $derived(parseAmount(limit));
-  const valid = $derived(text.trim() !== '' && maxLength !== undefined && (maxLength === null || (Number.isInteger(maxLength) && maxLength >= 1)));
+  const maxSentences = $derived(parseAmount(limit));
+  const valid = $derived(text.trim() !== '' && maxSentences !== undefined && (maxSentences === null || (Number.isInteger(maxSentences) && maxSentences >= 1)));
 
   function openAdd(): void {
     text = '';
@@ -30,7 +30,7 @@
   }
 
   async function add(): Promise<void> {
-    await api.addQuestion(detail.application.id, text, maxLength ?? null);
+    await api.addQuestion(detail.application.id, text, maxSentences ?? null);
     toast.success(tr('ui.questions.added'));
     adding = false;
     invalidate();
@@ -79,7 +79,7 @@
 <Dialog open={adding} title={tr('ui.questions.add')} onclose={() => (adding = false)} ui="add-question-dialog">
   <div class="stack">
     <Field label={tr('ui.questions.text')} for="question-text"><textarea id="question-text" class="input" rows="3" bind:value={text}></textarea></Field>
-    <Field label={tr('ui.questions.maxLength')} for="question-limit"><input id="question-limit" class="input" inputmode="numeric" bind:value={limit} /></Field>
+    <Field label={tr('ui.questions.maxSentences')} for="question-limit"><input id="question-limit" class="input" inputmode="numeric" bind:value={limit} /></Field>
   </div>
   {#snippet footer()}
     <Button onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>

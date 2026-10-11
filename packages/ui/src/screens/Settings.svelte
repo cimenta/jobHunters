@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -39,6 +40,7 @@
 
   let tab = $state('general');
   let experience = $state('');
+  let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '' });
   let uiLanguage = $state('en');
   let uiTheme = $state('system');
   let docLanguage = $state('en');
@@ -55,6 +57,7 @@
       uiLanguage = settings.ui_language;
       uiTheme = settings.ui_theme;
       experience = settings.candidate_experience;
+      prompts = Object.fromEntries(PROMPT_TYPES.map((type) => [type, settings[`ai_prompt_${type}`]])) as Record<PromptType, string>;
       docLanguage = settings.default_document_language;
       documentSet = [...settings.default_document_set];
     }
@@ -79,6 +82,33 @@
     await api.updateSettings({ candidate_experience: experience });
     await reloadSettings();
     toast.success(tr('ui.saved'));
+  }
+
+  async function savePrompts(): Promise<void> {
+    await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, prompts[type]])));
+    await reloadSettings();
+    toast.success(tr('ui.saved'));
+  }
+
+  async function resetPrompts(): Promise<void> {
+    await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])));
+    await reloadSettings();
+    toast.success(tr('ui.saved'));
+  }
+
+  function promptLabel(type: PromptType): string {
+    switch (type) {
+      case 'resume_tailor':
+        return tr('ui.settings.promptResume');
+      case 'cover_letter':
+        return tr('ui.settings.promptCoverLetter');
+      case 'other':
+        return tr('ui.settings.promptOther');
+      case 'answer_question':
+        return tr('ui.settings.promptAnswer');
+      case 'match_job':
+        return tr('ui.settings.promptMatch');
+    }
   }
 
   async function saveDocuments(): Promise<void> {
@@ -110,6 +140,7 @@
       { id: 'general', label: tr('ui.settings.tab.general') },
       { id: 'documents', label: tr('ui.settings.tab.documents') },
       { id: 'experience', label: tr('ui.settings.tab.experience') },
+      { id: 'prompts', label: tr('ui.settings.tab.prompts') },
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
       { id: 'statuses', label: tr('ui.settings.tab.statuses') },
@@ -170,6 +201,21 @@
       <textarea id="set-experience" class="input" rows="14" maxlength="40000" bind:value={experience}></textarea>
     </Field>
     <div><Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button></div>
+  </Card>
+  {:else if tab === 'prompts'}
+  <Card ui="settings.prompts">
+    <h2>{tr('ui.settings.prompts')}</h2>
+    <p class="muted small">{tr('ui.settings.promptsHint')}</p>
+    {#each PROMPT_TYPES as type (type)}
+      <Field label={promptLabel(type)} for="set-prompt-{type}">
+        <textarea id="set-prompt-{type}" class="input" rows="9" maxlength="10000" bind:value={prompts[type]}></textarea>
+      </Field>
+      <p class="muted small">{tr('ui.settings.promptPlaceholders')} {#each PROMPT_PLACEHOLDERS[type] as name (name)}<code>{'{{' + name + '}}'}</code>{' '}{/each}</p>
+    {/each}
+    <div class="actions">
+      <Button variant="primary" ui="settings.prompts.save" onclick={savePrompts}>{tr('ui.save')}</Button>
+      <Button variant="ghost" ui="settings.prompts.reset" onclick={resetPrompts}>{tr('ui.settings.promptsReset')}</Button>
+    </div>
   </Card>
   {:else if tab === 'profile'}
   <Card ui="settings.profile">
@@ -252,6 +298,7 @@
 
 <style>
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+  .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .checks { display: flex; flex-direction: column; gap: var(--space-1); padding: 0; margin: 0; border: 0; }
   legend { padding: 0; margin-bottom: var(--space-2); font-weight: 600; font-size: var(--text-s); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }

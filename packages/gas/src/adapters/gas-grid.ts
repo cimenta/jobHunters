@@ -28,8 +28,22 @@ export class GasSheetGrid implements SheetGrid {
     this.write(row, values);
   }
 
+  /**
+   * Last row whose first column is filled. getLastRow() is not enough: a checkbox column can hold FALSE
+   * in hundreds of otherwise empty rows, and new rows would then land far below the visible data.
+   */
+  private lastDataRow(): number {
+    const last = this.sheet.getLastRow();
+    if (last < 2) return 1;
+    const first = this.sheet.getRange(1, 1, last, 1).getValues();
+    for (let index = first.length - 1; index >= 1; index--) {
+      if (first[index]![0] !== '') return index + 1;
+    }
+    return 1;
+  }
+
   appendRow(values: Cell[]): void {
-    this.write(Math.max(this.sheet.getLastRow(), 1) + 1, values);
+    this.write(this.lastDataRow() + 1, values);
   }
 
   deleteRows(startRow: number, count: number): void {

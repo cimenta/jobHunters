@@ -188,7 +188,7 @@ describe('applications api', () => {
     const exported = api('exportDocumentPdf', { id: data.documents[0]!.id }) as { ok: true; data: { pdf_url: string; pdf_stale: boolean } };
     expect(exported.data.pdf_url).toMatch(/^https:/);
     expect(api('previewDocument', { id: data.documents[0]!.id })).toMatchObject({ ok: true, data: { html: expect.stringContaining('Eva Example') } });
-    api('addQuestion', { applicationId, question: 'Why us?', maxLength: 100 });
+    api('addQuestion', { applicationId, question: 'Why us?', maxSentences: 100 });
     api('addCommunication', { applicationId, direction: 'outgoing', channel: 'email', summary: 'Sent' });
     api('addReminder', { applicationId, dueAt: '2026-10-20', text: 'Call HR' });
     api('setApplicationStatus', { id: applicationId, to: 'sent' });
@@ -204,8 +204,8 @@ describe('applications api', () => {
   it('answers questions within the limit and manages reminders', () => {
     const { api, jobId } = prepared();
     const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
-    const question = (api('addQuestion', { applicationId, question: 'Why?', maxLength: 5 }) as { data: { id: string } }).data;
-    expect(api('answerQuestion', { id: question.id, answer: 'too long answer' })).toMatchObject({ ok: false, error: { code: 'answer_too_long' } });
+    const question = (api('addQuestion', { applicationId, question: 'Why?', maxSentences: 2 }) as { data: { id: string } }).data;
+    expect(api('answerQuestion', { id: question.id, answer: 'One. Two. Three.' })).toMatchObject({ ok: false, error: { code: 'answer_too_long' } });
     expect(api('answerQuestion', { id: question.id, answer: 'fine' })).toMatchObject({ ok: true, data: { status: 'answered' } });
     const reminder = (api('addReminder', { applicationId, dueAt: '2026-10-20', text: 'x' }) as { data: { id: string } }).data;
     expect(api('postponeReminder', { id: reminder.id, dueAt: '2026-10-25' })).toMatchObject({ ok: true, data: { due_at: '2026-10-25' } });
@@ -228,7 +228,7 @@ describe('applications api', () => {
     for (const [method, args] of [
       ['createApplication', undefined], ['createApplication', { jobId: 5 }], ['createApplication', { jobId: 'j', language: 5 }],
       ['addTemplate', { type: 'resume' }], ['updateProfile', { password: 'x' }], ['updateProfile', { name: 5 }],
-      ['addQuestion', { applicationId: 'a', question: 5 }], ['addQuestion', { applicationId: 'a', question: 'q', maxLength: 'x' }],
+      ['addQuestion', { applicationId: 'a', question: 5 }], ['addQuestion', { applicationId: 'a', question: 'q', maxSentences: 'x' }],
       ['addCommunication', { applicationId: 'a', direction: 'incoming', channel: 'email' }],
       ['addReminder', { applicationId: 'a', dueAt: 5, text: 'x' }], ['postponeReminder', { id: 'r' }], ['exportDocumentPdf', {}],
     ] as const) {

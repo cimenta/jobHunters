@@ -100,6 +100,19 @@ describe('Settings', () => {
     await waitFor(async () => expect((await api.getSettings()).settings.candidate_experience).toBe('Ten years of Kotlin'));
   });
 
+  it('edits the whole AI prompts and resets them to the defaults', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    const letter = within(card).getByLabelText('Writing the cover letter');
+    expect((letter as HTMLTextAreaElement).value).toContain('{{document_id}}');
+    await fireEvent.input(letter, { target: { value: 'Write the letter into {{document_id}}.' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_cover_letter).toBe('Write the letter into {{document_id}}.'));
+    await fireEvent.click(within(card).getByRole('button', { name: 'Reset all to default' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_cover_letter).toMatch(/at most 250 words/));
+    await waitFor(() => expect((letter as HTMLTextAreaElement).value).toMatch(/at most 250 words/));
+  });
+
   it('shows the version', async () => {
     await open('About');
     expect(screen.getByText('Version dev')).toBeInTheDocument();
