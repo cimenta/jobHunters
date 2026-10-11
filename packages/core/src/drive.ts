@@ -43,3 +43,9 @@ export function ensureFolderPath(drive: DriveGateway, root: FolderRef, segments:
 export function fillPlaceholders(text: string, values: Readonly<Record<string, string>>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (match, key: string) => (hasOwn(values, key) ? values[key]! : match));
 }
+
+/** The Drive/Docs id inside a Google address, or '' when there is none. */
+export function fileIdFromUrl(url: string): string {
+  const match = /\/(?:d|folders)\/([A-Za-z0-9_-]+)/.exec(url) ?? /[?&]id=([A-Za-z0-9_-]+)/.exec(url);
+  return match ? match[1]! : '';
+}

@@ -1,6 +1,12 @@
 import {
+  ApplicationFactory,
   ApplicationService,
+  CommunicationService,
+  DocumentService,
   JobService,
+  QuestionService,
+  ReminderService,
+  TemplateService,
   SettingsService,
   SheetAppendLog,
   SheetKeyValueStore,
@@ -8,6 +14,8 @@ import {
   SHEETS,
   type AppWarning,
   type Application,
+  type ApplicationDocument,
+  type Communication,
   type Company,
   type DriveGateway,
   type FolderRef,
@@ -15,10 +23,12 @@ import {
   type Lock,
   type LogEntry,
   type PageFetcher,
+  type Question,
   type Reminder,
   type SheetGrid,
   type SheetName,
   type StatusHistoryEntry,
+  type Template,
 } from '@jobhunters/core';
 
 export const LOG_MAX_ROWS = 1000;
@@ -50,6 +60,11 @@ export function buildContainer(deps: ContainerDeps) {
   const jobs = repository<Job>('Jobs');
   const applications = repository<Application>('Applications');
   const reminders = repository<Reminder>('Reminders');
+  const documents = repository<ApplicationDocument>('Documents');
+  const questions = repository<Question>('Questions');
+  const communications = repository<Communication>('Communications');
+  const templates = repository<Template>('Templates');
+  const profile = new SheetKeyValueStore('Profile', deps.grid('Profile'), lock, collect);
   const history = new SheetAppendLog<StatusHistoryEntry>('StatusHistory', SHEETS.StatusHistory, deps.grid('StatusHistory'), lock);
   const logSheet = new SheetAppendLog<LogEntry>('Log', SHEETS.Log, deps.grid('Log'), lock, LOG_MAX_ROWS);
   const settings = new SettingsService(new SheetKeyValueStore('Settings', deps.grid('Settings'), lock, collect), lock);
@@ -76,17 +91,45 @@ export function buildContainer(deps: ContainerDeps) {
     now: deps.now,
     onError: (where, error) => log('jobs', where, error instanceof Error ? error.message : String(error)),
   });
+  const applicationFactory = new ApplicationFactory({
+    jobs, companies, applications, documents, templates, history,
+    drive: deps.drive,
+    rootFolder: deps.rootFolder,
+    profile: () => profile.getAll(),
+    settings: () => settings.get().settings,
+    newId: deps.newId,
+    now: deps.now,
+    onError: (where, error) => log('applications', where, error instanceof Error ? error.message : String(error)),
+  });
+  const templateService = new TemplateService(templates, deps.newId);
+  const documentService = new DocumentService({ documents, applications, drive: deps.drive, now: deps.now });
+  const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
+  const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
+  const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
 
   return {
     appVersion: deps.appVersion,
+    now: deps.now,
+    history,
     lock,
     companies,
     jobs,
     applications,
     reminders,
+    documents,
+    questions,
+    communications,
+    templates,
+    profile,
     settings,
     applicationService,
     jobService,
+    applicationFactory,
+    templateService,
+    documentService,
+    questionService,
+    communicationService,
+    reminderService,
     log,
     logEntries: (): LogEntry[] => logSheet.list(),
     /** Reads every entity sheet and returns what is wrong with rows edited outside the app. */
@@ -96,6 +139,11 @@ export function buildContainer(deps: ContainerDeps) {
       jobs.list();
       applications.list();
       reminders.list();
+      documents.list();
+      questions.list();
+      communications.list();
+      templates.list();
+      profile.getAll();
       settings.get();
       const seen = new Set<string>();
       return found.splice(0).filter((w) => {

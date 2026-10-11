@@ -1,5 +1,5 @@
 import { APPLICATION_STATUSES } from './status';
-import type { Application, Company, Job, LogEntry, Reminder, StatusHistoryEntry } from './types';
+import type { Application, ApplicationDocument, Communication, Company, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
 
 /** Resolves to `true` when every key of T appears in the column list C, otherwise to `never`. */
 type Complete<T, C extends readonly string[]> = Exclude<keyof T, C[number]> extends never ? true : never;
@@ -24,6 +24,16 @@ const REMINDER_COLUMNS = [
 ] as const satisfies readonly (keyof Reminder)[];
 
 const STATUS_HISTORY_COLUMNS = ['application_id', 'from', 'to', 'at'] as const satisfies readonly (keyof StatusHistoryEntry)[];
+const DOCUMENT_COLUMNS = [
+  'id', 'application_id', 'type', 'doc_url', 'pdf_url', 'template_id', 'created_at', 'pdf_exported_at',
+] as const satisfies readonly (keyof ApplicationDocument)[];
+const QUESTION_COLUMNS = [
+  'id', 'application_id', 'position', 'question', 'answer', 'max_length', 'status', 'created_at', 'updated_at',
+] as const satisfies readonly (keyof Question)[];
+const COMMUNICATION_COLUMNS = [
+  'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url',
+] as const satisfies readonly (keyof Communication)[];
+const TEMPLATE_COLUMNS = ['id', 'type', 'language', 'name', 'doc_url'] as const satisfies readonly (keyof Template)[];
 const LOG_COLUMNS = ['time', 'flow', 'entity', 'message'] as const satisfies readonly (keyof LogEntry)[];
 
 // Compile-time guards: fail `npm run typecheck` when an entity gains a field that is not a sheet column.
@@ -32,6 +42,10 @@ export const _jobComplete: Complete<Job, typeof JOB_COLUMNS> = true;
 export const _applicationComplete: Complete<Application, typeof APPLICATION_COLUMNS> = true;
 export const _reminderComplete: Complete<Reminder, typeof REMINDER_COLUMNS> = true;
 export const _statusHistoryComplete: Complete<StatusHistoryEntry, typeof STATUS_HISTORY_COLUMNS> = true;
+export const _documentComplete: Complete<ApplicationDocument, typeof DOCUMENT_COLUMNS> = true;
+export const _questionComplete: Complete<Question, typeof QUESTION_COLUMNS> = true;
+export const _communicationComplete: Complete<Communication, typeof COMMUNICATION_COLUMNS> = true;
+export const _templateComplete: Complete<Template, typeof TEMPLATE_COLUMNS> = true;
 export const _logComplete: Complete<LogEntry, typeof LOG_COLUMNS> = true;
 
 // Sheets whose entity interfaces arrive with the plan that first uses them are listed by columns only.
@@ -39,14 +53,14 @@ export const SHEETS = {
   Companies: COMPANY_COLUMNS,
   Jobs: JOB_COLUMNS,
   Applications: APPLICATION_COLUMNS,
-  Documents: ['id', 'application_id', 'type', 'doc_url', 'pdf_url', 'template_id', 'created_at', 'pdf_exported_at'],
-  Questions: ['id', 'application_id', 'position', 'question', 'answer', 'max_length', 'status', 'created_at', 'updated_at'],
-  Communications: ['id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url'],
+  Documents: DOCUMENT_COLUMNS,
+  Questions: QUESTION_COLUMNS,
+  Communications: COMMUNICATION_COLUMNS,
   Reminders: REMINDER_COLUMNS,
   Contacts: ['id', 'company_id', 'job_id', 'name', 'email', 'phone', 'role'],
   StatusHistory: STATUS_HISTORY_COLUMNS,
   Tasks: ['id', 'created_at', 'application_id', 'job_id', 'type', 'target_type', 'target_id', 'instructions', 'status', 'ai_note', 'completed_at'],
-  Templates: ['id', 'type', 'language', 'name', 'doc_url'],
+  Templates: TEMPLATE_COLUMNS,
   Profile: ['key', 'value'],
   Prompts: ['type', 'language', 'instruction'],
   Settings: ['key', 'value'],

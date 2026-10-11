@@ -41,18 +41,18 @@ export class FakeDrive implements DriveGateway {
 
   ensureFolder(parentId: string | null, name: string): FolderRef {
     for (const folder of this.folders.values()) {
-      if (folder.parentId === parentId && folder.name === name) return { id: folder.id, url: `https://drive.example.invalid/${folder.id}` };
+      if (folder.parentId === parentId && folder.name === name) return { id: folder.id, url: `https://drive.example.invalid/drive/folders/${folder.id}` };
     }
     const id = this.nextId('f');
     this.folders.set(id, { id, parentId, name });
-    return { id, url: `https://drive.example.invalid/${id}` };
+    return { id, url: `https://drive.example.invalid/drive/folders/${id}` };
   }
 
   copyDocument(templateDocId: string, name: string, folderId: string): FileRef {
     const template = this.doc(templateDocId);
     const id = this.nextId('d');
     this.documents.set(id, { id, name, folderId, content: template.content, modifiedAt: this.tick() });
-    return { id, url: `https://docs.example.invalid/${id}` };
+    return { id, url: `https://docs.example.invalid/document/d/${id}/edit` };
   }
 
   replaceInDocument(docId: string, values: Record<string, string>): void {
@@ -65,13 +65,13 @@ export class FakeDrive implements DriveGateway {
     const doc = this.doc(docId);
     const id = this.nextId('pdf');
     this.documents.set(id, { id, name: `${name}.pdf`, folderId, content: doc.content, modifiedAt: this.tick() });
-    return { id, url: `https://drive.example.invalid/${id}` };
+    return { id, url: `https://drive.example.invalid/file/d/${id}/view` };
   }
 
   saveTextFile(folderId: string, name: string, content: string, _mimeType: string): FileRef {
     const id = this.nextId('file');
     this.documents.set(id, { id, name, folderId, content, modifiedAt: this.tick() });
-    return { id, url: `https://drive.example.invalid/${id}` };
+    return { id, url: `https://drive.example.invalid/file/d/${id}/view` };
   }
 
   exportHtml(docId: string): string {

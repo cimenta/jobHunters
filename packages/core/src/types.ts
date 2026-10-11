@@ -79,3 +79,51 @@ export interface LogEntry {
   entity: string;
   message: string;
 }
+
+export interface ApplicationDocument {
+  id: string;
+  application_id: string;
+  /** resume, cover_letter or other. */
+  type: string;
+  doc_url: string;
+  pdf_url: string;
+  template_id: string;
+  created_at: string;
+  pdf_exported_at: string;
+}
+
+export interface Question {
+  id: string;
+  application_id: string;
+  position: number;
+  question: string;
+  answer: string;
+  max_length: number | null;
+  /** open or answered. */
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Communication {
+  id: string;
+  application_id: string;
+  datetime: string;
+  /** incoming, outgoing or note. */
+  direction: string;
+  /** email, phone, linkedin, in_person, portal or other. */
+  channel: string;
+  contact_id: string;
+  summary: string;
+  details: string;
+  attachment_url: string;
+}
+
+export interface Template {
+  id: string;
+  type: string;
+  /** en, cs or empty (valid for every language). */
+  language: string;
+  name: string;
+  doc_url: string;
+}

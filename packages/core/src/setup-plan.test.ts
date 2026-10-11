@@ -23,6 +23,10 @@ describe('buildSetupPlan', () => {
     expect(sheet('INSTRUCTIONS').textColumns).toEqual([1]);
   });
 
+  it('seeds the Profile sheet with the profile keys and empty values', () => {
+    expect(sheet('Profile').seedRows).toEqual([['name', ''], ['email', ''], ['phone', ''], ['address', ''], ['links', '']]);
+  });
+
   it('uses checkboxes for booleans', () => {
     expect(sheet('Jobs').checkboxColumns).toEqual([sheet('Jobs').headers.indexOf('is_gig') + 1]);
     expect(sheet('Companies').checkboxColumns).toEqual([]);

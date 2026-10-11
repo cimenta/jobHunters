@@ -1,33 +1,8 @@
 import { EDITABLE_JOB_FIELDS, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
 import type { Handler } from './api';
+import { asRecord, requireString, stringRecord } from './args';
 import type { Container } from './container';
-
-function asRecord(args: unknown, method: string): Record<string, unknown> {
-  if (typeof args !== 'object' || args === null || Array.isArray(args)) {
-    throw new ValidationError('invalid_arguments', `Invalid arguments for ${method}`, { method });
-  }
-  return args as Record<string, unknown>;
-}
-
-function requireString(record: Record<string, unknown>, key: string, method: string): string {
-  const value = record[key];
-  if (typeof value !== 'string' || value === '') {
-    throw new ValidationError('invalid_arguments', `Argument ${key} of ${method} must be a non-empty string`, { method });
-  }
-  return value;
-}
-
-function stringRecord(args: unknown, method: string): Record<string, string> {
-  const record = asRecord(args, method);
-  const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(record)) {
-    if (typeof value !== 'string') {
-      throw new ValidationError('invalid_arguments', `Argument ${key} of ${method} must be a string`, { method });
-    }
-    out[key] = value;
-  }
-  return out;
-}
+import { createApplicationHandlers } from './handlers-applications';
 
 const NUMBER_FIELDS = new Set(['salary_min', 'salary_max']);
 
@@ -60,6 +35,8 @@ function parseJobInput(args: unknown, method: string) {
 
 export function createHandlers(c: Container): Record<string, Handler> {
   return {
+    ...createApplicationHandlers(c),
+
     getAppInfo: () => ({ version: c.appVersion, locales: [...SUPPORTED_LOCALES] }),
 
     getSettings: () => {

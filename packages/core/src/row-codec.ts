@@ -13,6 +13,9 @@ export const WARNING_CODES = [
   'setting_invalid',
   'similar_job',
   'page_not_fetched',
+  'active_application_exists',
+  'template_missing',
+  'document_create_failed',
 ] as const;
 export type WarningCode = (typeof WARNING_CODES)[number];
 

@@ -23,6 +23,21 @@ export const ERROR_CODES = [
   'setup_required',
   'export_failed',
   'url_invalid',
+  'job_not_found',
+  'language_invalid',
+  'application_job_mismatch',
+  'template_not_found',
+  'template_invalid',
+  'application_folder_missing',
+  'document_not_found',
+  'question_not_found',
+  'question_required',
+  'max_length_invalid',
+  'answer_too_long',
+  'communication_not_found',
+  'communication_invalid',
+  'reminder_not_found',
+  'reminder_text_required',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

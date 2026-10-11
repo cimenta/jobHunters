@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ensureFolderPath, fillPlaceholders, sanitizeFolderName } from './drive';
+import { ensureFolderPath, fileIdFromUrl, fillPlaceholders, sanitizeFolderName } from './drive';
 import { FakeDrive } from './testing/fake-drive';
 
 describe('sanitizeFolderName', () => {
@@ -59,5 +59,27 @@ describe('FakeDrive', () => {
     expect(drive.exportHtml(copy.id)).toContain('Dear Acme');
     expect(drive.exportPdf(copy.id, root.id, 'Cover letter').id).not.toBe(copy.id);
     expect(drive.documents.get(template)?.content).toBe('Dear {{company}}');
+  });
+});
+
+describe('fileIdFromUrl', () => {
+  it('reads the id from Docs, Drive file and folder addresses', () => {
+    expect(fileIdFromUrl('https://docs.google.com/document/d/1AbC_d-E/edit')).toBe('1AbC_d-E');
+    expect(fileIdFromUrl('https://drive.google.com/file/d/1AbC_d-E/view?usp=sharing')).toBe('1AbC_d-E');
+    expect(fileIdFromUrl('https://drive.google.com/drive/folders/1AbC_d-E?usp=sharing')).toBe('1AbC_d-E');
+    expect(fileIdFromUrl('https://drive.google.com/open?id=1AbC_d-E')).toBe('1AbC_d-E');
+  });
+  it('returns an empty string when there is no id', () => {
+    expect(fileIdFromUrl('')).toBe('');
+    expect(fileIdFromUrl('https://example.com/page')).toBe('');
+  });
+  it('works with the addresses the fake drive hands out', () => {
+    const drive = new FakeDrive();
+    const folder = drive.ensureFolder(null, 'JobHunters');
+    expect(fileIdFromUrl(folder.url)).toBe(folder.id);
+    const template = drive.addTemplate('x');
+    const copy = drive.copyDocument(template, 'copy', folder.id);
+    expect(fileIdFromUrl(copy.url)).toBe(copy.id);
+    expect(fileIdFromUrl(drive.saveTextFile(folder.id, 'a.txt', 'a', 'text/plain').url)).not.toBe('');
   });
 });

@@ -8,6 +8,7 @@ import { buildContainer } from './container';
 import { createHandlers } from './handlers';
 import { getRootFolderId, getSpreadsheetId } from './props';
 import { runSetup } from './setup';
+import { runSmokeTest } from './smoke';
 
 /** Defined in Version.gs, which Apps Script loads into the same global scope. */
 declare const APP_VERSION: string;
@@ -52,6 +53,27 @@ export function api(method: string, args?: unknown): ApiResult {
 /** Run once from the Apps Script editor. */
 export function setup(): { spreadsheetUrl: string; rootFolderUrl: string } {
   return runSetup();
+}
+
+/**
+ * One-click manual check: run it from the Apps Script editor and read the execution log.
+ * It writes test data (see smoke.ts); delete the "Smoke Test Ltd" rows and folders afterwards.
+ */
+export function smokeTest(): string {
+  const result = runSmokeTest({
+    call: (method, args) => api(method, args),
+    createTemplateDoc: (name, text) => {
+      const document = DocumentApp.create(name);
+      document.getBody().setText(text);
+      document.saveAndClose();
+      const templatesFolder = new GasDrive().ensureFolder(getRootFolderId(), 'Templates');
+      DriveApp.getFileById(document.getId()).moveTo(DriveApp.getFolderById(templatesFolder.id));
+      return document.getUrl();
+    },
+    today: () => new Date().toISOString().slice(0, 10),
+    log: (line) => Logger.log(line),
+  });
+  return result.ok ? 'OK' : `FAILED: ${result.failed.join(', ')}`;
 }
 
 /** Placeholder until the UI plan: lets you confirm the web app deployment works. */

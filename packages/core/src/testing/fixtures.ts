@@ -1,4 +1,4 @@
-import type { Application, Reminder } from '../types';
+import type { Application, ApplicationDocument, Company, Job, Reminder, Template } from '../types';
 
 export function makeApplication(overrides: Partial<Application> = {}): Application {
   return {
@@ -37,4 +37,30 @@ export function makeReminder(overrides: Partial<Reminder> = {}): Reminder {
 export function sequentialIds(prefix: string): () => string {
   let next = 1;
   return () => `${prefix}${next++}`;
+}
+
+export function makeCompany(overrides: Partial<Company> = {}): Company {
+  return { id: 'c1', name: 'Example s.r.o.', website: '', notes: '', ...overrides };
+}
+
+export function makeJob(overrides: Partial<Job> = {}): Job {
+  return {
+    id: 'j1', company_id: 'c1', title: 'Android Developer', url: 'https://example.com/job/1', source: 'example.com',
+    parser_id: 'generic', parsed_at: '', contact_id: '', found_at: '2026-10-10T08:00:00.000Z', is_gig: false,
+    location: 'Praha', salary_min: null, salary_max: null, salary_currency: '', salary_period: '', employment_type: '',
+    remote: '', posted_at: '', valid_until: '', description: '', language: 'en', availability: 'online',
+    availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
+    ...overrides,
+  };
+}
+
+export function makeDocument(overrides: Partial<ApplicationDocument> = {}): ApplicationDocument {
+  return {
+    id: 'd1', application_id: 'a1', type: 'resume', doc_url: '', pdf_url: '', template_id: '',
+    created_at: '2026-10-10T08:00:00.000Z', pdf_exported_at: '', ...overrides,
+  };
+}
+
+export function makeTemplate(overrides: Partial<Template> = {}): Template {
+  return { id: 't1', type: 'resume', language: 'en', name: 'Resume', doc_url: '', ...overrides };
 }

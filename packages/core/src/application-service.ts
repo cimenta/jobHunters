@@ -85,7 +85,7 @@ export class ApplicationService {
   }
 }
 
-function requireReminderDate(remindAt: string | undefined, nowIso: string): string {
+export function requireReminderDate(remindAt: string | undefined, nowIso: string): string {
   const match = remindAt === undefined ? null : /^(\d{4})-(\d{2})-(\d{2})$/.exec(remindAt);
   if (remindAt === undefined || !match) {
     throw new ValidationError('reminder_date_required', 'Status "waiting" needs a reminder date in YYYY-MM-DD format');

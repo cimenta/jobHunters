@@ -1,4 +1,5 @@
 export * from './application-service';
+export * from './applications';
 export * from './drive';
 export * from './errors';
 export * from './i18n';
