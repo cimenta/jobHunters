@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ApplicationService } from './application-service';
 import { NotFoundError, ValidationError } from './errors';
+import type { Locale } from './i18n';
 import { InMemoryAppendLog, InMemoryRepository } from './repository';
 import { makeApplication, makeReminder, sequentialIds } from './testing/fixtures';
 import type { Application, Reminder, StatusHistoryEntry } from './types';
@@ -8,11 +9,11 @@ import type { ApplicationStatus } from './status';
 
 const NOW = '2026-10-10T08:00:00.000Z';
 
-function setup(application: Partial<Application> = {}, extraReminders: Reminder[] = []) {
+function setup(application: Partial<Application> = {}, extraReminders: Reminder[] = [], locale: Locale = 'en') {
   const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', status: 'sent', ...application })]);
   const reminders = new InMemoryRepository<Reminder>(extraReminders);
   const history = new InMemoryAppendLog<StatusHistoryEntry>();
-  const service = new ApplicationService({ applications, reminders, history, newId: sequentialIds('r'), now: () => NOW });
+  const service = new ApplicationService({ applications, reminders, history, newId: sequentialIds('r'), now: () => NOW, locale: () => locale });
   return { applications, reminders, history, service };
 }
 
@@ -62,6 +63,12 @@ describe('rows edited outside the app', () => {
 });
 
 describe('entering waiting', () => {
+  it('writes the waiting reminder text in the configured language', () => {
+    const { service, reminders } = setup({ status: 'sent' }, [], 'cs');
+    service.setStatus('a1', 'waiting', { remindAt: '2026-10-20' });
+    expect(reminders.list()[0]?.text).toBe('Čekání na odpověď');
+  });
+
   it('creates an open waiting reminder due on the given date', () => {
     const { service, reminders, history } = setup({ job_id: 'j7' });
     service.setStatus('a1', 'waiting', { remindAt: '2026-10-20' });
@@ -71,7 +78,7 @@ describe('entering waiting', () => {
         application_id: 'a1',
         job_id: 'j7',
         due_at: '2026-10-20',
-        text: 'Čekání na odpověď',
+        text: 'Waiting for a reply',
         status: 'open',
         source: 'waiting',
         created_at: NOW,

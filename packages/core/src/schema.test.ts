@@ -1,31 +1,51 @@
 import { describe, expect, it } from 'vitest';
-import { SHEETS } from './schema';
+import { ALLOWED_VALUES, columnType, isNullableNumber, SHEETS } from './schema';
+
+const KEYLESS = ['StatusHistory', 'Profile', 'Prompts', 'Settings', 'INSTRUCTIONS', 'Log'];
 
 describe('sheet schema', () => {
-  it('defines the sheets planned for the foundation, in order', () => {
-    expect(Object.keys(SHEETS)).toEqual(['Companies', 'Jobs', 'Applications', 'Reminders', 'StatusHistory']);
+  it('defines every sheet of the spec, in order', () => {
+    expect(Object.keys(SHEETS)).toEqual([
+      'Companies', 'Jobs', 'Applications', 'Documents', 'Questions', 'Communications', 'Reminders',
+      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Prompts', 'Settings', 'INSTRUCTIONS', 'Log',
+    ]);
   });
 
   it.each(Object.entries(SHEETS))('%s: columns are unique snake_case names', (_name, columns) => {
     expect(new Set(columns).size).toBe(columns.length);
-    for (const column of columns) {
-      expect(column).toMatch(/^[a-z][a-z0-9_]*$/);
-    }
+    for (const column of columns) expect(column).toMatch(/^[a-z][a-z0-9_]*$/);
   });
 
-  it.each(Object.entries(SHEETS).filter(([name]) => name !== 'StatusHistory'))(
-    '%s: starts with an id column',
-    (_name, columns) => {
-      expect(columns[0]).toBe('id');
-    },
-  );
+  it.each(Object.entries(SHEETS).filter(([name]) => !KEYLESS.includes(name)))('%s: starts with an id column', (_name, columns) => {
+    expect(columns[0]).toBe('id');
+  });
 
   it('keeps the Job columns in the order given by the spec', () => {
     expect(SHEETS.Jobs).toEqual([
       'id', 'company_id', 'title', 'url', 'source', 'parser_id', 'parsed_at', 'contact_id', 'found_at',
       'is_gig', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
-      'employment_type', 'remote', 'posted_at', 'valid_until', 'description', 'availability',
+      'employment_type', 'remote', 'posted_at', 'valid_until', 'description', 'language', 'availability',
       'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes',
     ]);
+  });
+
+  it('puts the document language on applications', () => {
+    expect(SHEETS.Applications.slice(0, 6)).toEqual(['id', 'job_id', 'attempt', 'label', 'language', 'status']);
+  });
+
+  it('types numeric and boolean columns, everything else is text', () => {
+    expect(columnType('salary_min')).toBe('number');
+    expect(columnType('attempt')).toBe('number');
+    expect(columnType('is_gig')).toBe('boolean');
+    expect(columnType('description')).toBe('string');
+    expect(isNullableNumber('salary_min')).toBe(true);
+    expect(isNullableNumber('offline_strikes')).toBe(false);
+  });
+
+  it('only restricts columns that exist', () => {
+    for (const key of Object.keys(ALLOWED_VALUES)) {
+      const [sheet, column] = key.split('.') as [keyof typeof SHEETS, string];
+      expect((SHEETS[sheet] as readonly string[]).includes(column), key).toBe(true);
+    }
   });
 });

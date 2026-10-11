@@ -26,6 +26,8 @@ export interface Job {
   posted_at: string;
   valid_until: string;
   description: string;
+  /** Language of the ad: en, cs or empty. */
+  language: string;
   availability: 'online' | 'offline' | 'unknown';
   availability_reason: string;
   offline_strikes: number;
@@ -40,6 +42,8 @@ export interface Application {
   job_id: string;
   attempt: number;
   label: string;
+  /** Language of the application documents. */
+  language: string;
   /** Untrusted: the cell may have been edited outside the app. Validate with isApplicationStatus. */
   status: string;
   applied_at: string;
@@ -67,4 +71,11 @@ export interface StatusHistoryEntry {
   from: string;
   to: string;
   at: string;
+}
+
+export interface LogEntry {
+  time: string;
+  flow: string;
+  entity: string;
+  message: string;
 }

@@ -12,10 +12,13 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/gas/tsconfig.json",
+    "build": "node scripts/build-gas.mjs",
     "test": "vitest run"
   },
   "devDependencies": {
+    "@types/google-apps-script": "^2.0.13",
     "@types/node": "^26.6.5",
+    "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
   }

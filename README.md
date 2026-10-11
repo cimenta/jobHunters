@@ -3,7 +3,7 @@
 Manage and prepare job applications. Runs for free on your own Google account:
 Google Apps Script (backend and web UI), Google Sheets (data), Google Drive and Docs (files and documents).
 
-**Status:** early development. The domain core is in place; the Google Apps Script layer and the UI are being built.
+**Status:** early development. The domain core and the Apps Script data layer are in place; parsers and the UI are being built.
 
 ## What it will do
 
@@ -21,12 +21,15 @@ Requires Node.js 22.12+.
 npm install
 npm run typecheck
 npm test
+npm run build
 ```
 
 Layout:
 
 - `packages/core` – pure TypeScript domain logic, no Google APIs.
 - `packages/gas` – Apps Script code (`Version.gs` holds the app version).
+
+See `docs/deploy.md` to run it on your own Google account.
 
 Copy `.clasp.json.example` to `.clasp.json` and set your own script ID when you start deploying with `clasp`.
 Never commit `.clasp.json`, `.clasprc.json` or `.env`.

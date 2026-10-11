@@ -1,3 +1,4 @@
+import { t, type Locale } from './i18n';
 import { NotFoundError, ValidationError } from './errors';
 import type { AppendLog, Repository } from './repository';
 import { canTransition, isApplicationStatus, type ApplicationStatus } from './status';
@@ -10,6 +11,8 @@ export interface ApplicationServiceDeps {
   newId: () => string;
   /** Current time as an ISO 8601 date-time, e.g. 2026-10-10T08:00:00.000Z. */
   now: () => string;
+  /** Language of texts the app writes into sheets (the user's UI language). */
+  locale: () => Locale;
 }
 
 export interface SetStatusOptions {
@@ -17,25 +20,31 @@ export interface SetStatusOptions {
   remindAt?: string;
 }
 
-const WAITING_REMINDER_TEXT = 'Čekání na odpověď';
-
 export class ApplicationService {
   constructor(private readonly deps: ApplicationServiceDeps) {}
 
   setStatus(applicationId: string, to: ApplicationStatus, options: SetStatusOptions = {}): Application {
-    const { applications, reminders, history, newId, now } = this.deps;
+    const { applications, reminders, history, newId, now, locale } = this.deps;
 
     const application = applications.get(applicationId);
-    if (!application) throw new NotFoundError(`Application ${applicationId} not found`);
-    if (!isApplicationStatus(to)) throw new ValidationError(`Unknown target status "${to}"`);
+    if (!application) throw new NotFoundError('application_not_found', `Application ${applicationId} not found`, { id: applicationId });
+    if (!isApplicationStatus(to)) throw new ValidationError('status_unknown', `Unknown target status "${to}"`, { status: String(to) });
     if (!isApplicationStatus(application.status)) {
-      throw new ValidationError(`Application ${applicationId} has unknown status "${application.status}"`);
+      throw new ValidationError(
+        'application_status_unknown',
+        `Application ${applicationId} has unknown status "${application.status}"`,
+        { id: applicationId, status: application.status },
+      );
     }
 
     const from = application.status;
     const reschedule = from === 'waiting' && to === 'waiting';
     if (!reschedule && !canTransition(from, to)) {
-      throw new ValidationError(`Cannot move application ${applicationId} from ${from} to ${to}`);
+      throw new ValidationError('transition_not_allowed', `Cannot move application ${applicationId} from ${from} to ${to}`, {
+        id: applicationId,
+        from,
+        to,
+      });
     }
 
     const timestamp = now();
@@ -49,7 +58,7 @@ export class ApplicationService {
         application_id: applicationId,
         job_id: application.job_id,
         due_at: remindAt,
-        text: WAITING_REMINDER_TEXT,
+        text: t('reminder.waiting', {}, locale()),
         status: 'open',
         source: 'waiting',
         created_at: timestamp,
@@ -79,15 +88,15 @@ export class ApplicationService {
 function requireReminderDate(remindAt: string | undefined, nowIso: string): string {
   const match = remindAt === undefined ? null : /^(\d{4})-(\d{2})-(\d{2})$/.exec(remindAt);
   if (remindAt === undefined || !match) {
-    throw new ValidationError('Status "waiting" needs a reminder date in YYYY-MM-DD format');
+    throw new ValidationError('reminder_date_required', 'Status "waiting" needs a reminder date in YYYY-MM-DD format');
   }
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
   const check = new Date(Date.UTC(year, month - 1, day));
   const isRealDate =
     check.getUTCFullYear() === year && check.getUTCMonth() === month - 1 && check.getUTCDate() === day;
-  if (!isRealDate) throw new ValidationError(`"${remindAt}" is not a real calendar date`);
+  if (!isRealDate) throw new ValidationError('reminder_date_invalid', `"${remindAt}" is not a real calendar date`, { date: remindAt });
   if (remindAt < nowIso.slice(0, 10)) {
-    throw new ValidationError(`Reminder date ${remindAt} is in the past`);
+    throw new ValidationError('reminder_date_in_past', `Reminder date ${remindAt} is in the past`, { date: remindAt });
   }
   return remindAt;
 }

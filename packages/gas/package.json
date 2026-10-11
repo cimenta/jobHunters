@@ -2,5 +2,8 @@
   "name": "@jobhunters/gas",
   "private": true,
   "type": "module",
-  "main": "src/index.ts"
+  "main": "src/main.ts",
+  "dependencies": {
+    "@jobhunters/core": "*"
+  }
 }

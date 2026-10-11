@@ -34,22 +34,22 @@ export class InMemoryRepository<T extends { id: string }> implements Repository<
   }
 
   insert(item: T): T {
-    if (!item.id) throw new ValidationError('A row needs a non-empty id');
-    if (this.items.has(item.id)) throw new DuplicateIdError(`Row ${item.id} already exists`);
+    if (!item.id) throw new ValidationError('row_id_required', 'A row needs a non-empty id');
+    if (this.items.has(item.id)) throw new DuplicateIdError('duplicate_id', `Row ${item.id} already exists`, { id: item.id });
     this.items.set(item.id, copy(item));
     return copy(item);
   }
 
   update(id: string, patch: Partial<Omit<T, 'id'>>): T {
     const current = this.items.get(id);
-    if (current === undefined) throw new NotFoundError(`Row ${id} not found`);
+    if (current === undefined) throw new NotFoundError('row_not_found', `Row ${id} not found`, { id });
     const next = { ...current, ...patch, id } as T;
     this.items.set(id, copy(next));
     return copy(next);
   }
 
   remove(id: string): void {
-    if (!this.items.delete(id)) throw new NotFoundError(`Row ${id} not found`);
+    if (!this.items.delete(id)) throw new NotFoundError('row_not_found', `Row ${id} not found`, { id });
   }
 }
 

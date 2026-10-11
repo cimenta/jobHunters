@@ -6,6 +6,7 @@ export function makeApplication(overrides: Partial<Application> = {}): Applicati
     job_id: 'j1',
     attempt: 1,
     label: 'Acme – Developer – #1 (2026-10)',
+    language: 'en',
     status: 'draft',
     applied_at: '',
     last_activity_at: '',
