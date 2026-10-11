@@ -1,12 +1,16 @@
 import {
   NotFoundError,
   PROFILE_KEYS,
+  applicationRows,
+  buildDashboard,
   buildTimeline,
+  companyRows,
+  jobRows,
   reminderBuckets,
   type CommunicationInput,
 } from '@jobhunters/core';
 import type { Handler } from './api';
-import { asRecord, invalidArguments, optionalNumber, optionalString, requireString, stringRecord } from './args';
+import { asRecord, invalidArguments, optionalBoolean, optionalNumber, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
 
 const COMMUNICATION_FIELDS = ['direction', 'channel', 'summary', 'details', 'datetime', 'contactId', 'attachmentUrl'] as const;
@@ -62,6 +66,13 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.applicationFactory.create({ jobId, language, fromApplicationId }));
     },
 
+    deleteApplication: (args) => {
+      const input = asRecord(args, 'deleteApplication');
+      const id = requireString(input, 'id', 'deleteApplication');
+      const trashFolder = optionalBoolean(input, 'trashFolder', 'deleteApplication') ?? false;
+      return c.lock.run(() => c.applicationRemover.remove(id, { trashFolder }));
+    },
+
     addApplicationDocument: (args) => {
       const input = asRecord(args, 'addApplicationDocument');
       const applicationId = requireString(input, 'applicationId', 'addApplicationDocument');
@@ -69,14 +80,54 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.applicationFactory.addDocument(applicationId, templateId));
     },
 
-    listApplications: () => {
-      const jobs = new Map(c.jobs.list().map((job) => [job.id, job]));
-      const companies = new Map(c.companies.list().map((company) => [company.id, company]));
-      return c.applications.list().map((application) => {
-        const job = jobs.get(application.job_id);
-        return { ...application, job_title: job?.title ?? '', company_name: (job && companies.get(job.company_id)?.name) ?? '' };
-      });
+    listApplications: () => applicationRows(c.applications.list(), c.jobs.list(), c.companies.list()),
+
+    listJobs: () => jobRows(c.jobs.list(), c.companies.list(), c.applications.list()),
+
+    getJob: (args) => {
+      const id = requireString(asRecord(args, 'getJob'), 'id', 'getJob');
+      const job = c.jobs.get(id);
+      if (!job) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
+      const applications = applicationRows(c.applications.list().filter((a) => a.job_id === id), [job], c.companies.list());
+      return { job, company: c.companies.get(job.company_id), applications };
     },
+
+    updateJob: (args) => {
+      const input = asRecord(args, 'updateJob');
+      const id = requireString(input, 'id', 'updateJob');
+      const notes = optionalString(input, 'notes', 'updateJob');
+      const isGig = optionalBoolean(input, 'is_gig', 'updateJob');
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig }));
+    },
+
+    listCompanies: () => companyRows(c.companies.list(), c.jobs.list(), c.applications.list()),
+
+    getCompany: (args) => {
+      const id = requireString(asRecord(args, 'getCompany'), 'id', 'getCompany');
+      const company = c.companies.get(id);
+      if (!company) throw new NotFoundError('company_not_found', `Company ${id} not found`, { id });
+      const jobs = c.jobs.list().filter((j) => j.company_id === id);
+      const applications = c.applications.list().filter((a) => jobs.some((j) => j.id === a.job_id));
+      return { company, jobs: jobRows(jobs, [company], applications), applications: applicationRows(applications, jobs, [company]) };
+    },
+
+    updateCompany: (args) => {
+      const input = asRecord(args, 'updateCompany');
+      const id = requireString(input, 'id', 'updateCompany');
+      const name = optionalString(input, 'name', 'updateCompany');
+      const website = optionalString(input, 'website', 'updateCompany');
+      const notes = optionalString(input, 'notes', 'updateCompany');
+      return c.lock.run(() => c.catalogService.updateCompany(id, { name, website, notes }));
+    },
+
+    getDashboard: () =>
+      buildDashboard({
+        reminders: c.reminders.list(),
+        applications: c.applications.list(),
+        jobs: c.jobs.list(),
+        companies: c.companies.list(),
+        today: c.now().slice(0, 10),
+      }),
 
     getApplication: (args) => {
       const id = requireString(asRecord(args, 'getApplication'), 'id', 'getApplication');

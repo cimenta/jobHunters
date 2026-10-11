@@ -9,7 +9,7 @@ const dist = (file: string) => `${appRoot}dist/${file}`;
 
 beforeAll(() => {
   execFileSync(process.execPath, ['scripts/build-gas.mjs'], { cwd: appRoot, stdio: 'pipe' });
-}, 60_000);
+}, 180_000);
 
 describe('build', () => {
   it('writes the files clasp pushes', () => {
@@ -20,6 +20,50 @@ describe('build', () => {
     const code = readFileSync(dist('Code.js'), 'utf8');
     const stubs = [...code.matchAll(/^function (\w+)\(/gm)].map((m) => m[1]).sort();
     expect(stubs).toEqual(['api', 'doGet', 'setup', 'smokeTest']);
+  });
+
+  it('ships the UI as one self-contained page', () => {
+    const page = readFileSync(dist('ui.html'), 'utf8');
+    expect(page).toContain('<div id="app">');
+    expect(page.length).toBeGreaterThan(20_000);
+    // Everything is inlined: no external script, stylesheet, font or image requests.
+    expect(page).not.toMatch(/<script[^>]+\ssrc=/i);
+    expect(page).not.toMatch(/<link[^>]+rel=["']stylesheet/i);
+    expect(page).not.toMatch(/https?:\/\/(?!www\.w3\.org|svelte\.dev|example\.|docs\.google\.com|drive\.google\.com)[^"'\s)]*\.(js|css|woff2?|png|jpg)/i);
+  });
+
+  it('keeps the development backend and test helpers out of the UI page', () => {
+    const page = readFileSync(dist('ui.html'), 'utf8');
+    // String literals survive minification (function and class names do not).
+    for (const banned of ['example.com/jobs/demo-engineer', 'Eva Example', 'seed-overdue']) {
+      expect(page, banned).not.toContain(banned);
+    }
+  });
+
+  it('serves the page from doGet', () => {
+    const code = readFileSync(dist('Code.js'), 'utf8');
+    const calls: string[] = [];
+    const output = {
+      setTitle(title: string) {
+        calls.push(`title:${title}`);
+        return output;
+      },
+      addMetaTag(name: string) {
+        calls.push(`meta:${name}`);
+        return output;
+      },
+    };
+    const sandbox = {
+      APP_VERSION: '0.0.0',
+      HtmlService: {
+        createHtmlOutputFromFile(name: string) {
+          calls.push(`file:${name}`);
+          return output;
+        },
+      },
+    };
+    vm.runInNewContext(`${code}\n;doGet()`, sandbox);
+    expect(calls).toEqual(['file:ui', 'title:JobHunters', 'meta:viewport']);
   });
 
   it('keeps the web app private and on V8', () => {

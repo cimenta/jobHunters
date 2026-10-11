@@ -1,6 +1,8 @@
 import {
   ApplicationFactory,
+  ApplicationRemover,
   ApplicationService,
+  CatalogService,
   CommunicationService,
   DocumentService,
   JobService,
@@ -101,11 +103,17 @@ export function buildContainer(deps: ContainerDeps) {
     now: deps.now,
     onError: (where, error) => log('applications', where, error instanceof Error ? error.message : String(error)),
   });
+  const applicationRemover = new ApplicationRemover({
+    applications, documents, questions, communications, reminders,
+    drive: deps.drive,
+    onError: (where, error) => log('applications', where, error instanceof Error ? error.message : String(error)),
+  });
   const templateService = new TemplateService(templates, deps.newId);
   const documentService = new DocumentService({ documents, applications, drive: deps.drive, now: deps.now });
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
   const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
+  const catalogService = new CatalogService({ jobs, companies });
 
   return {
     appVersion: deps.appVersion,
@@ -125,11 +133,13 @@ export function buildContainer(deps: ContainerDeps) {
     applicationService,
     jobService,
     applicationFactory,
+    applicationRemover,
     templateService,
     documentService,
     questionService,
     communicationService,
     reminderService,
+    catalogService,
     log,
     logEntries: (): LogEntry[] => logSheet.list(),
     /** Reads every entity sheet and returns what is wrong with rows edited outside the app. */

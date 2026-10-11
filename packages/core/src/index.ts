@@ -1,5 +1,6 @@
 export * from './application-service';
 export * from './applications';
+export * from './catalog';
 export * from './drive';
 export * from './errors';
 export * from './i18n';
@@ -16,5 +17,6 @@ export * from './setup-plan';
 export * from './sheet-grid';
 export * from './sheet-repository';
 export * from './status';
+export * from './status-style';
 export * from './types';
 export * from './util';

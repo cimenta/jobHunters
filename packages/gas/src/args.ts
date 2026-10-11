@@ -43,3 +43,10 @@ export function stringRecord(args: unknown, method: string): Record<string, stri
   }
   return out;
 }
+
+export function optionalBoolean(record: Record<string, unknown>, key: string, method: string): boolean | undefined {
+  const value = record[key];
+  if (value === undefined) return undefined;
+  if (typeof value !== 'boolean') return invalidArguments(method);
+  return value;
+}

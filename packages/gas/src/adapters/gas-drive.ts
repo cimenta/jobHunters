@@ -17,6 +17,18 @@ export class GasDrive implements DriveGateway {
     return { id: copy.getId(), url: copy.getUrl() };
   }
 
+  trashFolder(folderId: string): void {
+    DriveApp.getFolderById(folderId).setTrashed(true);
+  }
+
+  createDocument(name: string, folderId: string): FileRef {
+    const document = DocumentApp.create(name);
+    const id = document.getId();
+    document.saveAndClose();
+    DriveApp.getFileById(id).moveTo(DriveApp.getFolderById(folderId));
+    return { id, url: DriveApp.getFileById(id).getUrl() };
+  }
+
   replaceInDocument(docId: string, values: Record<string, string>): void {
     const document = DocumentApp.openById(docId);
     const body = document.getBody();

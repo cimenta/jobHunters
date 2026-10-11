@@ -17,6 +17,12 @@ class CopyFailsDrive extends FakeDrive {
   }
 }
 
+class BlankFailsDrive extends FakeDrive {
+  override createDocument(): never {
+    throw new Error('Drive is down');
+  }
+}
+
 function setup(options: { drive?: FakeDrive; templates?: boolean; settings?: Record<string, string>; onError?: (where: string) => void } = {}) {
   const drive = options.drive ?? new FakeDrive();
   const root = drive.ensureFolder(null, 'JobHunters');
@@ -68,12 +74,15 @@ describe('create', () => {
     expect(names).toEqual(['Resume – Example s.r.o. – Android Developer – #1 (2026-10)', 'Cover letter – Example s.r.o. – Android Developer – #1 (2026-10)']);
   });
 
-  it('uses the default document language and reports missing templates for it', () => {
+  it('uses the default document language; without a template for it the documents are empty', () => {
     const { factory, drive } = setup({ settings: { default_document_language: 'cs' } });
-    const { application, warnings } = factory.create({ jobId: 'j1' });
+    const { application, documents, warnings } = factory.create({ jobId: 'j1' });
     expect(application.language).toBe('cs');
     expect(warnings.map((w) => w.code)).toEqual(['template_missing', 'template_missing']);
-    expect([...drive.documents.values()].filter((d) => d.folderId !== null)).toEqual([]);
+    expect(documents.map((d) => [d.type, d.template_id])).toEqual([['resume', ''], ['cover_letter', '']]);
+    const created = [...drive.documents.values()].filter((d) => d.folderId !== null);
+    expect(created.map((d) => d.name)).toEqual(['Životopis – Example s.r.o. – Android Developer – #1 (2026-10)', 'Motivační dopis – Example s.r.o. – Android Developer – #1 (2026-10)']);
+    expect(created.map((d) => d.content)).toEqual(['', '']);
   });
 
   it('numbers attempts per job and warns, but does not block, when an application is still active', () => {
@@ -95,16 +104,30 @@ describe('create', () => {
     const docId = drive.addTemplate(TEMPLATE_TEXT);
     deps.templates.insert(makeTemplate({ id: 'any', type: 'resume', language: '', doc_url: `https://docs.example.invalid/document/d/${docId}/edit` }));
     const { documents, warnings } = factory.create({ jobId: 'j1' });
-    expect(documents.map((d) => d.template_id)).toEqual(['any']);
+    expect(documents.map((d) => [d.type, d.template_id])).toEqual([['resume', 'any'], ['cover_letter', '']]);
     expect(warnings).toEqual([{ code: 'template_missing', params: { type: 'cover_letter', language: 'en' } }]);
   });
 
-  it('still creates the application when no template exists at all', () => {
-    const { factory, deps } = setup({ templates: false });
+  it('creates empty documents in the application folder when no template exists at all', () => {
+    const { factory, deps, drive } = setup({ templates: false });
     const result = factory.create({ jobId: 'j1' });
     expect(deps.applications.list()).toHaveLength(1);
-    expect(deps.documents.list()).toEqual([]);
+    expect(deps.documents.list().map((d) => [d.type, d.template_id, d.pdf_url])).toEqual([['resume', '', ''], ['cover_letter', '', '']]);
     expect(result.warnings.map((w) => w.code)).toEqual(['template_missing', 'template_missing']);
+    const folderId = fileIdFromUrl(result.application.folder_url);
+    const blanks = [...drive.documents.values()].filter((d) => d.folderId === folderId);
+    expect(blanks.map((d) => d.content)).toEqual(['', '']);
+    expect(blanks.map((d) => d.name)).toEqual(['Resume – Example s.r.o. – Android Developer – #1 (2026-10)', 'Cover letter – Example s.r.o. – Android Developer – #1 (2026-10)']);
+  });
+
+  it('keeps the application when Drive fails while creating empty documents', () => {
+    const errors: string[] = [];
+    const { factory, deps } = setup({ templates: false, drive: new BlankFailsDrive(), onError: (where) => errors.push(where) });
+    const result = factory.create({ jobId: 'j1' });
+    expect(deps.applications.list()).toHaveLength(1);
+    expect(result.documents).toEqual([]);
+    expect(result.warnings.map((w) => w.code)).toEqual(['template_missing', 'document_create_failed', 'template_missing', 'document_create_failed']);
+    expect(errors).toEqual(['document', 'document']);
   });
 
   it('keeps the application when Drive fails while copying documents', () => {

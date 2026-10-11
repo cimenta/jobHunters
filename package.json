@@ -11,7 +11,7 @@
     "packages/*"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/gas/tsconfig.json",
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/gas/tsconfig.json && npm run check -w @jobhunters/ui",
     "build": "node scripts/build-gas.mjs",
     "test": "vitest run"
   },

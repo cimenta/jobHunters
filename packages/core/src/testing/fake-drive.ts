@@ -55,6 +55,17 @@ export class FakeDrive implements DriveGateway {
     return { id, url: `https://docs.example.invalid/document/d/${id}/edit` };
   }
 
+  trashFolder(folderId: string): void {
+    if (!this.folders.delete(folderId)) throw new Error(`No folder ${folderId}`);
+    for (const [id, document] of this.documents) if (document.folderId === folderId) this.documents.delete(id);
+  }
+
+  createDocument(name: string, folderId: string): FileRef {
+    const id = this.nextId('d');
+    this.documents.set(id, { id, name, folderId, content: '', modifiedAt: this.tick() });
+    return { id, url: `https://docs.example.invalid/document/d/${id}/edit` };
+  }
+
   replaceInDocument(docId: string, values: Record<string, string>): void {
     const doc = this.doc(docId);
     doc.content = fillPlaceholders(doc.content, values);

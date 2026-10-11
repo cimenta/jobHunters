@@ -16,6 +16,7 @@ export const WARNING_CODES = [
   'active_application_exists',
   'template_missing',
   'document_create_failed',
+  'folder_trash_failed',
 ] as const;
 export type WarningCode = (typeof WARNING_CODES)[number];
 

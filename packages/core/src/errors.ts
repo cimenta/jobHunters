@@ -38,6 +38,9 @@ export const ERROR_CODES = [
   'communication_invalid',
   'reminder_not_found',
   'reminder_text_required',
+  'company_not_found',
+  'company_name_required',
+  'company_website_invalid',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

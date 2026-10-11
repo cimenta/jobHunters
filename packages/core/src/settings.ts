@@ -3,6 +3,7 @@ import { isLocale, type Locale } from './i18n';
 import type { KeyValueStore } from './key-value';
 import { NO_LOCK, type Lock } from './lock';
 import type { AppWarning } from './row-codec';
+import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
 
 export const SETTING_KEYS = [
@@ -14,6 +15,7 @@ export const SETTING_KEYS = [
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
+  'status_styles',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -30,6 +32,8 @@ export interface Settings {
   pdf_service_order: string[];
   /** Document types created with a new application. Stored comma-separated. */
   default_document_set: string[];
+  /** Custom status labels as JSON, see status-style.ts. */
+  status_styles: StatusStyles;
 }
 
 /** Raw sheet values; setup writes these into the Settings sheet. */
@@ -42,6 +46,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
+  status_styles: '{}',
 };
 
 const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'];
@@ -65,6 +70,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
     const parts = items(raw, /,/);
     return parts.every((part) => DOCUMENT_TYPES.includes(part)) ? parts : undefined;
   },
+  status_styles: (raw) => parseStatusStyles(raw),
 };
 
 function isSettingKey(key: string): key is SettingKey {

@@ -14,6 +14,10 @@ export interface DriveGateway {
   /** Finds or creates the child folder `name`; `null` parent means the root of My Drive. */
   ensureFolder(parentId: string | null, name: string): FolderRef;
   copyDocument(templateDocId: string, name: string, folderId: string): FileRef;
+  /** Creates an empty Google Doc in the folder (used when there is no template). */
+  createDocument(name: string, folderId: string): FileRef;
+  /** Moves a folder (with its content) to the Drive trash, where it can still be restored. */
+  trashFolder(folderId: string): void;
   /** Replaces every {{key}} with the value, literally. */
   replaceInDocument(docId: string, values: Record<string, string>): void;
   exportPdf(docId: string, folderId: string, name: string): FileRef;

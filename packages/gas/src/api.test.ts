@@ -239,3 +239,100 @@ describe('applications api', () => {
     expect(api('addTemplate', { type: 'poem', language: 'en', name: 'x', docUrl: 'https://docs.google.com/document/d/1/edit' })).toMatchObject({ ok: false, error: { code: 'template_invalid' } });
   });
 });
+
+describe('overview api', () => {
+  function seeded() {
+    const ctx = setup({ [CLEAN_URL]: { status: 200, html: AD } });
+    const { api, drive } = ctx;
+    const jobId = (api('saveJob', { url: AD_URL }) as { data: { job: { id: string } } }).data.job.id;
+    const docId = drive.addTemplate('{{name}}');
+    api('addTemplate', { type: 'resume', language: '', name: 'Resume', docUrl: `https://docs.google.com/document/d/${docId}/edit` });
+    const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    return { ...ctx, jobId, applicationId };
+  }
+
+  it('shows a job with its company and applications and updates its notes', () => {
+    const { api, jobId, applicationId } = seeded();
+    expect(api('getJob', { id: jobId })).toMatchObject({
+      ok: true,
+      data: { job: { title: 'Data Analyst' }, company: { name: 'Example Ltd' }, applications: [{ id: applicationId, job_title: 'Data Analyst' }] },
+    });
+    expect(api('updateJob', { id: jobId, notes: 'Hello', is_gig: true })).toMatchObject({ ok: true, data: { notes: 'Hello', is_gig: true } });
+    expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
+  });
+
+  it('lists companies with counts and edits one', () => {
+    const { api } = seeded();
+    const list = api('listCompanies') as { ok: true; data: { id: string; job_count: number; application_count: number }[] };
+    expect(list.data).toMatchObject([{ job_count: 1, application_count: 1 }]);
+    const id = list.data[0]!.id;
+    expect(api('getCompany', { id })).toMatchObject({ ok: true, data: { company: { id }, jobs: [{ title: 'Data Analyst' }], applications: [{ company_name: 'Example Ltd' }] } });
+    expect(api('updateCompany', { id, name: 'Renamed', website: 'https://example.com' })).toMatchObject({ ok: true, data: { name: 'Renamed' } });
+    expect(api('updateCompany', { id, name: '' })).toMatchObject({ ok: false, error: { code: 'company_name_required' } });
+  });
+
+  it('builds the dashboard', () => {
+    const { api, applicationId } = seeded();
+    api('addReminder', { applicationId, dueAt: '2026-10-10', text: 'Call HR' });
+    expect(api('getDashboard')).toMatchObject({
+      ok: true,
+      data: { reminders: { today: [{ text: 'Call HR', job_title: 'Data Analyst' }] }, statusCounts: { draft: 1, sent: 0 } },
+    });
+  });
+
+  it('validates arguments', () => {
+    const { api } = setup();
+    for (const [method, args] of [['getJob', {}], ['updateJob', { id: 'j', notes: 5 }], ['updateJob', { id: 'j', is_gig: 'yes' }], ['getCompany', undefined], ['updateCompany', { id: 'c', website: 5 }]] as const) {
+      expect(api(method, args), method).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    }
+    expect(api('getJob', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'job_not_found' } });
+    expect(api('getCompany', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'company_not_found' } });
+  });
+});
+
+describe('deleteApplication api', () => {
+  function seeded() {
+    const ctx = setup({ [CLEAN_URL]: { status: 200, html: AD } });
+    const { api, drive } = ctx;
+    const jobId = (api('saveJob', { url: AD_URL }) as { data: { job: { id: string } } }).data.job.id;
+    const docId = drive.addTemplate('{{name}}');
+    api('addTemplate', { type: 'resume', language: '', name: 'Resume', docUrl: `https://docs.google.com/document/d/${docId}/edit` });
+    const created = (api('createApplication', { jobId }) as { data: { application: { id: string; folder_url: string } } }).data.application;
+    api('addQuestion', { applicationId: created.id, question: 'Why?' });
+    api('addCommunication', { applicationId: created.id, direction: 'note', channel: 'other', summary: 'x' });
+    api('addReminder', { applicationId: created.id, dueAt: '2026-10-20', text: 'Call' });
+    return { ...ctx, jobId, applicationId: created.id, folderUrl: created.folder_url };
+  }
+
+  it('removes the application with everything that belongs to it and trashes the folder', () => {
+    const { api, container, drive, applicationId } = seeded();
+    const foldersBefore = drive.folders.size;
+    expect(api('deleteApplication', { id: applicationId, trashFolder: true })).toMatchObject({
+      ok: true,
+      data: { removed: { documents: 2, questions: 1, communications: 1, reminders: 1 }, folderTrashed: true, warnings: [] },
+    });
+    expect(container.applications.list()).toEqual([]);
+    expect(container.documents.list()).toEqual([]);
+    expect(container.questions.list()).toEqual([]);
+    expect(container.reminders.list()).toEqual([]);
+    expect(drive.folders.size).toBe(foldersBefore - 1);
+    expect(api('getApplication', { id: applicationId })).toMatchObject({ ok: false, error: { code: 'application_not_found' } });
+    expect(container.jobs.list()).toHaveLength(1);
+  });
+
+  it('keeps the folder unless asked, and the next application starts again with a clean folder', () => {
+    const { api, drive, jobId, applicationId } = seeded();
+    const foldersBefore = drive.folders.size;
+    expect(api('deleteApplication', { id: applicationId })).toMatchObject({ ok: true, data: { folderTrashed: false } });
+    expect(drive.folders.size).toBe(foldersBefore);
+    expect(api('createApplication', { jobId })).toMatchObject({ ok: true, data: { application: { attempt: 1 } } });
+  });
+
+  it('validates arguments and reports an unknown application', () => {
+    const { api } = setup();
+    for (const args of [undefined, {}, { id: 5 }, { id: 'a', trashFolder: 'yes' }]) {
+      expect(api('deleteApplication', args), JSON.stringify(args)).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    }
+    expect(api('deleteApplication', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'application_not_found' } });
+  });
+});

@@ -76,7 +76,7 @@ export function smokeTest(): string {
   return result.ok ? 'OK' : `FAILED: ${result.failed.join(', ')}`;
 }
 
-/** Placeholder until the UI plan: lets you confirm the web app deployment works. */
+/** The web app: the single-file UI built from packages/ui (dist/ui.html). */
 export function doGet(): GoogleAppsScript.HTML.HtmlOutput {
-  return HtmlService.createHtmlOutput(`JobHunters ${APP_VERSION}`);
+  return HtmlService.createHtmlOutputFromFile('ui').setTitle('JobHunters').addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }

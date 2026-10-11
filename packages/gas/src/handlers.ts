@@ -55,8 +55,6 @@ export function createHandlers(c: Container): Record<string, Handler> {
       return c.lock.run(() => c.jobService.save(input));
     },
 
-    listJobs: () => c.jobs.list().map((job) => ({ ...job, description: job.description.slice(0, 200) })),
-
     setApplicationStatus: (args) => {
       const input = asRecord(args, 'setApplicationStatus');
       const id = requireString(input, 'id', 'setApplicationStatus');

@@ -126,7 +126,9 @@ export class ApplicationFactory {
       for (const type of settings.default_document_set) {
         const template = findTemplate(all, type, language);
         if (!template) {
+          // No template: the document is still created, just empty, so the application always has its documents.
           warnings.push({ code: 'template_missing', params: { type, language } });
+          tryCreate(type, () => this.createBlank(type, application, folder, timestamp));
           continue;
         }
         tryCreate(type, () => this.instantiate(template, application, job, company, folder, timestamp));
@@ -155,6 +157,16 @@ export class ApplicationFactory {
     );
     applications.update(applicationId, { last_activity_at: timestamp });
     return document;
+  }
+
+  private createBlank(type: string, application: Application, folder: FolderRef, timestamp: string): ApplicationDocument {
+    const { drive, documents, newId } = this.deps;
+    const name = documentName(type, application.label, asLocale(application.language));
+    const created = drive.createDocument(name, folder.id);
+    return documents.insert({
+      id: newId(), application_id: application.id, type, doc_url: created.url, pdf_url: '',
+      template_id: '', created_at: timestamp, pdf_exported_at: '',
+    });
   }
 
   private instantiate(

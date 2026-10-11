@@ -1,0 +1,25 @@
+{
+  "name": "@jobhunters/ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings"
+  },
+  "dependencies": {
+    "@jobhunters/core": "*"
+  },
+  "devDependencies": {
+    "@jobhunters/gas": "*",
+    "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/svelte": "5.4.2",
+    "jsdom": "30.1.2",
+    "svelte": "5.57.2",
+    "svelte-check": "4.7.6",
+    "typescript": "^6.0.0",
+    "vite": "8.3.4",
+    "vite-plugin-singlefile": "2.3.3"
+  }
+}
