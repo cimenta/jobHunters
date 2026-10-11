@@ -18,6 +18,8 @@ export interface DriveGateway {
   replaceInDocument(docId: string, values: Record<string, string>): void;
   exportPdf(docId: string, folderId: string, name: string): FileRef;
   exportHtml(docId: string): string;
+  /** Creates a text file in the folder and returns it. */
+  saveTextFile(folderId: string, name: string, content: string, mimeType: string): FileRef;
   /** ISO date-time of the last edit of the document. */
   lastModified(docId: string): string;
 }

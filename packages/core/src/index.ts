@@ -2,6 +2,7 @@ export * from './application-service';
 export * from './drive';
 export * from './errors';
 export * from './i18n';
+export * from './jobs';
 export * from './key-value';
 export * from './label';
 export * from './lock';

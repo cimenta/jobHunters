@@ -1,10 +1,12 @@
 import { AppError, type SheetName } from '@jobhunters/core';
+import { GasDrive } from './adapters/gas-drive';
+import { GasPageFetcher } from './adapters/gas-fetcher';
 import { gasLock } from './adapters/gas-lock';
 import { GasSheetGrid } from './adapters/gas-grid';
 import { createApi, toFailure, type ApiResult } from './api';
 import { buildContainer } from './container';
 import { createHandlers } from './handlers';
-import { getSpreadsheetId } from './props';
+import { getRootFolderId, getSpreadsheetId } from './props';
 import { runSetup } from './setup';
 
 /** Defined in Version.gs, which Apps Script loads into the same global scope. */
@@ -26,6 +28,12 @@ function getApi(): ReturnType<typeof createApi> {
       newId: () => Utilities.getUuid(),
       now: () => new Date().toISOString(),
       appVersion: APP_VERSION,
+      fetcher: new GasPageFetcher(),
+      drive: new GasDrive(),
+      rootFolder: () => {
+        const id = getRootFolderId();
+        return { id, url: DriveApp.getFolderById(id).getUrl() };
+      },
     });
     cached = createApi({ handlers: createHandlers(container), log: container.log });
   }

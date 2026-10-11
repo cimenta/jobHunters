@@ -31,11 +31,14 @@
   "warning.cell_not_allowed": "Cell {column} in row {row} of sheet {sheet} has an unexpected value: \"{value}\".",
   "error.settings_invalid": "Setting {key} has an invalid value \"{value}\".",
   "error.settings_unknown_key": "There is no setting called {key}.",
+  "warning.similar_job": "A job titled \"{title}\" already exists for this company ({id}).",
+  "warning.page_not_fetched": "The page could not be downloaded (HTTP {status}). The job was saved with its link only; paste the ad text to fill it in.",
   "warning.setting_invalid": "Setting {key} has an invalid value \"{value}\"; the default is used.",
   "error.invalid_arguments": "Invalid arguments for {method}.",
   "error.unknown_method": "Unknown API method \"{method}\".",
   "error.internal_error": "Something went wrong. Check the Log sheet.",
   "error.sheet_missing": "Sheet {sheet} is missing. Run setup first.",
   "error.setup_required": "Setup has not been run yet. Run setup() once from the Apps Script editor.",
-  "error.export_failed": "Google could not export the document (HTTP {status})."
+  "error.export_failed": "Google could not export the document (HTTP {status}).",
+  "error.url_invalid": "\"{url}\" is not a valid web address."
 }

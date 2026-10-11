@@ -46,6 +46,11 @@ export class GasDrive implements DriveGateway {
     return { id: file.getId(), url: file.getUrl() };
   }
 
+  saveTextFile(folderId: string, name: string, content: string, mimeType: string): FileRef {
+    const file = DriveApp.getFolderById(folderId).createFile(name, content, mimeType);
+    return { id: file.getId(), url: file.getUrl() };
+  }
+
   exportHtml(docId: string): string {
     const response = UrlFetchApp.fetch(`https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text%2Fhtml`, {
       headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },

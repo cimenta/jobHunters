@@ -22,6 +22,7 @@ export const ERROR_CODES = [
   'sheet_missing',
   'setup_required',
   'export_failed',
+  'url_invalid',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

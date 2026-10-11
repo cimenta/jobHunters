@@ -1,0 +1,109 @@
+import { ValidationError } from '../errors';
+
+export interface ParsedUrl {
+  protocol: string;
+  host: string;
+  path: string;
+  /** Raw "key=value" pairs in their original order. */
+  query: string[];
+}
+
+// Apps Script has no URL class, so web addresses are split by hand.
+const URL_PATTERN = /^(https?):\/\/([^\/?#]+)([^?#]*)(?:\?([^#]*))?(?:#.*)?$/i;
+
+const TRACKING_PARAMS = new Set([
+  'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid', 'igshid', '_ga',
+  'trk', 'trackingid', 'refid', 'ref', 'searchid', 'rps',
+]);
+
+export function parseUrl(raw: string): ParsedUrl | undefined {
+  const match = URL_PATTERN.exec(raw.trim());
+  if (!match) return undefined;
+  const authority = match[2]!;
+  if (authority.includes('@')) return undefined;
+  const host = authority.replace(/:\d+$/, '').toLowerCase();
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(host)) return undefined;
+  return {
+    protocol: match[1]!.toLowerCase(),
+    host,
+    path: match[3] || '/',
+    query: (match[4] ?? '').split('&').filter((pair) => pair !== ''),
+  };
+}
+
+export function hostIs(url: string, domain: string): boolean {
+  const parsed = parseUrl(url);
+  return parsed !== undefined && (parsed.host === domain || parsed.host.endsWith(`.${domain}`));
+}
+
+function isTrackingParam(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.startsWith('utm_') || TRACKING_PARAMS.has(lower);
+}
+
+/** The address that is fetched and stored: tracking parameters and fragment removed. */
+export function normalizeJobUrl(raw: string): string {
+  const trimmed = raw.trim();
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const parsed = parseUrl(withScheme);
+  if (!parsed) throw new ValidationError('url_invalid', `Not a valid web address: ${trimmed}`, { url: trimmed.slice(0, 200) });
+  const kept = parsed.query.filter((pair) => !isTrackingParam(pair.split('=')[0]!));
+  return `${parsed.protocol}://${parsed.host}${parsed.path}${kept.length > 0 ? `?${kept.join('&')}` : ''}`;
+}
+
+function queryValue(query: string[], name: string): string | undefined {
+  for (const pair of query) {
+    const [key, value] = pair.split('=');
+    if (key === name) return value;
+  }
+  return undefined;
+}
+
+/** Same ad, same key: used to find duplicates whatever link the user pasted. */
+export function jobUrlKey(url: string): string {
+  const parsed = parseUrl(url);
+  if (!parsed) return url.trim().toLowerCase();
+
+  if (hostIs(url, 'jobs.cz')) {
+    const match = /^\/(?:rpd\/(\d+)|fp\/[^\/]+\/(\d+))\/?$/.exec(parsed.path);
+    if (match) return `jobs.cz:${match[1] ?? match[2]}`;
+  }
+  if (hostIs(url, 'linkedin.com')) {
+    const match = /^\/jobs\/view\/(?:[^\/]*-)?(\d+)\/?$/.exec(parsed.path);
+    if (match) return `linkedin:${match[1]}`;
+    const current = queryValue(parsed.query, 'currentJobId');
+    if (current !== undefined && /^\d+$/.test(current)) return `linkedin:${current}`;
+  }
+  if (hostIs(url, 'startupjobs.cz')) {
+    const match = /^\/nabidka\/(\d+)(?:\/.*)?$/.exec(parsed.path);
+    if (match) return `startupjobs.cz:${match[1]}`;
+  }
+
+  const host = parsed.host.replace(/^www\./, '');
+  const path = parsed.path.length > 1 ? parsed.path.replace(/\/+$/, '') : '';
+  return `${host}${path}${parsed.query.length > 0 ? `?${parsed.query.join('&')}` : ''}`;
+}
+
+function safeDecode(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+/** A readable placeholder title when nothing could be downloaded: the slug of the address, else the host. */
+export function titleFromUrl(url: string): string {
+  const parsed = parseUrl(url);
+  if (!parsed) return '';
+  const host = parsed.host.replace(/^www\./, '');
+  const all = parsed.path.split('/').filter((segment) => segment !== '');
+  // On Jobs.cz the segment after /fp/ is the company, not the job.
+  const slug = all
+    .filter((_, index) => all[index - 1] !== 'fp')
+    .reverse()
+    .find((segment) => /[a-z]/i.test(segment) && /[-_]/.test(segment));
+  if (slug === undefined) return host;
+  const words = safeDecode(slug).replace(/[-_]+/g, ' ').replace(/\s+\d+$/, '').trim();
+  return words === '' ? host : words;
+}

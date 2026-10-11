@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import type { FetchResult } from '@jobhunters/core';
 import { makeApplication } from '@jobhunters/core/testing';
 import { createApi } from './api';
 import { createHandlers } from './handlers';
 import { makeTestContainer } from './test-container';
 
-function setup() {
-  const { container, grid } = makeTestContainer();
+function setup(pages: Record<string, FetchResult> = {}) {
+  const { container, grid } = makeTestContainer(pages);
   const api = createApi({ handlers: createHandlers(container), log: container.log });
   return { api, container, grid };
 }
@@ -92,5 +93,60 @@ describe('api', () => {
         { code: 'cell_not_allowed', params: { sheet: 'Applications', row: 2, column: 'status', value: 'weird' } },
       ],
     });
+  });
+});
+
+const AD = '<script type="application/ld+json">{"@type":"JobPosting","title":"Data Analyst","hiringOrganization":{"name":"Example Ltd"},"description":"Analyse data for the business and report to the head of data with the team."}</script>';
+const AD_URL = 'https://example.com/jobs/1?utm_source=mail';
+const CLEAN_URL = 'https://example.com/jobs/1';
+
+describe('jobs api', () => {
+  it('previews without saving', () => {
+    const { api, container } = setup({ [CLEAN_URL]: { status: 200, html: AD } });
+    expect(api('previewJob', { url: AD_URL })).toMatchObject({
+      ok: true,
+      data: { url: CLEAN_URL, fetched: true, parserId: 'generic', duplicateOf: '', parsed: { title: 'Data Analyst', company: 'Example Ltd' } },
+    });
+    expect(container.jobs.list()).toEqual([]);
+  });
+
+  it('saves a job to the sheets and lists it', () => {
+    const { api, container, grid } = setup({ [CLEAN_URL]: { status: 200, html: AD } });
+    const saved = api('saveJob', { url: AD_URL, overrides: { location: 'Brno' } });
+    expect(saved).toMatchObject({ ok: true, data: { status: 'created', job: { title: 'Data Analyst', location: 'Brno', url: CLEAN_URL } } });
+    expect(container.companies.list().map((c) => c.name)).toEqual(['Example Ltd']);
+    expect(grid('Jobs').rows).toHaveLength(2);
+    const listed = api('listJobs') as { ok: true; data: { title: string; description: string }[] };
+    expect(listed.data.map((j) => j.title)).toEqual(['Data Analyst']);
+    expect(listed.data[0]!.description.length).toBeLessThanOrEqual(200);
+  });
+
+  it('answers duplicate for the same ad and saves a failed download with a warning', () => {
+    const { api } = setup({ [CLEAN_URL]: { status: 200, html: AD } });
+    api('saveJob', { url: AD_URL });
+    expect(api('saveJob', { url: CLEAN_URL })).toMatchObject({ ok: true, data: { status: 'duplicate' } });
+    expect(api('saveJob', { url: 'https://example.com/blocked' })).toMatchObject({
+      ok: true,
+      data: { status: 'created', job: { flags: 'snapshot_missing' }, warnings: [{ code: 'page_not_fetched', params: { status: 404 } }] },
+    });
+  });
+
+  it('saves pasted text', () => {
+    const { api } = setup();
+    const text = 'Backend Developer\n\nWe are hiring a developer for our team and you will work with us.';
+    expect(api('saveJob', { url: 'https://example.com/blocked', text })).toMatchObject({
+      ok: true,
+      data: { job: { title: 'Backend Developer', parser_id: 'manual' } },
+    });
+  });
+
+  it('validates arguments', () => {
+    const { api } = setup();
+    for (const args of [undefined, 'x', { url: 5 }, { url: 'https://example.com/a', text: 5 }, { url: 'https://example.com/a', overrides: 'x' },
+      { url: 'https://example.com/a', overrides: { id: 'hack' } }, { url: 'https://example.com/a', overrides: { salary_min: 'lots' } },
+      { url: 'https://example.com/a', overrides: { is_gig: 'yes' } }]) {
+      expect(api('saveJob', args), JSON.stringify(args)).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    }
+    expect(api('saveJob', { url: 'ftp://x.cz/a' })).toMatchObject({ ok: false, error: { code: 'url_invalid' } });
   });
 });

@@ -11,6 +11,8 @@ export const WARNING_CODES = [
   'cell_not_a_boolean',
   'cell_not_allowed',
   'setting_invalid',
+  'similar_job',
+  'page_not_fetched',
 ] as const;
 export type WarningCode = (typeof WARNING_CODES)[number];
 

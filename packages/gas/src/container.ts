@@ -1,5 +1,6 @@
 import {
   ApplicationService,
+  JobService,
   SettingsService,
   SheetAppendLog,
   SheetKeyValueStore,
@@ -8,9 +9,12 @@ import {
   type AppWarning,
   type Application,
   type Company,
+  type DriveGateway,
+  type FolderRef,
   type Job,
   type Lock,
   type LogEntry,
+  type PageFetcher,
   type Reminder,
   type SheetGrid,
   type SheetName,
@@ -26,6 +30,9 @@ export interface ContainerDeps {
   /** ISO 8601 date-time. */
   now: () => string;
   appVersion: string;
+  fetcher: PageFetcher;
+  drive: DriveGateway;
+  rootFolder: () => FolderRef;
 }
 
 export type Container = ReturnType<typeof buildContainer>;
@@ -56,6 +63,20 @@ export function buildContainer(deps: ContainerDeps) {
     locale: () => settings.get().settings.ui_language,
   });
 
+  const log = (flow: string, entity: string, message: string): void => {
+    logSheet.append({ time: deps.now(), flow, entity, message });
+  };
+  const jobService = new JobService({
+    jobs,
+    companies,
+    fetcher: deps.fetcher,
+    drive: deps.drive,
+    rootFolder: deps.rootFolder,
+    newId: deps.newId,
+    now: deps.now,
+    onError: (where, error) => log('jobs', where, error instanceof Error ? error.message : String(error)),
+  });
+
   return {
     appVersion: deps.appVersion,
     lock,
@@ -65,9 +86,8 @@ export function buildContainer(deps: ContainerDeps) {
     reminders,
     settings,
     applicationService,
-    log: (flow: string, entity: string, message: string): void => {
-      logSheet.append({ time: deps.now(), flow, entity, message });
-    },
+    jobService,
+    log,
     logEntries: (): LogEntry[] => logSheet.list(),
     /** Reads every entity sheet and returns what is wrong with rows edited outside the app. */
     collectWarnings: (): AppWarning[] => {

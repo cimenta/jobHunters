@@ -17,3 +17,6 @@
 - Reorder two columns in the `Companies` sheet and add a column of your own; `api('getWarnings')` stays empty and your column survives an update.
 - Add a row to `Applications` with the status `weird`: `api('getWarnings')` reports it and the app keeps working.
 - Run `setup` a second time: no sheet is duplicated and no data changes.
+- `api('previewJob', {url: '<link to a live job ad>'})` returns the fields found and writes nothing. Try one link per portal; if a portal answers 403/429 you get `fetched: false`.
+- `api('saveJob', {url: '<same link>'})` adds a row to `Jobs` and a company to `Companies`, and a `snapshot.html` appears under `JobHunters/Companies/<company>/<title>/`. Saving the same link again returns `status: "duplicate"`.
+- `api('saveJob', {url: '<link>', text: 'Title\n\nPasted ad text...'})` saves from pasted text.

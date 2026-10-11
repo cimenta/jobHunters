@@ -68,6 +68,12 @@ export class FakeDrive implements DriveGateway {
     return { id, url: `https://drive.example.invalid/${id}` };
   }
 
+  saveTextFile(folderId: string, name: string, content: string, _mimeType: string): FileRef {
+    const id = this.nextId('file');
+    this.documents.set(id, { id, name, folderId, content, modifiedAt: this.tick() });
+    return { id, url: `https://drive.example.invalid/${id}` };
+  }
+
   exportHtml(docId: string): string {
     return `<html><body>${this.doc(docId).content}</body></html>`;
   }

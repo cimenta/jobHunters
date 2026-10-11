@@ -36,11 +36,14 @@
   "warning.cell_not_allowed": "Buňka {column} na řádku {row} v listu {sheet} má neočekávanou hodnotu: „{value}“.",
   "error.settings_invalid": "Nastavení {key} má neplatnou hodnotu „{value}“.",
   "error.settings_unknown_key": "Nastavení {key} neexistuje.",
+  "warning.similar_job": "U této firmy už existuje inzerát „{title}“ ({id}).",
+  "warning.page_not_fetched": "Stránku se nepodařilo stáhnout (HTTP {status}). Inzerát je uložen jen s odkazem; vložte text inzerátu ručně.",
   "warning.setting_invalid": "Nastavení {key} má neplatnou hodnotu „{value}“, použije se výchozí.",
   "error.invalid_arguments": "Neplatné argumenty pro {method}.",
   "error.unknown_method": "Neznámá metoda API „{method}“.",
   "error.internal_error": "Něco se pokazilo. Podívejte se do listu Log.",
   "error.sheet_missing": "List {sheet} chybí. Nejdřív spusťte setup.",
   "error.setup_required": "Setup ještě neběžel. Jednou ho spusťte z editoru Apps Script.",
-  "error.export_failed": "Google nedokázal dokument exportovat (HTTP {status})."
+  "error.export_failed": "Google nedokázal dokument exportovat (HTTP {status}).",
+  "error.url_invalid": "„{url}“ není platná webová adresa."
 }

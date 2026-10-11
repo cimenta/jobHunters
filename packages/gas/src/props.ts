@@ -8,3 +8,9 @@ export function getSpreadsheetId(): string {
   if (!id) throw new AppError('setup_required', 'Run setup() first');
   return id;
 }
+
+export function getRootFolderId(): string {
+  const id = PropertiesService.getScriptProperties().getProperty(ROOT_FOLDER_ID_KEY);
+  if (!id) throw new AppError('setup_required', 'Run setup() first');
+  return id;
+}
