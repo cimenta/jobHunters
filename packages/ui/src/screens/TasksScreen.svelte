@@ -9,6 +9,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import { formatDate } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
+  import { documentTypeLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { invalidate } from '../state/invalidate.svelte';
@@ -22,7 +23,16 @@
   const selected = $derived<AiTaskRow | undefined>(rows.find((task) => task.id === openId));
 
   function typeLabel(type: string): string {
-    return type === 'match_job' ? tr('ui.tasks.type.match_job') : tr('ui.tasks.type.other');
+    switch (type) {
+      case 'match_job':
+        return tr('ui.tasks.type.match_job');
+      case 'resume_tailor':
+        return documentTypeLabel('resume');
+      case 'cover_letter':
+        return documentTypeLabel('cover_letter');
+      default:
+        return tr('ui.tasks.type.other');
+    }
   }
 
   function statusLabel(status: string): string {
@@ -70,6 +80,7 @@
           <tr>
             <th>{tr('ui.tasks.col.created')}</th>
             <th>{tr('ui.tasks.col.type')}</th>
+            <th>{tr('ui.tasks.col.company')}</th>
             <th>{tr('ui.tasks.col.job')}</th>
             <th>{tr('ui.tasks.col.status')}</th>
             <th>{tr('ui.tasks.col.processed')}</th>
@@ -81,6 +92,7 @@
             <tr data-ui="task.{task.id}">
               <td class="nowrap">{formatDate(task.created_at)}</td>
               <td>{typeLabel(task.type)}</td>
+              <td class="job">{task.company_name}</td>
               <td class="job">{task.job_title}</td>
               <td><span class="badge" data-status={task.status}>{statusLabel(task.status)}</span></td>
               <td class="nowrap">{formatDate(task.completed_at)}</td>
@@ -101,6 +113,7 @@
         <span class="muted small">{tr('ui.tasks.col.created')}: {formatDate(selected.created_at)}</span>
         {#if selected.completed_at !== ''}<span class="muted small">{tr('ui.tasks.col.processed')}: {formatDate(selected.completed_at)}</span>{/if}
       </div>
+      {#if selected.company_name !== ''}<span class="muted small">{selected.company_name}</span>{/if}
       {#if selected.job_title !== ''}<a href={paths.job(selected.job_id)} onclick={() => (openId = undefined)}>{selected.job_title}</a>{/if}
       <div>
         <h3>{tr('ui.tasks.instructions')}</h3>

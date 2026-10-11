@@ -14,7 +14,7 @@ describe('TasksScreen', () => {
     await api.requestJobMatch(jobId);
     render(TasksScreen);
     const table = await screen.findByRole('table');
-    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim())).toEqual(['Created', 'Type', 'Job', 'Status', 'Processed', 'Detail']);
+    expect(within(table).getAllByRole('columnheader').map((h) => h.textContent?.trim())).toEqual(['Created', 'Type', 'Company', 'Job', 'Status', 'Processed', 'Detail']);
     expect(within(table).getAllByRole('row')).toHaveLength(2);
     expect(within(table).getByText('Match evaluation')).toBeInTheDocument();
 

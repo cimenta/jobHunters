@@ -115,7 +115,14 @@
             {#if !active}
               <textarea class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes[doc.id]}></textarea>
             {/if}
-            {#if task}<span class="muted small">{aiStatus(task)}{task.completed_at !== '' ? ` · ${formatDate(task.completed_at)}` : ''}</span>{/if}
+            {#if task}
+              <div class="row wrap" data-ui="doc.ai.status.{doc.id}">
+                <Badge text={aiStatus(task)} color={task.status === 'done' ? 'var(--success-soft)' : task.status === 'failed' ? 'var(--danger-soft)' : task.status === 'needs_input' ? 'var(--warning-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
+                {#if task.completed_at !== ''}<span class="muted small">{tr('ui.docs.aiProcessed', { date: formatDate(task.completed_at) })}</span>{/if}
+                <Button variant="ghost" ui="doc.ai.refresh.{doc.id}" onclick={invalidate}><Icon name="refresh" size={16} />{tr('ui.match.refresh')}</Button>
+              </div>
+              {#if task.ai_note !== ''}<p class="muted small note">{task.ai_note}</p>{/if}
+            {/if}
           </div>
           {#if previewId === doc.id}
             <iframe class="preview" data-ui="doc.frame.{doc.id}" title={tr('ui.docs.previewFrame')} sandbox="" srcdoc={previewHtml}></iframe>
@@ -147,6 +154,7 @@
 <style>
   .doc { flex-direction: column; align-items: stretch; }
   .head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+  .note { white-space: pre-wrap; margin: 0; }
   .ai { display: flex; flex-direction: column; gap: var(--space-2); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
   .preview { width: 100%; height: 420px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-s); }

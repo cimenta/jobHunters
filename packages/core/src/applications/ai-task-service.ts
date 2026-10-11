@@ -1,11 +1,12 @@
 import { NotFoundError, ValidationError } from '../errors';
 import type { Repository } from '../repository';
 import { DEFAULT_PROMPTS } from '../seed';
-import type { AiTask, Application, ApplicationDocument, Job } from '../types';
+import type { AiTask, Application, ApplicationDocument, Company, Job } from '../types';
 
 export interface AiTaskServiceDeps {
   tasks: Repository<AiTask>;
   jobs: Repository<Job>;
+  companies: Repository<Company>;
   documents: Repository<ApplicationDocument>;
   applications: Repository<Application>;
   newId: () => string;
@@ -19,6 +20,7 @@ export interface AiTaskServiceDeps {
 
 export interface AiTaskRow extends AiTask {
   job_title: string;
+  company_name: string;
 }
 
 const ACTIVE = ['pending', 'in_progress'];
@@ -29,14 +31,15 @@ export class AiTaskService {
 
   /** All tasks, newest first, with the title of their job. */
   list(): AiTaskRow[] {
-    const titles = new Map(this.deps.jobs.list().map((job) => [job.id, job.title]));
+    const names = new Map(this.deps.companies.list().map((company) => [company.id, company.name]));
+    const jobs = new Map(this.deps.jobs.list().map((job) => [job.id, { title: job.title, company: names.get(job.company_id) ?? '' }]));
     return this.deps.tasks.list()
       .sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0))
-      .map((task) => ({ ...task, job_title: titles.get(task.job_id) ?? '' }));
+      .map((task) => ({ ...task, job_title: jobs.get(task.job_id)?.title ?? '', company_name: jobs.get(task.job_id)?.company ?? '' }));
   }
 
   /** The tasks of one application, newest first. */
-  listForApplication(applicationId: string): AiTask[] {
+  listForApplication(applicationId: string): AiTaskRow[] {
     return this.list().filter((task) => task.application_id === applicationId);
   }
 

@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.7.0] - 2026-10-11
+
+- AI tasks table: the type column names the document (resume or cover letter) and a Company column was added; the detail also shows the company.
+- Documents tab of an application shows the state of the AI task as a badge with the processing date, the note written by the AI and a refresh button.
+
 ## [0.6.0] - 2026-10-11
 
 - Colour mode switch in Settings (Appearance): follow the device, always light or always dark. New setting `ui_theme`.

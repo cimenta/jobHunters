@@ -2,14 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryRepository } from '../repository';
 import { errorOf } from '../testing/errors';
 import { makeApplication, makeJob, sequentialIds } from '../testing/fixtures';
-import type { AiTask, Application, ApplicationDocument, Job } from '../types';
+import type { AiTask, Application, ApplicationDocument, Company, Job } from '../types';
 import { AiTaskService } from './ai-task-service';
 
 function setup(experience = 'Ten years of TypeScript') {
   const tasks = new InMemoryRepository<AiTask>();
   const service = new AiTaskService({
     tasks,
-    jobs: new InMemoryRepository<Job>([makeJob({ id: 'j1' })]),
+    jobs: new InMemoryRepository<Job>([makeJob({ id: 'j1', company_id: 'c1' })]),
+    companies: new InMemoryRepository<Company>([{ id: 'c1', name: 'Example s.r.o.', website: '', notes: '' }]),
     applications: new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', language: 'cs' })]),
     documents: new InMemoryRepository<ApplicationDocument>([
       { id: 'd1', application_id: 'a1', type: 'cover_letter', doc_url: 'https://docs.google.com/document/d/x/edit', pdf_url: '', template_id: '', created_at: '', pdf_exported_at: '' },
@@ -59,7 +60,7 @@ describe('AiTaskService', () => {
     const { service, tasks } = setup();
     const first = service.requestMatch('j1');
     tasks.update(first.id, { status: 'in_progress' });
-    expect(service.list()).toMatchObject([{ id: first.id, job_title: expect.any(String) }]);
+    expect(service.list()).toMatchObject([{ id: first.id, job_title: expect.any(String), company_name: 'Example s.r.o.' }]);
     service.remove(first.id);
     expect(service.list()).toEqual([]);
     expect(errorOf(() => service.remove(first.id))).toMatchObject({ code: 'task_not_found' });

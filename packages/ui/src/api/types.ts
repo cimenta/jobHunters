@@ -3,7 +3,7 @@ export type {
   Dashboard, DashboardReminder, DocumentView, Job, JobPreview, JobRow, Question, Reminder, SaveResult, Settings, Template,
   TimelineEvent,
 } from '@jobhunters/core';
-import type { AiTask, Application, ApplicationRow, Communication, Company, DocumentView, Job, JobRow, Question, Reminder, TimelineEvent } from '@jobhunters/core';
+import type { AiTask, AiTaskRow, Application, ApplicationRow, Communication, Company, DocumentView, Job, JobRow, Question, Reminder, TimelineEvent } from '@jobhunters/core';
 
 export interface AppInfo {
   version: string;
@@ -32,7 +32,7 @@ export interface ApplicationDetail {
   communications: Communication[];
   reminders: Reminder[];
   timeline: TimelineEvent[];
-  tasks: AiTask[];
+  tasks: AiTaskRow[];
 }
 
 export type Profile = Record<'name' | 'email' | 'phone' | 'address' | 'links', string>;
