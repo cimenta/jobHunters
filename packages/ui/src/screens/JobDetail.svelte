@@ -6,6 +6,7 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
+  import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, formatSalary } from '../lib/format';
@@ -17,6 +18,7 @@
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
   import CreateApplicationDialog from './CreateApplicationDialog.svelte';
+  import MatchTab from './tabs/MatchTab.svelte';
 
   let { id }: { id: string } = $props();
 
@@ -24,6 +26,7 @@
   let notes = $state('');
   let gig = $state(false);
   let creating = $state(false);
+  let tab = $state('applications');
 
   $effect(() => {
     const job = detail.data?.job;
@@ -75,33 +78,49 @@
       </div>
     </Card>
 
-    <Card ui="job-detail.applications">
-      <h2>{tr('ui.job.applications')}</h2>
-      {#if detail.data.applications.length === 0}
-        <p class="muted">{tr('ui.job.noApplications')}</p>
-      {:else}
-        <ul class="list">
-          {#each detail.data.applications as application (application.id)}
-            <li>
-              <a class="list-item" data-ui="application.{application.id}" href={paths.application(application.id)}>
-                <span class="grow">{application.label}</span>
-                <StatusBadge status={application.status} />
-              </a>
-            </li>
-          {/each}
-        </ul>
-      {/if}
-    </Card>
-
-    <Card ui="job-detail.notes">
-      <Field label={tr('ui.job.notes')} for="job-notes"><textarea id="job-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
-      <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
-      <div><Button variant="primary" ui="job-detail.save" onclick={save}>{tr('ui.save')}</Button></div>
-    </Card>
-
-    <Card ui="job-detail.description">
-      <h2>{tr('ui.job.description')}</h2>
-      <p class="description">{job.description === '' ? tr('ui.job.noDescription') : job.description}</p>
+    <Card ui="job-detail.tabs">
+      <Tabs
+        items={[
+          { id: 'applications', label: tr('ui.job.tab.applications'), count: detail.data.applications.length },
+          { id: 'notes', label: tr('ui.job.tab.notes') },
+          { id: 'description', label: tr('ui.job.tab.description') },
+          { id: 'match', label: tr('ui.job.tab.match') },
+        ]}
+        bind:active={tab}
+        label={tr('ui.job.tabs')}
+      />
+      <div role="tabpanel" data-ui="job-detail.panel" id="panel-{tab}" aria-labelledby="tab-{tab}">
+        {#if tab === 'applications'}
+          <div class="stack" data-ui="job-detail.applications">
+            {#if detail.data.applications.length === 0}
+              <p class="muted">{tr('ui.job.noApplications')}</p>
+            {:else}
+              <ul class="list">
+                {#each detail.data.applications as application (application.id)}
+                  <li>
+                    <a class="list-item" data-ui="application.{application.id}" href={paths.application(application.id)}>
+                      <span class="grow">{application.label}</span>
+                      <StatusBadge status={application.status} />
+                    </a>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </div>
+        {:else if tab === 'notes'}
+          <div class="stack" data-ui="job-detail.notes">
+            <Field label={tr('ui.job.notes')} for="job-notes"><textarea id="job-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
+            <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
+            <div><Button variant="primary" ui="job-detail.save" onclick={save}>{tr('ui.save')}</Button></div>
+          </div>
+        {:else if tab === 'description'}
+          <div data-ui="job-detail.description">
+            <p class="description">{job.description === '' ? tr('ui.job.noDescription') : job.description}</p>
+          </div>
+        {:else}
+          <MatchTab jobId={job.id} match={detail.data.match} />
+        {/if}
+      </div>
     </Card>
 
     <CreateApplicationDialog open={creating} {job} applications={detail.data.applications} onclose={() => (creating = false)} />

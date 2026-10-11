@@ -8,6 +8,8 @@ import { hasOwn } from './util';
 
 export const SETTING_KEYS = [
   'ui_language',
+  'ui_theme',
+  'candidate_experience',
   'default_document_language',
   'reminder_time',
   'reminder_email',
@@ -19,9 +21,14 @@ export const SETTING_KEYS = [
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
+export type UiTheme = 'system' | 'light' | 'dark';
+
 export interface Settings {
   ui_language: Locale;
+  ui_theme: UiTheme;
   default_document_language: Locale;
+  /** Free text: the candidate's experience, read by the AI when it evaluates a job match. */
+  candidate_experience: string;
   /** HH:MM, local time of the script time zone. */
   reminder_time: string;
   reminder_email: string;
@@ -39,6 +46,8 @@ export interface Settings {
 /** Raw sheet values; setup writes these into the Settings sheet. */
 export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ui_language: 'en',
+  ui_theme: 'system',
+  candidate_experience: '',
   default_document_language: 'en',
   reminder_time: '08:00',
   reminder_email: '',
@@ -57,6 +66,8 @@ const items = (raw: string, separator: RegExp): string[] =>
 /** Each parser returns undefined for an invalid value. */
 const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } = {
   ui_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
+  ui_theme: (raw) => (['system', 'light', 'dark'].includes(raw.trim()) ? (raw.trim() as UiTheme) : undefined),
+  candidate_experience: (raw) => (raw.length <= 40000 ? raw : undefined),
   default_document_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
   reminder_time: (raw) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(raw.trim()) ? raw.trim() : undefined),
   reminder_email: (raw) => (raw.trim() === '' || /^[^@\s]+@[^@\s]+$/.test(raw.trim()) ? raw.trim() : undefined),

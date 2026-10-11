@@ -8,11 +8,12 @@ import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import Settings from './Settings.svelte';
 
-async function open(): Promise<void> {
+async function open(tab?: string): Promise<void> {
   useDevBackend();
   await loadApp();
   render(Settings);
   await screen.findByRole('heading', { name: 'Settings' });
+  if (tab) await fireEvent.click(screen.getByRole('tab', { name: tab }));
 }
 
 const section = (name: string): HTMLElement => screen.getByRole('heading', { name }).closest('section')!;
@@ -29,7 +30,7 @@ describe('Settings', () => {
   });
 
   it('saves the documents created with a new application', async () => {
-    await open();
+    await open('Documents');
     const card = section('Documents');
     await fireEvent.click(within(card).getByLabelText('Cover letter'));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
@@ -37,7 +38,7 @@ describe('Settings', () => {
   });
 
   it('shows and saves the profile', async () => {
-    await open();
+    await open('Profile');
     const card = section('Profile');
     const name = await within(card).findByLabelText('Name');
     await waitFor(() => expect(name).toHaveValue('Eva Example'));
@@ -48,7 +49,7 @@ describe('Settings', () => {
   });
 
   it('lists templates and registers a new one, refusing an address that is not a Google Doc', async () => {
-    await open();
+    await open('Templates');
     const card = section('Templates');
     const list = await within(card).findByRole('list');
     expect(within(list).getByText('Cover letter')).toBeInTheDocument();
@@ -63,7 +64,7 @@ describe('Settings', () => {
   });
 
   it('edits the text and colour of a status, applies it everywhere and can reset it', async () => {
-    await open();
+    await open('Statuses');
     const card = section('Status labels');
     const row = within(card).getByRole('group', { name: 'Sent' });
     await fireEvent.input(within(row).getByLabelText('Text for Sent'), { target: { value: 'Applied' } });
@@ -79,15 +80,35 @@ describe('Settings', () => {
     expect((await api.getSettings()).settings.status_styles).toEqual({});
   });
 
-  it('shows the version', async () => {
+  it('saves the colour mode and applies it at once', async () => {
     await open();
+    const card = section('Appearance');
+    await fireEvent.change(within(card).getByLabelText('Colour mode'), { target: { value: 'dark' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
+    expect((await api.getSettings()).settings.ui_theme).toBe('dark');
+    await fireEvent.change(within(card).getByLabelText('Colour mode'), { target: { value: 'system' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBeUndefined());
+  });
+
+  it('saves the description of the experience used for the match evaluation', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    await fireEvent.input(within(card).getByLabelText('My experience'), { target: { value: 'Ten years of Kotlin' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.candidate_experience).toBe('Ten years of Kotlin'));
+  });
+
+  it('shows the version', async () => {
+    await open('About');
     expect(screen.getByText('Version dev')).toBeInTheDocument();
   });
 });
 
 describe('Settings identifier labels', () => {
   it('switches the element identifiers on and off', async () => {
-    await open();
+    await open('About');
     const { ids } = await import('../state/ids.svelte');
     const box = within(section('About')).getByLabelText('Show element IDs');
     expect(box).not.toBeChecked();

@@ -7,3 +7,4 @@ export * from './communication-service';
 export * from './reminder-service';
 export * from './timeline';
 export * from './application-remover';
+export * from './ai-task-service';

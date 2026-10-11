@@ -1,4 +1,4 @@
-import type { RemoveResult, Settings } from '@jobhunters/core';
+import type { AiTask, AiTaskRow, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
@@ -33,6 +33,11 @@ export const api = {
   listJobs: () => call<JobRow[]>('listJobs'),
   getJob: (id: string) => call<JobDetail>('getJob', { id }),
   updateJob: (id: string, patch: { notes?: string; is_gig?: boolean }) => call<Job>('updateJob', { id, ...patch }),
+  requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
+  requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
+  listAiTasks: () => call<AiTaskRow[]>('listAiTasks'),
+  removeAiTask: (id: string) => call<null>('removeAiTask', { id }),
+  cancelAiTask: (id: string) => call<null>('cancelAiTask', { id }),
   previewJob: (input: { url: string; text?: string }) => call<JobPreview>('previewJob', input),
   saveJob: (input: { url: string; text?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 

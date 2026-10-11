@@ -33,12 +33,12 @@ describe('element identifiers', () => {
       ['#/', 'dashboard.reminders', ['app.brand', 'nav', 'nav.dashboard', 'nav.jobs', 'nav.applications', 'nav.companies', 'nav.settings', 'dashboard', 'dashboard.add-job', 'dashboard.status-counts', /^reminder\.done\./]],
       ['#/jobs', 'jobs.list', ['jobs', 'jobs.add', 'jobs.search', `job.${jobId}`]],
       ['#/jobs/new', 'add-job.read', ['add-job', 'add-job.url']],
-      [`#/jobs/${jobId}`, 'job-detail.create-application', ['job-detail', 'job-detail.summary', 'job-detail.applications', 'job-detail.notes', 'job-detail.save']],
+      [`#/jobs/${jobId}`, 'job-detail.create-application', ['job-detail', 'job-detail.summary', 'job-detail.tabs', 'job-detail.panel', 'job-detail.applications', 'tab.applications', 'tab.notes', 'tab.description', 'tab.match']],
       ['#/applications', 'applications.list', ['applications', `application.${applicationId}`]],
       [`#/applications/${applicationId}`, 'status-control.change', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'documents', /^doc\.export\./]],
       ['#/companies', 'companies.list', ['companies', `company.${companyId}`]],
       [`#/companies/${companyId}`, 'company-detail.save', ['company-detail', 'company-detail.jobs', 'company-detail.applications']],
-      ['#/settings', 'status-styles.save', ['settings', 'settings.language', 'settings.documents', 'settings.profile', 'settings.templates', 'settings.status-labels', 'settings.about', 'status.sent']],
+      ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.profile', 'tab.templates', 'tab.statuses', 'tab.about']],
     ];
     for (const [hash, waitForId, expected] of screens) {
       const found = await visit(hash, waitForId);

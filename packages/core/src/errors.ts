@@ -41,6 +41,9 @@ export const ERROR_CODES = [
   'company_not_found',
   'company_name_required',
   'company_website_invalid',
+  'match_experience_required',
+  'task_not_found',
+  'task_not_cancellable',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

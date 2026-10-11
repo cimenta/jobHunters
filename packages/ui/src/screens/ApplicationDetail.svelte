@@ -60,6 +60,9 @@
         {#if application.folder_url !== ''}
           <a href={application.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.app.folder')}</a>
         {/if}
+        {#if application.language === 'en' || application.language === 'cs'}
+          <span class="muted" data-ui="application-detail.language">{tr('ui.app.language', { language: tr(`ui.language.${application.language}`) })}</span>
+        {/if}
         {#if application.applied_at !== ''}<span class="muted">{tr('ui.app.appliedAt', { date: formatDate(application.applied_at) })}</span>{/if}
       </div>
       <StatusControl {application} />

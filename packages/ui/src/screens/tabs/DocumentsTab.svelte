@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { AiTask } from '@jobhunters/core';
   import { api } from '../../api';
   import type { ApplicationDetail, DocumentView } from '../../api/types';
   import Badge from '../../components/Badge.svelte';
@@ -15,6 +16,7 @@
 
   let { detail }: { detail: ApplicationDetail } = $props();
 
+  let notes = $state<Record<string, string>>({});
   let previewId = $state<string>();
   let previewHtml = $state('');
   let adding = $state(false);
@@ -35,6 +37,36 @@
     await api.exportDocumentPdf(doc.id);
     toast.success(tr('ui.docs.pdfExported'));
     invalidate();
+  }
+
+  /** The newest AI task that writes this document. */
+  function taskOf(doc: DocumentView): AiTask | undefined {
+    return detail.tasks.find((task) => task.target_type === 'document' && task.target_id === doc.id);
+  }
+
+  async function toggleAi(doc: DocumentView, checked: boolean): Promise<void> {
+    const task = taskOf(doc);
+    try {
+      if (checked) await api.requestDocumentAi(doc.id, notes[doc.id] ?? '');
+      else if (task?.status === 'pending') await api.cancelAiTask(task.id);
+    } finally {
+      invalidate();
+    }
+  }
+
+  function aiStatus(task: AiTask): string {
+    switch (task.status) {
+      case 'pending':
+        return tr('ui.docs.aiPending');
+      case 'in_progress':
+        return tr('ui.tasks.status.in_progress');
+      case 'done':
+        return tr('ui.tasks.status.done');
+      case 'needs_input':
+        return tr('ui.tasks.status.needs_input');
+      default:
+        return tr('ui.tasks.status.failed');
+    }
   }
 
   async function openAdd(): Promise<void> {
@@ -59,6 +91,8 @@
   {:else}
     <ul class="list">
       {#each detail.documents as doc (doc.id)}
+        {@const task = taskOf(doc)}
+        {@const active = task?.status === 'pending' || task?.status === 'in_progress'}
         <li class="list-item doc" data-ui="doc.{doc.id}">
           <div class="head">
             <strong class="grow">{documentTypeLabel(doc.type)}</strong>
@@ -72,6 +106,16 @@
               <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
               <span class="muted small">{formatDate(doc.pdf_exported_at)}</span>
             {/if}
+          </div>
+          <div class="ai" data-ui="doc.ai.{doc.id}">
+            <label class="check">
+              <input type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(doc, event.currentTarget.checked)} />
+              {tr('ui.docs.ai')}
+            </label>
+            {#if !active}
+              <textarea class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes[doc.id]}></textarea>
+            {/if}
+            {#if task}<span class="muted small">{aiStatus(task)}{task.completed_at !== '' ? ` · ${formatDate(task.completed_at)}` : ''}</span>{/if}
           </div>
           {#if previewId === doc.id}
             <iframe class="preview" data-ui="doc.frame.{doc.id}" title={tr('ui.docs.previewFrame')} sandbox="" srcdoc={previewHtml}></iframe>
@@ -103,5 +147,7 @@
 <style>
   .doc { flex-direction: column; align-items: stretch; }
   .head, .actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+  .ai { display: flex; flex-direction: column; gap: var(--space-2); }
+  .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
   .preview { width: 100%; height: 420px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-s); }
 </style>

@@ -89,7 +89,37 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const job = c.jobs.get(id);
       if (!job) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
       const applications = applicationRows(c.applications.list().filter((a) => a.job_id === id), [job], c.companies.list());
-      return { job, company: c.companies.get(job.company_id), applications };
+      return { job, company: c.companies.get(job.company_id), applications, match: c.aiTaskService.matchFor(id) };
+    },
+
+    requestJobMatch: (args) => {
+      const id = requireString(asRecord(args, 'requestJobMatch'), 'id', 'requestJobMatch');
+      return c.lock.run(() => c.aiTaskService.requestMatch(id));
+    },
+
+    requestDocumentAi: (args) => {
+      const input = asRecord(args, 'requestDocumentAi');
+      const documentId = requireString(input, 'documentId', 'requestDocumentAi');
+      const notes = optionalString(input, 'notes', 'requestDocumentAi') ?? '';
+      return c.lock.run(() => c.aiTaskService.requestDocument(documentId, notes));
+    },
+
+    listAiTasks: () => c.aiTaskService.list(),
+
+    removeAiTask: (args) => {
+      const id = requireString(asRecord(args, 'removeAiTask'), 'id', 'removeAiTask');
+      return c.lock.run(() => {
+        c.aiTaskService.remove(id);
+        return null;
+      });
+    },
+
+    cancelAiTask: (args) => {
+      const id = requireString(asRecord(args, 'cancelAiTask'), 'id', 'cancelAiTask');
+      return c.lock.run(() => {
+        c.aiTaskService.cancel(id);
+        return null;
+      });
     },
 
     updateJob: (args) => {
@@ -145,6 +175,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
         questions: c.questionService.listFor(id),
         communications,
         reminders,
+        tasks: c.aiTaskService.listForApplication(id),
         timeline: buildTimeline({ applicationId: id, history: c.history.list(), communications, documents, reminders }),
       };
     },

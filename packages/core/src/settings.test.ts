@@ -69,6 +69,13 @@ describe('SettingsService', () => {
     expect(service.get().settings.ui_language).toBe('cs');
   });
 
+  it('stores the colour mode and rejects an unknown one', () => {
+    const service = new SettingsService(new InMemoryKeyValueStore());
+    expect(service.get().settings.ui_theme).toBe('system');
+    expect(service.update({ ui_theme: 'dark' }).ui_theme).toBe('dark');
+    expect(() => service.update({ ui_theme: 'blue' })).toThrow();
+  });
+
   it('validates everything before writing anything', () => {
     const store = new InMemoryKeyValueStore();
     const service = new SettingsService(store);

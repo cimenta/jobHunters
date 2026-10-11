@@ -14,6 +14,7 @@
     { section: 'jobs', icon: 'briefcase', href: paths.jobs },
     { section: 'applications', icon: 'file', href: paths.applications },
     { section: 'companies', icon: 'building', href: paths.companies },
+    { section: 'tasks', icon: 'sparkle', href: paths.tasks },
     { section: 'settings', icon: 'settings', href: paths.settings },
   ];
   const current = $derived(sectionOf(router.current));
@@ -23,6 +24,7 @@
     jobs: () => tr('ui.nav.jobs'),
     applications: () => tr('ui.nav.applications'),
     companies: () => tr('ui.nav.companies'),
+    tasks: () => tr('ui.nav.tasks'),
     settings: () => tr('ui.nav.settings'),
   };
 </script>

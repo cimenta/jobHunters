@@ -66,6 +66,22 @@ export interface Reminder {
   reminded_at: string;
 }
 
+export interface AiTask {
+  id: string;
+  created_at: string;
+  application_id: string;
+  job_id: string;
+  type: string;
+  target_type: string;
+  target_id: string;
+  instructions: string;
+  /** Untrusted: the cell may be edited by the AI or by hand. */
+  status: string;
+  /** Result or note written by the AI. For match_job it holds the evaluation. */
+  ai_note: string;
+  completed_at: string;
+}
+
 export interface StatusHistoryEntry {
   application_id: string;
   from: string;

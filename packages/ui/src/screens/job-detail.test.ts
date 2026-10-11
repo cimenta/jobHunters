@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { api } from '../api';
+import { loadApp } from '../state/app.svelte';
 import { router } from '../lib/router.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
@@ -29,6 +30,7 @@ describe('JobDetail', () => {
     const id = await idOf('<img src=x onerror=alert(1)>');
     render(JobDetail, { id });
     expect(await screen.findByRole('heading', { name: '<img src=x onerror=alert(1)>' })).toBeInTheDocument();
+    await fireEvent.click(screen.getByRole('tab', { name: 'Description' }));
     expect(screen.getByText(/<script>alert\(1\)<\/script>/)).toBeInTheDocument();
     expect(document.querySelector('img')).toBeNull();
     expect(document.querySelector('script')).toBeNull();
@@ -38,12 +40,44 @@ describe('JobDetail', () => {
     useDevBackend();
     const id = await idOf('Android Developer');
     render(JobDetail, { id });
-    await fireEvent.input(await screen.findByLabelText('Notes'), { target: { value: 'Call on Monday' } });
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Notes' }));
+    await fireEvent.input(await screen.findByRole('textbox', { name: 'Notes' }), { target: { value: 'Call on Monday' } });
     await fireEvent.click(screen.getByLabelText('Gig (short-term work)'));
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Saved'));
     const saved = await api.getJob(id);
     expect(saved.job).toMatchObject({ notes: 'Call on Monday', is_gig: true });
+  });
+
+  it('queues an AI evaluation of the match and shows its result', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Match' }));
+    expect(await screen.findByText(/describe your experience first/)).toBeInTheDocument();
+
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    await loadApp();
+    const box = await screen.findByLabelText('Evaluate my match with AI');
+    expect(box).not.toBeChecked();
+    await fireEvent.click(box);
+    await waitFor(() => expect(screen.getByLabelText('Evaluate my match with AI')).toBeChecked());
+    expect(await screen.findByText(/Waiting for the AI/)).toBeInTheDocument();
+
+    const task = (await api.getJob(id)).match!;
+    expect(task).toMatchObject({ type: 'match_job', status: 'pending' });
+    await fireEvent.click(screen.getByLabelText('Evaluate my match with AI'));
+    await waitFor(() => expect(screen.getByLabelText('Evaluate my match with AI')).not.toBeChecked());
+    expect((await api.getJob(id)).match).toBeUndefined();
+  });
+
+  it('lets the match be requested when the backend sends null for a missing task', async () => {
+    useDevBackend();
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    await loadApp();
+    const { default: MatchTab } = await import('./tabs/MatchTab.svelte');
+    render(MatchTab, { jobId: 'j1', match: null });
+    expect(await screen.findByLabelText('Evaluate my match with AI')).toBeEnabled();
   });
 
   it('creates an application and opens it, warning about an active one', async () => {

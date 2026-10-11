@@ -1,4 +1,5 @@
 import {
+  AiTaskService,
   ApplicationFactory,
   ApplicationRemover,
   ApplicationService,
@@ -14,6 +15,7 @@ import {
   SheetKeyValueStore,
   SheetRepository,
   SHEETS,
+  type AiTask,
   type AppWarning,
   type Application,
   type ApplicationDocument,
@@ -62,6 +64,7 @@ export function buildContainer(deps: ContainerDeps) {
   const jobs = repository<Job>('Jobs');
   const applications = repository<Application>('Applications');
   const reminders = repository<Reminder>('Reminders');
+  const tasks = repository<AiTask>('Tasks');
   const documents = repository<ApplicationDocument>('Documents');
   const questions = repository<Question>('Questions');
   const communications = repository<Communication>('Communications');
@@ -114,6 +117,11 @@ export function buildContainer(deps: ContainerDeps) {
   const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
   const catalogService = new CatalogService({ jobs, companies });
+  const aiTaskService = new AiTaskService({
+    tasks, jobs, documents, applications, newId: deps.newId, now: deps.now,
+    experience: () => settings.get().settings.candidate_experience,
+    language: () => settings.get().settings.ui_language,
+  });
 
   return {
     appVersion: deps.appVersion,
@@ -140,6 +148,7 @@ export function buildContainer(deps: ContainerDeps) {
     communicationService,
     reminderService,
     catalogService,
+    aiTaskService,
     log,
     logEntries: (): LogEntry[] => logSheet.list(),
     /** Reads every entity sheet and returns what is wrong with rows edited outside the app. */
@@ -149,6 +158,7 @@ export function buildContainer(deps: ContainerDeps) {
       jobs.list();
       applications.list();
       reminders.list();
+      tasks.list();
       documents.list();
       questions.list();
       communications.list();

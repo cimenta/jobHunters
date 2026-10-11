@@ -4,6 +4,7 @@
   import Card from '../components/Card.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
+  import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { documentTypeLabel } from '../lib/labels';
@@ -36,7 +37,10 @@
   const profile = useResource(() => api.getProfile());
   const templates = useResource(() => api.listTemplates());
 
+  let tab = $state('general');
+  let experience = $state('');
   let uiLanguage = $state('en');
+  let uiTheme = $state('system');
   let docLanguage = $state('en');
   let documentSet = $state<string[]>([]);
   let profileValues = $state<Record<string, string>>({ name: '', email: '', phone: '', address: '', links: '' });
@@ -49,6 +53,8 @@
     const settings = app.settings;
     if (settings) {
       uiLanguage = settings.ui_language;
+      uiTheme = settings.ui_theme;
+      experience = settings.candidate_experience;
       docLanguage = settings.default_document_language;
       documentSet = [...settings.default_document_set];
     }
@@ -59,6 +65,18 @@
 
   async function saveLanguage(): Promise<void> {
     await api.updateSettings({ ui_language: uiLanguage, default_document_language: docLanguage });
+    await reloadSettings();
+    toast.success(tr('ui.saved'));
+  }
+
+  async function saveTheme(): Promise<void> {
+    await api.updateSettings({ ui_theme: uiTheme });
+    await reloadSettings();
+    toast.success(tr('ui.saved'));
+  }
+
+  async function saveExperience(): Promise<void> {
+    await api.updateSettings({ candidate_experience: experience });
     await reloadSettings();
     toast.success(tr('ui.saved'));
   }
@@ -87,6 +105,22 @@
 <div class="stack-lg" data-ui="settings">
   <div class="page-title"><h1>{tr('ui.nav.settings')}</h1></div>
 
+  <Tabs
+    items={[
+      { id: 'general', label: tr('ui.settings.tab.general') },
+      { id: 'documents', label: tr('ui.settings.tab.documents') },
+      { id: 'experience', label: tr('ui.settings.tab.experience') },
+      { id: 'profile', label: tr('ui.settings.tab.profile') },
+      { id: 'templates', label: tr('ui.settings.tab.templates') },
+      { id: 'statuses', label: tr('ui.settings.tab.statuses') },
+      { id: 'about', label: tr('ui.settings.tab.about') },
+    ]}
+    bind:active={tab}
+    label={tr('ui.settings.tabs')}
+  />
+
+  <div class="stack-lg" role="tabpanel" data-ui="settings.panel" id="panel-{tab}" aria-labelledby="tab-{tab}">
+  {#if tab === 'general'}
   <Card ui="settings.language">
     <h2>{tr('ui.settings.language')}</h2>
     <Field label={tr('ui.settings.uiLanguage')} for="set-ui-language">
@@ -104,6 +138,19 @@
     <div><Button variant="primary" ui="settings.language.save" onclick={saveLanguage}>{tr('ui.save')}</Button></div>
   </Card>
 
+  <Card ui="settings.appearance">
+    <h2>{tr('ui.settings.appearance')}</h2>
+    <Field label={tr('ui.settings.theme')} for="set-ui-theme">
+      <select id="set-ui-theme" class="input" bind:value={uiTheme}>
+        <option value="system">{tr('ui.theme.system')}</option>
+        <option value="light">{tr('ui.theme.light')}</option>
+        <option value="dark">{tr('ui.theme.dark')}</option>
+      </select>
+    </Field>
+    <div><Button variant="primary" ui="settings.appearance.save" onclick={saveTheme}>{tr('ui.save')}</Button></div>
+  </Card>
+
+  {:else if tab === 'documents'}
   <Card ui="settings.documents">
     <h2>{tr('ui.settings.documents')}</h2>
     <fieldset class="checks">
@@ -115,6 +162,16 @@
     <div><Button variant="primary" ui="settings.documents.save" onclick={saveDocuments}>{tr('ui.save')}</Button></div>
   </Card>
 
+  {:else if tab === 'experience'}
+  <Card ui="settings.experience">
+    <h2>{tr('ui.settings.experience')}</h2>
+    <p class="muted small">{tr('ui.settings.experienceHint')}</p>
+    <Field label={tr('ui.settings.experience')} for="set-experience">
+      <textarea id="set-experience" class="input" rows="14" maxlength="40000" bind:value={experience}></textarea>
+    </Field>
+    <div><Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button></div>
+  </Card>
+  {:else if tab === 'profile'}
   <Card ui="settings.profile">
     <h2>{tr('ui.settings.profile')}</h2>
     <p class="muted small">{tr('ui.settings.profileHint')}</p>
@@ -132,6 +189,7 @@
     {/if}
   </Card>
 
+  {:else if tab === 'templates'}
   <Card ui="settings.templates">
     <h2>{tr('ui.settings.templates')}</h2>
     <p class="muted small">{tr('ui.settings.templatesHint')} {#each PLACEHOLDERS as placeholder (placeholder)}<code>{placeholder}</code>{' '}{/each}</p>
@@ -171,12 +229,14 @@
     <div><Button variant="primary" ui="settings.templates.add" onclick={addTemplate}>{tr('ui.template.add')}</Button></div>
   </Card>
 
+  {:else if tab === 'statuses'}
   <Card ui="settings.status-labels">
     <h2>{tr('ui.settings.statusLabels')}</h2>
     <p class="muted small">{tr('ui.settings.statusLabelsHint')}</p>
     <StatusStylesEditor />
   </Card>
 
+  {:else}
   <Card ui="settings.about">
     <h2>{tr('ui.settings.about')}</h2>
     <p>JobHunters</p>
@@ -186,6 +246,8 @@
     </label>
     <p class="muted small">{tr('ui.settings.showIdsHint')}</p>
   </Card>
+  {/if}
+  </div>
 </div>
 
 <style>

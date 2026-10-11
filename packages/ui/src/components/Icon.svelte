@@ -1,7 +1,7 @@
 <script lang="ts" module>
   export type IconName =
     | 'home' | 'briefcase' | 'file' | 'building' | 'settings' | 'plus' | 'check' | 'clock' | 'external'
-    | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close';
+    | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle';
 
   const PATHS: Record<IconName, string> = {
     home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
@@ -22,6 +22,7 @@
     refresh: 'M20 11a8 8 0 1 0-2 6M20 5v6h-6',
     download: 'M12 4v12M7 11l5 5 5-5M5 20h14',
     close: 'M6 6l12 12M18 6L6 18',
+    sparkle: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4',
   };
 </script>
 
