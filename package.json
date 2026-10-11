@@ -1,0 +1,22 @@
+{
+  "name": "jobhunters",
+  "private": true,
+  "description": "Manage and prepare job applications on Google Apps Script, Sheets and Drive.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p packages/core/tsconfig.json && tsc --noEmit -p packages/gas/tsconfig.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
