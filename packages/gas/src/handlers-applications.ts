@@ -104,6 +104,18 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.aiTaskService.requestDocument(documentId, notes));
     },
 
+    requestQuestionAi: (args) => {
+      const input = asRecord(args, 'requestQuestionAi');
+      const questionId = requireString(input, 'questionId', 'requestQuestionAi');
+      const notes = optionalString(input, 'notes', 'requestQuestionAi') ?? '';
+      return c.lock.run(() => c.aiTaskService.requestQuestion(questionId, notes));
+    },
+
+    requestQuestionsAi: (args) => {
+      const applicationId = requireString(asRecord(args, 'requestQuestionsAi'), 'applicationId', 'requestQuestionsAi');
+      return c.lock.run(() => c.aiTaskService.requestOpenQuestions(applicationId));
+    },
+
     listAiTasks: () => c.aiTaskService.list(),
 
     removeAiTask: (args) => {

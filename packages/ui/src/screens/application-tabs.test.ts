@@ -30,6 +30,20 @@ describe('Questions tab', () => {
     expect(toasts.map((t) => t.text)).toContain('Answer saved');
   });
 
+  it('queues the AI to answer a question and shows the state of the task', async () => {
+    const id = await open(/Questions/);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const box = await screen.findByLabelText('Answer by AI');
+    await fireEvent.input(screen.getByPlaceholderText('Your own instructions for the AI (optional)'), { target: { value: 'Be brief' } });
+    await fireEvent.click(box);
+    expect(await screen.findByText(/Waiting for the AI/)).toBeInTheDocument();
+    const task = (await api.getApplication(id)).tasks[0]!;
+    expect(task).toMatchObject({ type: 'answer_question', target_type: 'question', status: 'pending' });
+    expect(task.instructions).toContain('Be brief');
+    await fireEvent.click(screen.getByLabelText('Answer by AI'));
+    await waitFor(async () => expect((await api.getApplication(id)).tasks).toEqual([]));
+  });
+
   it('reports an answer over the limit instead of saving it', async () => {
     const id = await open(/Questions/);
     await fireEvent.input(await screen.findByLabelText('Answer'), { target: { value: 'x'.repeat(301) } });

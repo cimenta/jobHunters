@@ -118,7 +118,7 @@ export function buildContainer(deps: ContainerDeps) {
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
   const catalogService = new CatalogService({ jobs, companies });
   const aiTaskService = new AiTaskService({
-    tasks, jobs, companies, documents, applications, newId: deps.newId, now: deps.now,
+    tasks, jobs, companies, documents, questions, applications, newId: deps.newId, now: deps.now,
     experience: () => settings.get().settings.candidate_experience,
     language: () => settings.get().settings.ui_language,
   });

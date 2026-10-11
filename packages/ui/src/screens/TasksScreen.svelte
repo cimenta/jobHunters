@@ -26,6 +26,8 @@
     switch (type) {
       case 'match_job':
         return tr('ui.tasks.type.match_job');
+      case 'answer_question':
+        return tr('ui.tasks.type.answer_question');
       case 'resume_tailor':
         return documentTypeLabel('resume');
       case 'cover_letter':

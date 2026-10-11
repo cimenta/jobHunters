@@ -36,6 +36,22 @@
     invalidate();
   }
 
+  /** The newest AI task that answers the question. */
+  function taskOf(questionId: string) {
+    return detail.tasks.find((task) => task.target_type === 'question' && task.target_id === questionId);
+  }
+
+  const openCount = $derived(detail.questions.filter((q) => q.answer.trim() === '').length);
+
+  async function queueAll(): Promise<void> {
+    try {
+      const created = await api.requestQuestionsAi(detail.application.id);
+      toast.success(tr('ui.questions.queued', { count: created.length }));
+    } finally {
+      invalidate();
+    }
+  }
+
   async function remove(): Promise<void> {
     if (removing === undefined) return;
     await api.removeQuestion(removing);
@@ -45,13 +61,16 @@
 </script>
 
 <div class="stack" data-ui="questions">
-  <div><Button ui="questions.add" onclick={openAdd}><Icon name="plus" size={18} />{tr('ui.questions.add')}</Button></div>
+  <div class="row wrap">
+    <Button ui="questions.add" onclick={openAdd}><Icon name="plus" size={18} />{tr('ui.questions.add')}</Button>
+    <Button ui="questions.queue-all" disabled={openCount === 0} onclick={queueAll}>{tr('ui.questions.queueAll')}</Button>
+  </div>
   {#if detail.questions.length === 0}
     <EmptyState icon="file" title={tr('ui.questions.empty')} />
   {:else}
     <ul class="list">
       {#each detail.questions as question (question.id)}
-        <QuestionItem {question} ondelete={() => (removing = question.id)} />
+        <QuestionItem {question} task={taskOf(question.id)} ondelete={() => (removing = question.id)} />
       {/each}
     </ul>
   {/if}

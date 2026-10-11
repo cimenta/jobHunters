@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.7.1] - 2026-10-11
+
+- Questions of an application have an "Answer by AI" checkbox with optional own instructions and a button that queues all unanswered questions at once. The AI task (`answer_question`) respects the maximum length and the language of the application and writes the answer into the question. New API methods `requestQuestionAi`, `requestQuestionsAi`.
+
 ## [0.7.0] - 2026-10-11
 
 - AI tasks table: the type column names the document (resume or cover letter) and a Company column was added; the detail also shows the company.

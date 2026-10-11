@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryRepository } from '../repository';
 import { errorOf } from '../testing/errors';
 import { makeApplication, makeJob, sequentialIds } from '../testing/fixtures';
-import type { AiTask, Application, ApplicationDocument, Company, Job } from '../types';
+import type { AiTask, Application, ApplicationDocument, Company, Job, Question } from '../types';
 import { AiTaskService } from './ai-task-service';
 
 function setup(experience = 'Ten years of TypeScript') {
@@ -12,6 +12,11 @@ function setup(experience = 'Ten years of TypeScript') {
     jobs: new InMemoryRepository<Job>([makeJob({ id: 'j1', company_id: 'c1' })]),
     companies: new InMemoryRepository<Company>([{ id: 'c1', name: 'Example s.r.o.', website: '', notes: '' }]),
     applications: new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', language: 'cs' })]),
+    questions: new InMemoryRepository<Question>([
+      { id: 'q1', application_id: 'a1', position: 1, question: 'Why us?', answer: '', max_length: 500, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q2', application_id: 'a1', position: 2, question: 'Salary?', answer: '', max_length: null, status: 'open', created_at: '', updated_at: '' },
+      { id: 'q3', application_id: 'a1', position: 3, question: 'Notice period?', answer: 'Two months', max_length: null, status: 'answered', created_at: '', updated_at: '' },
+    ]),
     documents: new InMemoryRepository<ApplicationDocument>([
       { id: 'd1', application_id: 'a1', type: 'cover_letter', doc_url: 'https://docs.google.com/document/d/x/edit', pdf_url: '', template_id: '', created_at: '', pdf_exported_at: '' },
       { id: 'd2', application_id: 'a1', type: 'resume', doc_url: 'https://docs.google.com/document/d/y/edit', pdf_url: '', template_id: '', created_at: '', pdf_exported_at: '' },
@@ -85,6 +90,27 @@ describe('AiTaskService', () => {
     expect(service.requestDocument('d1').id).not.toBe(first.id);
     expect(errorOf(() => service.requestDocument('zz'))).toMatchObject({ code: 'document_not_found' });
     expect(errorOf(() => setup('').service.requestDocument('d1'))).toMatchObject({ code: 'match_experience_required' });
+  });
+
+  it('queues the answer to a question with the limit, the language and the user instructions', () => {
+    const { service } = setup();
+    const task = service.requestQuestion('q1', 'Stress remote work');
+    expect(task).toMatchObject({ type: 'answer_question', target_type: 'question', target_id: 'q1', application_id: 'a1', job_id: 'j1', status: 'pending' });
+    expect(task.instructions).toContain('Czech');
+    expect(task.instructions).toContain('500 characters');
+    expect(task.instructions).toContain('Stress remote work');
+    expect(service.requestQuestion('q1').id).toBe(task.id);
+    expect(service.questionTaskFor('q1')?.id).toBe(task.id);
+    expect(errorOf(() => service.requestQuestion('zz'))).toMatchObject({ code: 'question_not_found' });
+    expect(errorOf(() => setup(' ').service.requestQuestion('q1'))).toMatchObject({ code: 'match_experience_required' });
+  });
+
+  it('queues all the unanswered questions once', () => {
+    const { service } = setup();
+    service.requestQuestion('q1');
+    const created = service.requestOpenQuestions('a1');
+    expect(created.map((t) => t.target_id)).toEqual(['q2']);
+    expect(service.requestOpenQuestions('a1')).toEqual([]);
   });
 
   it('cancels only a pending task', () => {

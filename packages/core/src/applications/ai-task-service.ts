@@ -1,13 +1,14 @@
 import { NotFoundError, ValidationError } from '../errors';
 import type { Repository } from '../repository';
 import { DEFAULT_PROMPTS } from '../seed';
-import type { AiTask, Application, ApplicationDocument, Company, Job } from '../types';
+import type { AiTask, Application, ApplicationDocument, Company, Job, Question } from '../types';
 
 export interface AiTaskServiceDeps {
   tasks: Repository<AiTask>;
   jobs: Repository<Job>;
   companies: Repository<Company>;
   documents: Repository<ApplicationDocument>;
+  questions: Repository<Question>;
   applications: Repository<Application>;
   newId: () => string;
   /** ISO 8601 date-time. */
@@ -80,6 +81,52 @@ export class AiTaskService {
       ].filter((line) => line !== '').join(' '),
       status: 'pending', ai_note: '', completed_at: '',
     });
+  }
+
+  /** The newest task that answers the given question. */
+  questionTaskFor(questionId: string): AiTask | undefined {
+    const found = this.deps.tasks.list().filter((t) => t.target_type === 'question' && t.target_id === questionId);
+    return found.sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0)).at(-1);
+  }
+
+  /** Queues the AI to answer a question; a waiting or running task is returned instead of a duplicate. */
+  requestQuestion(questionId: string, notes = ''): AiTask {
+    const { tasks, questions, applications, newId, now, experience } = this.deps;
+    const question = questions.get(questionId);
+    if (!question) throw new NotFoundError('question_not_found', `Question ${questionId} not found`, { id: questionId });
+    const application = applications.get(question.application_id);
+    if (!application) throw new NotFoundError('application_not_found', `Application ${question.application_id} not found`, { id: question.application_id });
+    if (experience().trim() === '') throw new ValidationError('match_experience_required', 'The experience setting is empty', {});
+    const current = this.questionTaskFor(questionId);
+    if (current && ACTIVE.includes(current.status)) return current;
+    const standing = DEFAULT_PROMPTS.find((p) => p.type === 'answer_question')?.instruction ?? '';
+    const language = LANGUAGE_NAMES[application.language] ?? 'English';
+    const extra = notes.trim();
+    const limit = question.max_length === null ? '' : `The answer must not exceed ${question.max_length} characters.`;
+    return tasks.insert({
+      id: newId(), created_at: now(), application_id: application.id, job_id: application.job_id, type: 'answer_question', target_type: 'question', target_id: question.id,
+      instructions: [
+        `Answer the question in the Questions sheet row ${question.id} (column question) for the application ${application.id}: write the answer into the column answer and set its status to answered.`,
+        `Use the job ad in the Jobs sheet row ${application.job_id}, the Profile sheet and the candidate_experience setting. Write in ${language}. Never invent experience.`,
+        limit,
+        standing,
+        extra === '' ? '' : `Instructions from the user: ${extra}`,
+        'When finished set the task status to done and put a short note in ai_note.',
+      ].filter((line) => line !== '').join(' '),
+      status: 'pending', ai_note: '', completed_at: '',
+    });
+  }
+
+  /** One task for every question of the application that has no answer and no waiting task. */
+  requestOpenQuestions(applicationId: string): AiTask[] {
+    const open = this.deps.questions.list().filter((q) => q.application_id === applicationId && q.answer.trim() === '');
+    const created: AiTask[] = [];
+    for (const question of open) {
+      const current = this.questionTaskFor(question.id);
+      if (current && ACTIVE.includes(current.status)) continue;
+      created.push(this.requestQuestion(question.id));
+    }
+    return created;
   }
 
   /** The newest match task of a job, whatever its state. */
