@@ -2,7 +2,7 @@ import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, MenuCounts, Remo
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, PrepareResult, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -54,6 +54,7 @@ export const api = {
 
   listApplications: () => call<ApplicationRow[]>('listApplications'),
   getApplication: (id: string) => call<ApplicationDetail>('getApplication', { id }),
+  prepareApplication: (jobId: string) => call<PrepareResult>('prepareApplication', { jobId }),
   createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string }) => call<CreateApplicationResult>('createApplication', input),
   moveApplication: (id: string, to: string, index: number, remindAt?: string) => call<ApplicationRow>('moveApplication', remindAt === undefined ? { id, to, index } : { id, to, index, remindAt }),
   setApplicationStatus: (id: string, to: string, remindAt?: string) => call<unknown>('setApplicationStatus', remindAt === undefined ? { id, to } : { id, to, remindAt }),

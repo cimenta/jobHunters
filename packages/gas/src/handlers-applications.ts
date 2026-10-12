@@ -67,6 +67,11 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.applicationFactory.create({ jobId, language, fromApplicationId }));
     },
 
+    prepareApplication: (args) => {
+      const jobId = requireString(asRecord(args, 'prepareApplication'), 'jobId', 'prepareApplication');
+      return c.lock.run(() => c.applicationPreparer.prepare(jobId));
+    },
+
     deleteApplication: (args) => {
       const input = asRecord(args, 'deleteApplication');
       const id = requireString(input, 'id', 'deleteApplication');

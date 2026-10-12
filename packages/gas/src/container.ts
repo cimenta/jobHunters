@@ -1,6 +1,7 @@
 import {
   AiTaskService,
   ApplicationFactory,
+  ApplicationPreparer,
   ApplicationRemover,
   ApplicationService,
   AvailabilityService,
@@ -139,6 +140,11 @@ export function buildContainer(deps: ContainerDeps) {
     language: () => settings.get().settings.ui_language,
     prompt: (type) => settings.get().settings[`ai_prompt_${type}`],
   });
+  const applicationPreparer = new ApplicationPreparer({
+    jobs, applications, factory: applicationFactory, aiTasks: aiTaskService,
+    experience: () => settings.get().settings.candidate_experience,
+    defaultLanguage: () => settings.get().settings.default_document_language,
+  });
   const jobImportService = new JobImportService({ jobService, aiTasks: aiTaskService, jobs, tasks, companies, applications });
   const availabilityService = new AvailabilityService({
     jobs, applications, fetcher: deps.fetcher, now: deps.now, clock: deps.clock ?? Date.now, log,
@@ -188,6 +194,7 @@ export function buildContainer(deps: ContainerDeps) {
     catalogService,
     jobStatusService,
     aiTaskService,
+    applicationPreparer,
     jobImportService,
     tasks,
     availabilityService,

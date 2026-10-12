@@ -2,6 +2,10 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.0] - 2026-10-13
+
+- Job cards without an application have a "Prepare with AI" checkbox. Ticking it creates the application and queues AI tasks for the documents of your default set (the language of the ad when it is English or Czech, otherwise the default document language); a notice names the job and the number of tasks. New API method `prepareApplication`.
+
 ## [0.12.7] - 2026-10-13
 
 - The Jobs filter drop-downs have shorter texts ("Any", "All", "Newest", "Best match" ...), so the whole filter bar, including "Clear filters", fits one row on a 1280px screen.

@@ -48,6 +48,7 @@ export const ERROR_CODES = [
   'task_not_cancellable',
   'job_not_deletable',
   'job_awaiting',
+  'application_exists',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

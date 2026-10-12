@@ -61,6 +61,7 @@
   "warning.active_application_exists": "Na tento inzerát už existuje aktivní přihláška ({id}).",
   "warning.template_missing": "Chybí šablona typu {type} pro jazyk {language}; místo něj byl vytvořen prázdný dokument.",
   "warning.document_create_failed": "Dokument typu {type} se nepodařilo vytvořit. Podívejte se do listu Log.",
+  "warning.ai_task_failed": "Úkol pro AI k dokumentu typu {type} se nepodařilo zadat. Zadejte ho na stránce přihlášky.",
   "document.type.resume": "Životopis",
   "document.type.cover_letter": "Motivační dopis",
   "document.type.other": "Dokument",
@@ -330,6 +331,7 @@
   "ui.theme.dark": "Tmavý",
   "error.match_experience_required": "Nejdřív v Nastavení vyplňte své zkušenosti.",
   "error.job_awaiting": "Tento inzerát čeká na AI a zatím ho nelze použít.",
+  "error.application_exists": "Tento inzerát už má přihlášku.",
   "error.job_not_deletable": "Smazat jde jen inzerát, který čeká na AI.",
   "error.task_not_cancellable": "Úkol se už zpracovává a nelze ho zrušit.",
   "error.task_not_found": "Úkol nebyl nalezen.",
@@ -516,6 +518,7 @@
   "ui.help.jobs.i15": "Rozbalovací pole „Řadit podle“ seřadí seznam: od nejnovějších (výchozí), od nejstarších, od nejlepší shody nebo od nejhorší shody. Inzeráty bez shody jsou při řazení podle shody vždy na konci.",
   "ui.help.jobs.i16": "Zaškrtávací pole „Skrýt inzeráty s přihláškou“ ze seznamu odstraní inzeráty, na které už přihlášku máte. Obě volby se pamatují mezi návštěvami.",
   "ui.help.jobs.i17": "Tlačítko „Zrušit filtry“ se objeví na konci lišty filtrů, jakmile je zapnutý některý filtr (hledání, dostupnost, stav, brigáda nebo skrytí inzerátů s přihláškou). Filtry vynuluje, ale pořadí řazení ponechá.",
+  "ui.help.jobs.i18": "Inzerát bez přihlášky má v úzkém sloupci karty také pole „Připravit s AI“. Jeho zaškrtnutím se ihned vytvoří přihláška, připraví se dokumenty z vaší výchozí sady (životopis a motivační dopis) v jazyce inzerátu (angličtina nebo čeština, jinak váš výchozí jazyk dokumentů) a pro každý se zařadí jedna úloha pro AI. Pole pak z karty zmizí; řekněte Claudovi: spusť čekající úlohy. Je neaktivní, dokud v Nastavení nepopíšete své zkušenosti.",
   "ui.help.applications.title": "Přihlášky",
   "ui.help.applications.intro": "Vaše přihlášky, jako seznam nebo jako nástěnka Kanban.",
   "ui.help.applications.i1": "Filtr stavů umožňuje vybrat více stavů. Seznam i nástěnka si pamatují svůj výběr.",
@@ -590,5 +593,10 @@
   "ui.jobs.card.open": "Otevřít původní inzerát",
   "ui.jobs.card.check": "Zkontrolovat dostupnost",
   "ui.jobs.card.delete": "Smazat inzerát",
-  "ui.jobs.card.matchNoExperience": "Pro ohodnocení shody popište své zkušenosti v Nastavení"
+  "ui.jobs.card.matchNoExperience": "Pro ohodnocení shody popište své zkušenosti v Nastavení",
+  "ui.jobs.card.prepare": "Připravit s AI",
+  "ui.jobs.card.prepareTitle": "Vytvořit přihlášku a nechat AI napsat životopis a motivační dopis",
+  "ui.jobs.card.aiNoExperience": "Pro použití AI popište své zkušenosti v Nastavení",
+  "ui.jobs.card.preparedNoTasks": "Přihláška pro „{title}“ vytvořena. Žádná úloha pro AI nebyla zařazena.",
+  "ui.jobs.card.prepared": { "one": "Přihláška pro „{title}“ vytvořena a {count} úloha pro AI zařazena. Řekněte Claudovi: spusť čekající úlohy.", "few": "Přihláška pro „{title}“ vytvořena a {count} úlohy pro AI zařazeny. Řekněte Claudovi: spusť čekající úlohy.", "other": "Přihláška pro „{title}“ vytvořena a {count} úloh pro AI zařazeno. Řekněte Claudovi: spusť čekající úlohy." }
 }

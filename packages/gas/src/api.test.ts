@@ -206,6 +206,22 @@ describe('applications api', () => {
     expect(resume?.content).toBe('resume: Eva Example for Example Ltd as Data Analyst {{body}}');
   });
 
+  it('prepareApplication creates the application and queues the AI tasks', () => {
+    const { api, jobId } = prepared();
+    expect(api('prepareApplication', { jobId })).toMatchObject({ ok: false, error: { code: 'match_experience_required' } });
+    expect((api('listApplications') as { data: unknown[] }).data).toHaveLength(0);
+    api('updateSettings', { candidate_experience: 'Ten years of TypeScript' });
+    const result = api('prepareApplication', { jobId }) as { ok: true; data: { application: { id: string; job_id: string }; documents: unknown[]; tasks: { type: string }[]; warnings: unknown[] } };
+    expect(result).toMatchObject({ ok: true, data: { application: { job_id: jobId }, warnings: expect.any(Array) } });
+    expect(result.data.documents).toHaveLength(2);
+    expect(result.data.tasks.map((t) => t.type).sort()).toEqual(['cover_letter', 'resume_tailor']);
+    const listed = (api('listAiTasks') as { data: { type: string; status: string; application_id: string }[] }).data;
+    expect(listed.filter((t) => t.status === 'pending' && t.application_id === result.data.application.id)).toHaveLength(2);
+    expect(api('prepareApplication', { jobId })).toMatchObject({ ok: false, error: { code: 'application_exists' } });
+    expect(api('prepareApplication', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('prepareApplication', { jobId: 'ghost' })).toMatchObject({ ok: false, error: { code: 'job_not_found' } });
+  });
+
   it('shows the whole application with timeline, exports a PDF and previews safe HTML', () => {
     const { api, jobId } = prepared();
     const { data } = api('createApplication', { jobId }) as { ok: true; data: { application: { id: string }; documents: { id: string }[] } };

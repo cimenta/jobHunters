@@ -9,6 +9,7 @@
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import { describeWarning } from '../lib/errors';
   import { filterJobs, sortJobs, type JobFilters } from '../lib/filters';
   import { tr } from '../lib/i18n.svelte';
   import { reportAvailability } from '../lib/job-notices';
@@ -41,6 +42,8 @@
   const hintId = $derived(rows.find((row) => canEvaluate(row) && row.match_task_status !== 'pending' && row.match_task_status !== 'in_progress')?.id);
   /** Jobs whose match request is being sent or cancelled: a second click must not queue a second task. */
   let busy = $state<string[]>([]);
+  /** Jobs just prepared: the box stays ticked and locked until the refreshed list drops it. */
+  let prepared = $state<string[]>([]);
   let deleting = $state<{ id: string; title: string } | undefined>();
 
   /** The checkbox is offered only for an ad that was never evaluated and has no application. */
@@ -68,6 +71,28 @@
       }
     } catch (error) {
       input.checked = wasActive;
+      notifyError(error);
+    } finally {
+      busy = busy.filter((id) => id !== job.id);
+      invalidate();
+    }
+  }
+
+  /** A job gets an application and AI tasks in one step; the box is one-way, so it is reset on failure only. */
+  async function prepare(job: JobRow, input: HTMLInputElement): Promise<void> {
+    if (busy.includes(job.id)) {
+      input.checked = false;
+      return;
+    }
+    busy = [...busy, job.id];
+    try {
+      const result = await api.prepareApplication(job.id);
+      prepared = [...prepared, job.id];
+      const title = shorten(job.title, 60);
+      toast.success(result.tasks.length > 0 ? tr('ui.jobs.card.prepared', { title, count: result.tasks.length }) : tr('ui.jobs.card.preparedNoTasks', { title }));
+      for (const warning of result.warnings) toast.warning(describeWarning(warning));
+    } catch (error) {
+      input.checked = false;
       notifyError(error);
     } finally {
       busy = busy.filter((id) => id !== job.id);
@@ -182,14 +207,23 @@
                   {@const running = job.match_task_status === 'in_progress'}
                   {@const active = waiting || running}
                   <div class="match">
-                    {#if !hasExperience && !active}
-                      <a class="icon-link" href={paths.settings} aria-label={tr('ui.jobs.card.matchNoExperience')} title={tr('ui.jobs.card.matchNoExperience')} data-ui="job.{job.id}.match.settings"><Icon name="settings" size={18} /></a>
-                    {:else if waiting}
+                    {#if waiting}
                       <span class="pending" role="img" aria-label={tr('ui.match.pending')} title={tr('ui.match.pending')}><Icon name="clock" size={18} /></span>
                     {/if}
                     <label class="check-box" title={tr('ui.match.request')} data-ui="job.{job.id}.match">
                       <input data-ui="job.{job.id}.ai-match" type="checkbox" checked={active} disabled={running || busy.includes(job.id) || (!hasExperience && !active)} onchange={(event) => toggleMatch(job, event.currentTarget)} />
                       <span class="sr-only">{tr('ui.match.request')}</span>
+                    </label>
+                  </div>
+                {/if}
+                {#if job.application_count === 0 && job.status !== 'awaiting'}
+                  <div class="match">
+                    {#if !hasExperience}
+                      <a class="icon-link" href={paths.settings} aria-label={tr('ui.jobs.card.aiNoExperience')} title={tr('ui.jobs.card.aiNoExperience')} data-ui="job.{job.id}.ai.settings"><Icon name="settings" size={18} /></a>
+                    {/if}
+                    <label class="check-box prepare" title={tr('ui.jobs.card.prepareTitle')} data-ui="job.{job.id}.prepare.box">
+                      <input data-ui="job.{job.id}.prepare" type="checkbox" checked={prepared.includes(job.id)} disabled={busy.includes(job.id) || prepared.includes(job.id) || !hasExperience} onchange={(event) => (event.currentTarget.checked ? prepare(job, event.currentTarget) : undefined)} />
+                      <span class="prepare-text">{tr('ui.jobs.card.prepare')}</span>
                     </label>
                   </div>
                 {/if}
@@ -229,6 +263,8 @@
   .match { display: flex; flex-direction: column; align-items: flex-end; }
   .pending { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); color: var(--text-muted); }
   .check-box { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); cursor: pointer; }
+  .check-box.prepare { flex-direction: column; gap: 2px; width: 100%; padding: var(--space-1) 0; }
+  .prepare-text { font-size: 0.6875rem; line-height: 1.1; text-align: center; overflow-wrap: normal; word-break: normal; hyphens: none; color: var(--text-muted); }
   .body { display: flex; flex-direction: column; gap: var(--space-1); }
   .title { font-weight: 600; }
   .dot { flex: none; width: 12px; height: 12px; margin-top: 7px; border-radius: 50%; background: var(--text-muted); }

@@ -71,6 +71,7 @@
       <li>{tr('ui.help.jobs.i15')}</li>
       <li>{tr('ui.help.jobs.i16')}</li>
       <li>{tr('ui.help.jobs.i17')}</li>
+      <li>{tr('ui.help.jobs.i18')}</li>
     </ul>
     <p><a data-ui="help.open.jobs" href={paths.jobs}>{tr('ui.help.open', { name: tr('ui.help.jobs.title') })}</a></p>
   </Card>

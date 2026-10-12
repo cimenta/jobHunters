@@ -56,6 +56,7 @@
   "warning.active_application_exists": "This job already has an active application ({id}).",
   "warning.template_missing": "There is no {type} template for language {language}; an empty document was created instead.",
   "warning.document_create_failed": "The {type} document could not be created. Check the Log sheet.",
+  "warning.ai_task_failed": "The AI task for the {type} document could not be queued. Request it on the application page.",
   "document.type.resume": "Resume",
   "document.type.cover_letter": "Cover letter",
   "document.type.other": "Document",
@@ -325,6 +326,7 @@
   "ui.theme.dark": "Dark",
   "error.match_experience_required": "Fill in your experience in Settings first.",
   "error.job_awaiting": "This job is waiting for the AI and cannot be used yet.",
+  "error.application_exists": "This job already has an application.",
   "error.job_not_deletable": "Only a job that is waiting for the AI can be deleted.",
   "error.task_not_cancellable": "The task is already being processed and cannot be cancelled.",
   "error.task_not_found": "The task was not found.",
@@ -511,6 +513,7 @@
   "ui.help.jobs.i15": "The \"Sort by\" dropdown orders the list: newest first (the default), oldest first, best match first or worst match first. Jobs without a match always come last when sorting by match.",
   "ui.help.jobs.i16": "The checkbox \"Hide jobs with an application\" removes the jobs you have already applied to from the list. Both choices are remembered between visits.",
   "ui.help.jobs.i17": "The button \"Clear filters\" appears at the end of the filter bar as soon as any filter is on (search, availability, status, gig or hiding jobs with an application). It resets the filters but keeps the sort order.",
+  "ui.help.jobs.i18": "A job without an application also has the checkbox \"Prepare with AI\" in the narrow column of the card. Ticking it at once creates the application, makes the documents of your default set (resume and cover letter) in the language of the ad (English or Czech, otherwise your default document language) and queues one AI task for each. The box then disappears from the card; tell Claude: run the pending tasks. It is disabled until you describe your experience in Settings.",
   "ui.help.applications.title": "Applications",
   "ui.help.applications.intro": "Your applications, as a list or as a Kanban board.",
   "ui.help.applications.i1": "The status filter is a multiple choice. The list and the board remember their own selection.",
@@ -585,5 +588,10 @@
   "ui.jobs.card.open": "Open original ad",
   "ui.jobs.card.check": "Check availability",
   "ui.jobs.card.delete": "Delete job",
-  "ui.jobs.card.matchNoExperience": "Describe your experience in Settings to evaluate your match"
+  "ui.jobs.card.matchNoExperience": "Describe your experience in Settings to evaluate your match",
+  "ui.jobs.card.prepare": "Prepare with AI",
+  "ui.jobs.card.prepareTitle": "Create the application and let the AI write the resume and cover letter",
+  "ui.jobs.card.aiNoExperience": "Describe your experience in Settings to use AI",
+  "ui.jobs.card.preparedNoTasks": "Application created for \"{title}\". No AI tasks were queued.",
+  "ui.jobs.card.prepared": { "one": "Application created for \"{title}\" and {count} AI task queued. Tell Claude: run the pending tasks.", "other": "Application created for \"{title}\" and {count} AI tasks queued. Tell Claude: run the pending tasks." }
 }

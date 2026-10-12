@@ -600,4 +600,126 @@ describe('JobsList card', () => {
     expect(toasts.some((t) => t.text.includes('deleted'))).toBe(true);
     expect((await api.listJobs()).some((job) => job.id === awaiting.id)).toBe(false);
   });
+
+  describe('Prepare with AI', () => {
+    const PREPARE = 'Prepare with AI';
+
+    it('shows the checkbox only for jobs without an application that are not awaiting, with short text, title and data-ui', async () => {
+      const { plain } = await setup();
+      await api.importJob('https://blocked.example/job/1');
+      render(JobsList);
+      await screen.findByText(plain.title);
+      const fresh = await api.listJobs();
+      await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(PREPARE)).toBeInTheDocument());
+      for (const job of fresh) {
+        const wants = job.application_count === 0 && job.status !== 'awaiting';
+        const box = within(actionsOf(job.id)).queryByLabelText(PREPARE);
+        expect(box !== null, job.title).toBe(wants);
+      }
+      expect(fresh.some((job) => job.application_count > 0)).toBe(true);
+      expect(fresh.some((job) => job.status === 'awaiting')).toBe(true);
+      const input = within(actionsOf(plain.id)).getByLabelText(PREPARE);
+      expect(input).toHaveAttribute('data-ui', `job.${plain.id}.prepare`);
+      expect(input.closest('label')).toHaveAttribute('title', 'Create the application and let the AI write the resume and cover letter');
+    });
+
+    it('creates the application, queues the AI tasks, shows an informative notice and removes the checkbox', async () => {
+      const { backend, plain } = await setup();
+      backend.container.jobs.update(plain.id, { language: 'cs' });
+      const before = (await api.listApplications()).length;
+      render(JobsList);
+      await screen.findByText(plain.title);
+      await fireEvent.click(within(actionsOf(plain.id)).getByLabelText(PREPARE));
+      await waitFor(() => expect(within(actionsOf(plain.id)).queryByLabelText(PREPARE)).toBeNull());
+      const apps = await api.listApplications();
+      expect(apps).toHaveLength(before + 1);
+      const created = apps.find((row) => row.job_id === plain.id)!;
+      expect(created.language).toBe('cs');
+      const tasks = (await api.listAiTasks()).filter((task) => task.status === 'pending' && task.application_id === created.id);
+      expect(tasks.length).toBeGreaterThan(0);
+      const notice = toasts.find((t) => t.kind === 'success' && t.text.includes(plain.title.slice(0, 30)) && t.text.includes(`${tasks.length} AI task`));
+      expect(notice, toasts.map((t) => t.text).join(' | ')).toBeDefined();
+      expect(notice!.text).toMatch(/run the pending tasks/);
+    });
+
+    it('is disabled without a saved experience and links to Settings', async () => {
+      const { plain } = await setup('');
+      render(JobsList);
+      await screen.findByText(plain.title);
+      expect(within(actionsOf(plain.id)).getByLabelText(PREPARE)).toBeDisabled();
+      expect(within(actionsOf(plain.id)).getByRole('link', { name: 'Describe your experience in Settings to use AI' })).toHaveAttribute('href', '#/settings');
+      expect(within(actionsOf(plain.id)).getAllByRole('link', { name: /Settings/ })).toHaveLength(1);
+    });
+
+    it('keeps the Settings link when a match task is pending and no experience is saved', async () => {
+      const { plain } = await setup();
+      await api.requestJobMatch(plain.id);
+      await api.updateSettings({ candidate_experience: '' });
+      await loadApp();
+      render(JobsList);
+      await screen.findByText(plain.title);
+      expect(within(actionsOf(plain.id)).getByLabelText(PREPARE)).toBeDisabled();
+      expect(within(actionsOf(plain.id)).getByRole('link', { name: /Settings/ })).toHaveAttribute('href', '#/settings');
+    });
+
+    it('says no tasks were queued when the result has none, and keeps the box ticked and locked', async () => {
+      const { plain } = await setup();
+      const spy = vi.spyOn(api, 'prepareApplication').mockResolvedValue({ application: {} as never, documents: [], tasks: [], warnings: [] });
+      render(JobsList);
+      await screen.findByText(plain.title);
+      const box = within(actionsOf(plain.id)).getByLabelText(PREPARE) as HTMLInputElement;
+      await fireEvent.click(box);
+      await waitFor(() => expect(toasts.some((t) => /No AI tasks were queued/.test(t.text))).toBe(true));
+      expect(toasts.some((t) => /0 AI tasks/.test(t.text))).toBe(false);
+      expect(box.checked).toBe(true);
+      expect(box).toBeDisabled();
+      spy.mockRestore();
+    });
+
+    it('resets the checkbox and shows an error when the request fails', async () => {
+      const { plain } = await setup();
+      const spy = vi.spyOn(api, 'prepareApplication').mockRejectedValue(new Error('boom'));
+      render(JobsList);
+      await screen.findByText(plain.title);
+      const box = within(actionsOf(plain.id)).getByLabelText(PREPARE) as HTMLInputElement;
+      await fireEvent.click(box);
+      await waitFor(() => expect(toasts.some((t) => t.kind === 'error')).toBe(true));
+      await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(PREPARE)).not.toBeChecked());
+      expect(box.checked).toBe(false);
+      spy.mockRestore();
+    });
+
+    it('ignores a second click while the request is running', async () => {
+      const { plain } = await setup();
+      let release: () => void = () => undefined;
+      const spy = vi.spyOn(api, 'prepareApplication').mockImplementation(
+        () => new Promise((resolve) => { release = () => resolve({ application: {} as never, documents: [], tasks: [], warnings: [] }); }),
+      );
+      render(JobsList);
+      await screen.findByText(plain.title);
+      const box = within(actionsOf(plain.id)).getByLabelText(PREPARE);
+      await fireEvent.click(box);
+      await waitFor(() => expect(box).toBeDisabled());
+      await fireEvent.click(box);
+      expect(spy).toHaveBeenCalledTimes(1);
+      release();
+      await waitFor(() => expect(toasts.some((t) => /No AI tasks were queued/.test(t.text))).toBe(true));
+      spy.mockRestore();
+    });
+
+    it('shows the warnings of the result as warning notices', async () => {
+      const { plain } = await setup();
+      const spy = vi.spyOn(api, 'prepareApplication').mockResolvedValue({
+        application: {} as never,
+        documents: [],
+        tasks: [],
+        warnings: [{ code: 'template_missing', params: { type: 'resume', language: 'cs' } }],
+      });
+      render(JobsList);
+      await screen.findByText(plain.title);
+      await fireEvent.click(within(actionsOf(plain.id)).getByLabelText(PREPARE));
+      await waitFor(() => expect(toasts.some((t) => t.kind === 'warning' && t.text.includes('resume'))).toBe(true));
+      spy.mockRestore();
+    });
+  });
 });
