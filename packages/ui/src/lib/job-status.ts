@@ -10,7 +10,7 @@ export function jobStyles(): JobStatusStyles {
 }
 
 /** Text and colours of the status of an ad; a new ad that was evaluated shows its match. */
-export function jobStatus(job: { status: string; match_percent: number | null }): ResolvedJobStatus {
+export function jobStatus(job: { status: string; match_percent: number | null | undefined }): ResolvedJobStatus {
   return resolveJobStatus(jobStyles(), job.status, job.match_percent, ui.locale);
 }
 

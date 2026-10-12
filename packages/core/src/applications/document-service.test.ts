@@ -4,8 +4,9 @@ import { InMemoryRepository } from '../repository';
 import { FakeDrive } from '../testing/fake-drive';
 import { errorOf } from '../testing/errors';
 import { makeApplication, makeDocument } from '../testing/fixtures';
-import type { Application, ApplicationDocument } from '../types';
-import { DocumentService, sanitizeDocHtml } from './document-service';
+import { makeCompany, makeJob } from '../testing/fixtures';
+import type { Application, ApplicationDocument, Company, Job } from '../types';
+import { DocumentService, pdfFileName, sanitizeDocHtml } from './document-service';
 
 function setup(now = '2026-10-11T09:00:00.000Z') {
   const drive = new FakeDrive();
@@ -16,8 +17,10 @@ function setup(now = '2026-10-11T09:00:00.000Z') {
   const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', label: 'Acme – Dev – #1 (2026-10)', language: 'en', folder_url: folder.url })]);
   const documents = new InMemoryRepository<ApplicationDocument>([makeDocument({ id: 'd1', application_id: 'a1', type: 'resume', doc_url: copy.url })]);
   let clock = now;
-  const service = new DocumentService({ documents, applications, drive, now: () => clock });
-  return { service, drive, documents, applications, copy, setNow: (value: string) => { clock = value; } };
+  const jobs = new InMemoryRepository<Job>([makeJob({ id: 'j1', company_id: 'c1', title: 'Android Developer' })]);
+  const companies = new InMemoryRepository<Company>([makeCompany({ id: 'c1', name: 'Example s.r.o.' })]);
+  const service = new DocumentService({ documents, applications, drive, jobs, companies, profileName: () => 'Eva Example', now: () => clock });
+  return { service, drive, documents, applications, jobs, copy, setNow: (value: string) => { clock = value; } };
 }
 
 describe('exportPdf', () => {
@@ -29,9 +32,16 @@ describe('exportPdf', () => {
     expect(view.pdf_stale).toBe(false);
     expect(documents.get('d1')!.pdf_url).toBe(view.pdf_url);
     const pdf = [...drive.documents.values()].find((d) => d.name.endsWith('.pdf'))!;
-    expect(pdf.name).toBe('Resume – Acme – Dev – #1 (2026-10).pdf');
+    expect(pdf.name).toBe('Eva Example – Resume – Example s.r.o. – Android Developer.pdf');
     expect(pdf.content).toBe(drive.documents.get(fileIdFromUrl(copy.url))!.content);
     expect(pdf.folderId).not.toBeNull();
+  });
+
+  it('falls back to name and type when the job was deleted', () => {
+    const { service, drive, jobs } = setup();
+    jobs.remove('j1');
+    service.exportPdf('d1');
+    expect([...drive.documents.values()].some((d) => d.name === 'Eva Example – Resume.pdf')).toBe(true);
   });
 
   it('rejects unknown documents and applications without a folder', () => {
@@ -103,5 +113,26 @@ describe('sanitizeDocHtml', () => {
     for (const bad of ['<script', 'alert(1)', 'onclick', 'onerror', 'javascript:', '<iframe', '<object', '<embed', '<form', 'http-equiv']) {
       expect(clean.toLowerCase(), bad).not.toContain(bad);
     }
+  });
+});
+
+describe('pdfFileName', () => {
+  const base = { type: 'resume', fullName: 'Eva Example', company: 'Example s.r.o.', title: 'Android Developer', language: 'en' as const };
+  it('joins full name, type, company and job title', () => {
+    expect(pdfFileName(base)).toBe('Eva Example – Resume – Example s.r.o. – Android Developer');
+  });
+  it('drops empty parts', () => {
+    expect(pdfFileName({ ...base, fullName: '' })).toBe('Resume – Example s.r.o. – Android Developer');
+    expect(pdfFileName({ ...base, company: '  ' })).toBe('Eva Example – Resume – Android Developer');
+  });
+  it('translates the type into the application language', () => {
+    expect(pdfFileName({ ...base, language: 'cs' })).toBe('Eva Example – Životopis – Example s.r.o. – Android Developer');
+  });
+  it('replaces forbidden characters and has no counter or date', () => {
+    const name = pdfFileName({ ...base, title: 'Dev/Ops: "Lead"' });
+    expect(name).not.toMatch(/[\/:"]/);
+    expect(name).toContain('Dev Ops');
+    expect(name).not.toContain('#');
+    expect(name).not.toContain('(2026-10)');
   });
 });

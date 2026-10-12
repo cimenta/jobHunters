@@ -35,7 +35,7 @@ describe('element identifiers', () => {
       ['#/jobs/new', 'add-job.read', ['add-job', 'add-job.url']],
       [`#/jobs/${jobId}`, 'job-detail.create-application', ['job-detail', 'job-detail.summary', 'job-detail.tabs', 'job-detail.panel', 'job-detail.applications', 'tab.applications', 'tab.notes', 'tab.description', 'tab.match']],
       ['#/applications', 'applications.list', ['applications', `application.${applicationId}`]],
-      [`#/applications/${applicationId}`, 'status-control.change', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'documents', /^doc\.export\./]],
+      [`#/applications/${applicationId}`, 'status-control.change', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.ad', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'ad']],
       ['#/companies', 'companies.list', ['companies', `company.${companyId}`]],
       [`#/companies/${companyId}`, 'company-detail.save', ['company-detail', 'company-detail.jobs', 'company-detail.applications']],
       ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.prompts', 'tab.availability', 'tab.profile', 'tab.templates', 'tab.statuslabels', 'tab.transitions', 'tab.jobstatuses', 'tab.about']],
@@ -59,6 +59,7 @@ describe('element identifiers', () => {
       await waitFor(() => expect(present()).toContain(id));
     }
     await fireEvent.click(document.querySelector('[data-ui="tab.documents"]')!);
+    await waitFor(() => expect(present()).toContain('documents'));
     await fireEvent.click(await screen.findByRole('button', { name: 'Add document' }));
     await waitFor(() => expect(present()).toContain('add-document-dialog'));
   });

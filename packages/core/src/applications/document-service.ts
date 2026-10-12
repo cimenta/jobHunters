@@ -1,9 +1,8 @@
-import { fileIdFromUrl, type DriveGateway } from '../drive';
+import { fileIdFromUrl, sanitizeFolderName, type DriveGateway } from '../drive';
 import { NotFoundError, ValidationError } from '../errors';
-import { isLocale } from '../i18n';
+import { isLocale, t, type Locale } from '../i18n';
 import type { Repository } from '../repository';
-import type { Application, ApplicationDocument } from '../types';
-import { documentName } from './application-factory';
+import type { Application, ApplicationDocument, Company, Job } from '../types';
 
 export type DocumentView = ApplicationDocument & { pdf_stale: boolean };
 
@@ -11,6 +10,10 @@ export interface DocumentServiceDeps {
   documents: Repository<ApplicationDocument>;
   applications: Repository<Application>;
   drive: DriveGateway;
+  jobs: Repository<Job>;
+  companies: Repository<Company>;
+  /** Full name from Settings → Profile; '' when not filled in. */
+  profileName: () => string;
   /** ISO 8601 date-time. */
   now: () => string;
 }
@@ -27,6 +30,14 @@ export function sanitizeDocHtml(html: string): string {
     .replace(/(href|src|action|formaction|xlink:href)\s*=\s*("|')?\s*(javascript|vbscript|data:text\/html)[^"'>\s]*("|')?/gi, '$1="#"');
 }
 
+/** Name of the downloaded PDF: `<Full name> – <Type> – <Company> – <Job title>`; empty parts are left out. */
+export function pdfFileName(input: { type: string; fullName: string; company: string; title: string; language: Locale }): string {
+  const parts = [input.fullName, t(`document.type.${input.type}`, {}, input.language), input.company, input.title]
+    .map((part) => part.trim())
+    .filter((part) => part !== '');
+  return sanitizeFolderName(parts.join(' – '));
+}
+
 export class DocumentService {
   constructor(private readonly deps: DocumentServiceDeps) {}
 
@@ -35,7 +46,7 @@ export class DocumentService {
   }
 
   exportPdf(documentId: string): DocumentView {
-    const { documents, applications, drive, now } = this.deps;
+    const { documents, applications, drive, jobs, companies, profileName, now } = this.deps;
     const doc = this.require(documentId);
     const application = applications.get(doc.application_id);
     if (!application) throw new NotFoundError('application_not_found', `Application ${doc.application_id} not found`, { id: doc.application_id });
@@ -43,7 +54,12 @@ export class DocumentService {
     if (folderId === '') {
       throw new ValidationError('application_folder_missing', `Application ${application.id} has no folder`, { id: application.id });
     }
-    const name = documentName(doc.type, application.label, isLocale(application.language) ? application.language : 'en');
+    const job = jobs.get(application.job_id);
+    const company = job ? companies.get(job.company_id) : undefined;
+    const name = pdfFileName({
+      type: doc.type, fullName: profileName(), company: company?.name ?? '', title: job?.title ?? '',
+      language: isLocale(application.language) ? application.language : 'en',
+    });
     const pdf = drive.exportPdf(fileIdFromUrl(doc.doc_url), folderId, name);
     return this.view(documents.update(doc.id, { pdf_url: pdf.url, pdf_exported_at: now() }));
   }

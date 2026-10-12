@@ -54,6 +54,9 @@ describe('job status helpers', () => {
     expect(resolveJobStatus(styles, 'new', 78, 'en')).toMatchObject({ text: 'Match 78 %', color: '#15803d' });
     expect(resolveJobStatus(styles, '', 30, 'cs')).toMatchObject({ text: 'Shoda 30 %', color: '#b91c1c' });
     expect(resolveJobStatus(styles, 'new', null, 'en')).toMatchObject({ text: 'New', color: '#2563eb' });
+    // The Apps Script transport can drop a null field, so a missing value must mean "no match", never "Match undefined %".
+    expect(resolveJobStatus(styles, 'new', undefined, 'en')).toMatchObject({ text: 'New', color: '#2563eb' });
+    expect(resolveJobStatus(styles, 'new', Number.NaN, 'en')).toMatchObject({ text: 'New' });
     expect(resolveJobStatus(styles, 'no', 90, 'cs')).toMatchObject({ text: 'Ne', color: '#6b7280' });
     expect(resolveJobStatus(styles, 's_abc123', 90, 'cs')).toMatchObject({ text: 'Možná', color: '#aa00bb' });
   });

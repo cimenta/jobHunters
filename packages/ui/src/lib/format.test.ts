@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatSalary, plusDays, shorten } from './format';
+import { formatCount, formatDate, formatSalary, plusDays, safeHttpUrl, shorten } from './format';
 import { setLocale } from './i18n.svelte';
 import { app } from '../state/app.svelte';
 
@@ -69,5 +69,24 @@ describe('shorten', () => {
     const out = shorten('a'.repeat(60), 40);
     expect(out).toHaveLength(40);
     expect(out.endsWith('…')).toBe(true);
+  });
+});
+
+describe('safeHttpUrl', () => {
+  it('keeps http and https links and drops everything else', () => {
+    expect(safeHttpUrl('https://example.com/a?b=1')).toBe('https://example.com/a?b=1');
+    expect(safeHttpUrl('http://example.com')).toBe('http://example.com');
+    expect(safeHttpUrl('javascript:alert(1)')).toBe('');
+    expect(safeHttpUrl('data:text/html,<b>x</b>')).toBe('');
+    expect(safeHttpUrl('/relative/path')).toBe('');
+    expect(safeHttpUrl('')).toBe('');
+  });
+});
+
+describe('formatCount', () => {
+  it('shows the number up to 99 and 99+ above', () => {
+    expect(formatCount(1)).toBe('1');
+    expect(formatCount(99)).toBe('99');
+    expect(formatCount(100)).toBe('99+');
   });
 });

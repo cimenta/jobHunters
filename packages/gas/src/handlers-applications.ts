@@ -3,6 +3,7 @@ import {
   PROFILE_KEYS,
   applicationRows,
   buildDashboard,
+  buildMenuCounts,
   buildTimeline,
   companyRows,
   jobRows,
@@ -82,7 +83,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
 
     listApplications: () => applicationRows(c.applications.list(), c.jobs.list(), c.companies.list()),
 
-    listJobs: () => jobRows(c.jobs.list(), c.companies.list(), c.applications.list()),
+    listJobs: () => jobRows(c.jobs.list(), c.companies.list(), c.applications.list(), c.tasks.list()),
 
     getJob: (args) => {
       const id = requireString(asRecord(args, 'getJob'), 'id', 'getJob');
@@ -195,6 +196,9 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
         tasks: c.tasks.list(),
         today: c.now().slice(0, 10),
       }),
+
+    getMenuCounts: () =>
+      buildMenuCounts({ jobs: c.jobs.list(), tasks: c.tasks.list(), styles: c.settings.get().settings.job_status_styles }),
 
     getApplication: (args) => {
       const id = requireString(asRecord(args, 'getApplication'), 'id', 'getApplication');

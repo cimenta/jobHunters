@@ -2,6 +2,24 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.12.2] - 2026-10-12
+
+- The main menu shows counts: the number of new jobs next to "Jobs" and the number of waiting AI tasks next to "AI tasks". A count of zero is hidden; above 99 it shows 99+. On wide screens the numbers sit in one column at the right edge, on small screens they are badges on the icons.
+- The green plus that opens Add job now sits right after the word "Jobs".
+- Hover tooltips: the menu numbers and the plus explain themselves, and icon-only buttons (for example the availability check and the trash icon on a job card, the close cross) show their name on hover.
+- API: new method `getMenuCounts` returns `newJobs` and `aiTasksWaiting`.
+- Help describes the counts and the tooltips.
+
+## [0.12.1] - 2026-10-12
+
+- The application detail has a new first tab "Ad" with the saved text of the ad; it is preselected.
+- Job detail and Add job open as pop-ups over the Jobs list. A green plus next to "Jobs" in the main menu opens Add job from any screen.
+- Job cards have two columns: the card and a narrow column of icons (open the original ad, check availability, delete for jobs awaiting the AI). Jobs with no match and no application have the checkbox "Evaluate my match with AI" at the bottom right; it is disabled with a hint when no experience is saved in Settings.
+- API: `listJobs` rows have `match_task_status` and `match_task_id`.
+- Exported PDFs are named "Your name – Document type – Company – Job title" (the old "#1 (2026-10)" part is gone); the name comes from Settings → Profile.
+- Help describes the changes.
+- Fix: an ad without an evaluated match showed "Match undefined %" (the value can arrive missing). A missing match now counts as no match: the badge shows the status, and the card offers the "Evaluate my match with AI" checkbox.
+
 ## [0.12.0] - 2026-10-12
 
 - Add several jobs at once: the new "Several links" tab of Add job takes up to 30 links, one per line. Each ad is saved by itself and a live list shows the result of every link.

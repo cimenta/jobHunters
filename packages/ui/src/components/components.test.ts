@@ -7,7 +7,9 @@ import { setLocale } from '../lib/i18n.svelte';
 import { navigate } from '../lib/router.svelte';
 import { app } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
+import { api } from '../api';
 import ApplicationsScreen from '../screens/ApplicationsScreen.svelte';
+import JobsScreen from '../screens/JobsScreen.svelte';
 import TabsProbe from '../test/TabsProbe.svelte';
 import { useDevBackend } from '../test/transport';
 import Button from './Button.svelte';
@@ -47,6 +49,19 @@ describe('Button', () => {
     await rerender({ onclick, disabled: true, children: text('Go') });
     await fireEvent.click(screen.getByRole('button'));
     expect(onclick).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Button tooltip', () => {
+  it('shows the accessible name of an icon-only button as a hover tooltip', () => {
+    render(Button, { label: 'Check availability', children: text('i') });
+    const button = screen.getByRole('button', { name: 'Check availability' });
+    expect(button).toHaveAttribute('title', 'Check availability');
+  });
+
+  it('has no tooltip when the button has visible text only', () => {
+    render(Button, { children: text('Save') });
+    expect(screen.getByRole('button', { name: 'Save' })).not.toHaveAttribute('title');
   });
 });
 
@@ -160,5 +175,46 @@ describe('Dialog nesting', () => {
     await fireEvent.keyDown(last, { key: 'Tab' });
     expect(inner.contains(document.activeElement)).toBe(true);
     expect(document.activeElement).toBe(buttons[0]);
+  });
+});
+
+describe('Dialog scroll lock and focus', () => {
+  const body = createRawSnippet(() => ({ render: () => '<p>Body</p>' }));
+  const mount = (title: string, props: Record<string, unknown> = {}) => render(Dialog, { open: true, title, onclose: () => {}, children: body, ...props });
+
+  it('keeps the page locked while the job dialog replaces the add-job dialog and unlocks after closing it', async () => {
+    useDevBackend();
+    const id = (await api.listJobs())[0]!.id;
+    navigate('#/jobs/new');
+    render(JobsScreen);
+    await screen.findByRole('dialog', { name: 'Add a job' });
+    expect(document.body.style.overflow).toBe('hidden');
+    navigate(`#/jobs/${id}`);
+    const dialog = await screen.findByRole('dialog', { name: 'Job' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
+    expect(document.body.style.overflow).toBe('hidden');
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Job' })).toBeNull());
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('restores the scroll lock in LIFO order', () => {
+    const a = mount('A');
+    const b = mount('B');
+    expect(document.body.style.overflow).toBe('hidden');
+    b.unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+    a.unmount();
+    expect(document.body.style.overflow).toBe('');
+  });
+
+  it('restores the scroll lock in non-LIFO order', () => {
+    const a = mount('A');
+    const b = mount('B');
+    a.unmount();
+    expect(document.body.style.overflow).toBe('hidden');
+    b.unmount();
+    expect(document.body.style.overflow).toBe('');
   });
 });

@@ -34,7 +34,7 @@
   }
 </script>
 
-<button class="btn {variant}" class:full {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} data-ui={ui} onclick={handle}>
+<button class="btn {variant}" class:full {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} title={label} data-ui={ui} onclick={handle}>
   {#if busy || loading}<span class="spinner" aria-hidden="true"></span>{/if}
   {@render children?.()}
 </button>

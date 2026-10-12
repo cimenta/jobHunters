@@ -59,3 +59,18 @@ export function shorten(text: string, max: number): string {
   const flat = text.replace(/\s+/g, ' ').trim();
   return flat.length <= max ? flat : `${flat.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
 }
+
+/** The address only when it is an absolute http(s) link; anything else (javascript:, data:, relative, empty) gives ''. */
+export function safeHttpUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? url : '';
+  } catch {
+    return '';
+  }
+}
+
+/** A count for a menu badge: the number up to 99, then "99+". */
+export function formatCount(count: number): string {
+  return count > 99 ? '99+' : String(count);
+}

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -30,6 +31,7 @@
   let stoppedNote = $state('');
 
   const parsed = $derived(parseLinks(text));
+  onDestroy(() => (stopRequested = true));
 
   async function run(): Promise<void> {
     const { links, skipped, tooMany } = parseLinks(text);

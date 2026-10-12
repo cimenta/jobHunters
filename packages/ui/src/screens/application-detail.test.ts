@@ -49,14 +49,36 @@ describe('ApplicationDetail', () => {
     const id = await androidApplicationId();
     render(ApplicationDetail, { id });
     expect(await screen.findByRole('heading', { name: /Android Developer – #1/ })).toBeInTheDocument();
-    for (const name of [/Documents/, /Questions/, /Communication/, /Reminders/, /Timeline/]) {
-      expect(screen.getByRole('tab', { name })).toBeInTheDocument();
-    }
-    expect(screen.getByRole('tab', { name: /Documents/ })).toHaveAttribute('aria-selected', 'true');
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((t) => t.textContent ?? '')).toEqual([
+      expect.stringMatching(/^Ad/), expect.stringMatching(/^Documents/), expect.stringMatching(/^Questions/),
+      expect.stringMatching(/^Communication/), expect.stringMatching(/^Reminders/), expect.stringMatching(/^Timeline/),
+    ]);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     const options = within(screen.getByLabelText('New status')).getAllByRole('option').map((option) => option.textContent);
     expect(options).toContain('Interview');
     expect(options).not.toContain('Draft');
     expect(options).not.toContain('Sent');
+  });
+
+  it('shows the text of the ad with line breaks and a link to the original', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    const text = await screen.findByText(/build and run services/);
+    expect(text).toHaveStyle({ 'white-space': 'pre-wrap' });
+    expect(screen.getByRole('link', { name: /Open the ad/ })).toHaveAttribute('href', 'https://example.com/jobs/android');
+    expect(screen.queryByText('The text of the ad was not saved.')).toBeNull();
+  });
+
+  it('says so when the text of the ad was not saved and still links to it', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    backend.container.jobs.update(jobId, { description: '' });
+    render(ApplicationDetail, { id });
+    expect(await screen.findByText('The text of the ad was not saved.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Open the ad/ })).toBeInTheDocument();
   });
 
   it('changes the status and requires a date for "waiting"', async () => {
@@ -81,6 +103,7 @@ describe('ApplicationDetail', () => {
     const resume = detail.documents.find((doc) => doc.type === 'resume')!;
     backend.drive.documents.get(fileIdFromUrl(resume.doc_url))!.content = '<p onclick="steal()">Hi Eva</p><script>alert(1)</script>';
     render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: /Documents/ }));
     const row = (await screen.findByText('Resume')).closest('li')!;
     await fireEvent.click(within(row).getByRole('button', { name: 'Preview' }));
     const frame = await screen.findByTitle('Document preview');
@@ -100,6 +123,7 @@ describe('ApplicationDetail', () => {
     useDevBackend();
     const id = await androidApplicationId();
     render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: /Documents/ }));
     await fireEvent.click(await screen.findByRole('button', { name: 'Add document' }));
     const dialog = await screen.findByRole('dialog', { name: 'Add document' });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));

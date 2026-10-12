@@ -64,6 +64,10 @@
       <li>{tr('ui.help.jobs.i8')}</li>
       <li>{tr('ui.help.jobs.i9')}</li>
       <li>{tr('ui.help.jobs.i10')}</li>
+      <li>{tr('ui.help.jobs.i11')}</li>
+      <li>{tr('ui.help.jobs.i12')}</li>
+      <li>{tr('ui.help.jobs.i13')}</li>
+      <li>{tr('ui.help.jobs.i14')}</li>
     </ul>
     <p><a data-ui="help.open.jobs" href={paths.jobs}>{tr('ui.help.open', { name: tr('ui.help.jobs.title') })}</a></p>
   </Card>
@@ -77,6 +81,7 @@
       <li>{tr('ui.help.applications.i3')}</li>
       <li>{tr('ui.help.applications.i4')}</li>
       <li>{tr('ui.help.applications.i5')}</li>
+      <li>{tr('ui.help.applications.i6')}</li>
     </ul>
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>
   </Card>
@@ -97,6 +102,7 @@
       <li>{tr('ui.help.tasks.i1')}</li>
       <li>{tr('ui.help.tasks.i2')}</li>
       <li>{tr('ui.help.tasks.i3')}</li>
+      <li>{tr('ui.help.tasks.i4')}</li>
     </ul>
     <p><a data-ui="help.open.tasks" href={paths.tasks}>{tr('ui.help.open', { name: tr('ui.help.tasks.title') })}</a></p>
   </Card>

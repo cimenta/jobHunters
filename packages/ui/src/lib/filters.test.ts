@@ -3,8 +3,8 @@ import { makeApplication, makeJob } from '@jobhunters/core/testing';
 import { filterApplications, filterJobs } from './filters';
 
 const jobs = [
-  { ...makeJob({ id: 'j1', title: 'Android Developer', location: 'Praha', availability: 'online' }), company_name: 'Example s.r.o.', application_count: 1 },
-  { ...makeJob({ id: 'j2', title: 'Datový analytik', location: 'Brno', availability: 'offline', is_gig: true }), company_name: 'Sample GmbH', application_count: 0 },
+  { ...makeJob({ id: 'j1', title: 'Android Developer', location: 'Praha', availability: 'online' }), company_name: 'Example s.r.o.', application_count: 1, match_task_status: '', match_task_id: '' },
+  { ...makeJob({ id: 'j2', title: 'Datový analytik', location: 'Brno', availability: 'offline', is_gig: true }), company_name: 'Sample GmbH', application_count: 0, match_task_status: '', match_task_id: '' },
 ];
 
 describe('filterJobs', () => {

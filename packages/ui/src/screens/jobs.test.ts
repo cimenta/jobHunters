@@ -1,11 +1,13 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
-import { router } from '../lib/router.svelte';
+import { navigate, router } from '../lib/router.svelte';
+import { loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import AddJob from './AddJob.svelte';
 import JobsList from './JobsList.svelte';
+import JobsScreen from './JobsScreen.svelte';
 
 describe('JobsList', () => {
   it('lists jobs with company, availability and the number of applications', async () => {
@@ -137,5 +139,210 @@ describe('JobsList awaiting', () => {
     await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'awaiting' } });
     expect(screen.queryByText('Android Developer')).toBeNull();
     expect(screen.getByText(awaiting.title)).toBeInTheDocument();
+  });
+});
+
+describe('JobsScreen pop-ups', () => {
+  it('opens the job in a dialog over the visible list and closes back to the list', async () => {
+    useDevBackend();
+    const id = (await api.listJobs()).find((job) => job.title === 'Android Developer')!.id;
+    navigate(`#/jobs/${id}`);
+    render(JobsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Job' });
+    expect(await within(dialog).findByRole('heading', { name: 'Android Developer' })).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="job-dialog"]')).not.toBeNull();
+    expect(within(dialog).queryByRole('button', { name: /Back/ })).toBeNull();
+    expect(screen.getAllByText('Data Analyst (part time)').length).toBeGreaterThan(0);
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Job' })).toBeNull());
+    expect(router.current.name).toBe('jobs');
+  });
+
+  it('shows the error block in the dialog for an unknown job', async () => {
+    useDevBackend();
+    navigate('#/jobs/does-not-exist');
+    render(JobsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Job' });
+    expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+  });
+
+  it('opens Add job in a dialog with both tabs over the list and closes back to it', async () => {
+    useDevBackend();
+    navigate('#/jobs/new');
+    render(JobsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Add a job' });
+    expect(document.querySelector('[data-ui="add-job-dialog"]')).not.toBeNull();
+    expect(within(dialog).getByRole('tab', { name: 'One link' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('tab', { name: 'Several links' })).toBeInTheDocument();
+    expect(await screen.findByText('Android Developer')).toBeInTheDocument();
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a job' })).toBeNull());
+    expect(router.current.name).toBe('jobs');
+  });
+
+  it('switches to the pop-up of the saved job after saving', async () => {
+    useDevBackend({ seed: false });
+    navigate('#/jobs/new');
+    render(JobsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Add a job' });
+    await fireEvent.input(within(dialog).getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/jobs/demo-engineer' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Read the ad' }));
+    await within(dialog).findByDisplayValue('Demo Engineer');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const jobDialog = await screen.findByRole('dialog', { name: 'Job' });
+    expect(await within(jobDialog).findByRole('heading', { name: 'Demo Engineer' })).toBeInTheDocument();
+  });
+});
+
+describe('JobsList card', () => {
+  const MATCH = 'Evaluate my match with AI';
+
+  async function setup(experience = 'Ten years of Kotlin') {
+    const backend = useDevBackend();
+    await api.updateSettings({ candidate_experience: experience });
+    await loadApp();
+    const rows = await api.listJobs();
+    const plain = rows.find((job) => job.match_percent === null && job.application_count === 0 && job.status !== 'awaiting')!;
+    return { backend, rows, plain };
+  }
+
+  function actionsOf(id: string): HTMLElement {
+    return document.querySelector(`[data-ui="job.${id}.actions"]`) as HTMLElement;
+  }
+
+  it('treats a job whose match_percent is missing like one without a match (the transport can drop null)', async () => {
+    const { plain } = await setup();
+    const rows = (await api.listJobs()).map((row) => {
+      const copy: Record<string, unknown> = { ...row };
+      delete copy.match_percent;
+      return copy as unknown as Awaited<ReturnType<typeof api.listJobs>>[number];
+    });
+    vi.spyOn(api, 'listJobs').mockResolvedValue(rows);
+    render(JobsList);
+    await screen.findByText(plain.title);
+    expect(screen.queryByText(/Match undefined/)).toBeNull();
+    await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(MATCH)).toBeInTheDocument());
+    vi.restoreAllMocks();
+  });
+
+  it('shows the checkbox only for a job without match, applications and awaiting status', async () => {
+    const { backend, rows, plain } = await setup();
+    expect(plain).toBeDefined();
+    const withMatch = rows.find((job) => job.id !== plain.id)!;
+    backend.container.jobs.update(withMatch.id, { match_percent: 70 });
+    await api.importJob('https://blocked.example/job/1');
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const fresh = await api.listJobs();
+    const awaiting = fresh.find((job) => job.status === 'awaiting')!;
+    await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(MATCH)).toBeInTheDocument());
+    for (const job of fresh) {
+      const wants = job.match_percent === null && job.application_count === 0 && job.status !== 'awaiting';
+      const box = actionsOf(job.id) ? within(actionsOf(job.id)).queryByLabelText(MATCH) : null;
+      expect(box !== null, job.title).toBe(wants);
+    }
+    expect(awaiting).toBeDefined();
+  });
+
+  it('queues a match task on tick, shows it waiting, cancels on untick, and does not navigate', async () => {
+    const { plain } = await setup();
+    navigate('#/jobs');
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const box = () => within(actionsOf(plain.id)).getByLabelText(MATCH);
+    await fireEvent.click(box());
+    await waitFor(() => expect(box()).toBeChecked());
+    expect((await api.listAiTasks()).filter((task) => task.type === 'match_job' && task.status === 'pending')).toHaveLength(1);
+    expect(toasts.map((t) => t.text)).toContain(`Match evaluation requested for "${plain.title}"`);
+    expect(within(actionsOf(plain.id)).getByLabelText(/Waiting for the AI/)).toBeInTheDocument();
+    expect(router.current.name).toBe('jobs');
+    await fireEvent.click(box());
+    await waitFor(() => expect(box()).not.toBeChecked());
+    expect((await api.listAiTasks()).filter((task) => task.status === 'pending')).toHaveLength(0);
+    expect(toasts.map((t) => t.text)).toContain(`Match evaluation cancelled for "${plain.title}"`);
+  });
+
+  it('shows the checkbox checked and disabled while the task is in progress', async () => {
+    const { backend, plain } = await setup();
+    await api.requestJobMatch(plain.id);
+    const task = (await api.listAiTasks()).find((t) => t.type === 'match_job')!;
+    backend.container.tasks.update(task.id, { status: 'in_progress' });
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const box = within(actionsOf(plain.id)).getByLabelText(MATCH);
+    expect(box).toBeChecked();
+    expect(box).toBeDisabled();
+  });
+
+  it('resets the checkbox and shows an error when the request fails', async () => {
+    const { plain } = await setup();
+    const spy = vi.spyOn(api, 'requestJobMatch').mockRejectedValue(new Error('boom'));
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const box = within(actionsOf(plain.id)).getByLabelText(MATCH);
+    await fireEvent.click(box);
+    await waitFor(() => expect(toasts.some((t) => t.kind === 'error' || /boom/.test(t.text))).toBe(true));
+    await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(MATCH)).not.toBeChecked());
+    expect((box as HTMLInputElement).checked).toBe(false);
+    spy.mockRestore();
+  });
+
+  it('shows the no-experience hint once in the list', async () => {
+    await setup('');
+    render(JobsList);
+    await screen.findByText('Senior Principal Staff Software Engineer in Distributed Systems and Platform Reliability for a Very Long Company Name');
+    expect(document.querySelectorAll('[data-ui$=".match.hint"]')).toHaveLength(1);
+  });
+
+  it('keeps the actions column outside the link and the title opens the job', async () => {
+    const { plain } = await setup();
+    render(JobsList);
+    const link = (await screen.findByText(plain.title)).closest('a')!;
+    const actions = actionsOf(plain.id);
+    expect(actions).not.toBeNull();
+    expect(link.contains(actions)).toBe(false);
+    expect(link.querySelector('input, button, a')).toBeNull();
+    await fireEvent.click(link);
+    expect(link).toHaveAttribute('href', `#/jobs/${plain.id}`);
+  });
+
+  it('disables the checkbox without a saved experience and links to Settings', async () => {
+    const { plain } = await setup('');
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const actions = actionsOf(plain.id);
+    expect(within(actions).getByLabelText(MATCH)).toBeDisabled();
+    expect(within(actions).getByRole('link', { name: /Describe your experience in Settings/ })).toHaveAttribute('href', '#/settings');
+  });
+
+  it('offers the original ad as a new-tab link and checks the availability with a notice', async () => {
+    const { plain } = await setup();
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const actions = actionsOf(plain.id);
+    const open = within(actions).getByRole('link', { name: 'Open original ad' });
+    expect(open).toHaveAttribute('target', '_blank');
+    expect(open).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(within(actions).queryByRole('button', { name: 'Delete job' })).toBeNull();
+    await fireEvent.click(within(actions).getByRole('button', { name: 'Check availability' }));
+    await waitFor(() => expect(toasts.some((t) => t.text.includes(`"${plain.title}"`) && /ad/.test(t.text))).toBe(true));
+    expect(router.current.name).not.toBe('job');
+  });
+
+  it('shows the trash icon only for an awaiting job, confirms, and deletes it', async () => {
+    await setup();
+    await api.importJob('https://blocked.example/job/1');
+    render(JobsList);
+    const awaiting = (await api.listJobs()).find((job) => job.status === 'awaiting')!;
+    await screen.findByText(awaiting.title);
+    const actions = actionsOf(awaiting.id);
+    expect(within(actions).queryByLabelText(MATCH)).toBeNull();
+    await fireEvent.click(within(actions).getByRole('button', { name: 'Delete job' }));
+    const dialog = await screen.findByRole('dialog');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(screen.queryByText(awaiting.title)).toBeNull());
+    expect(toasts.some((t) => t.text.includes('deleted'))).toBe(true);
+    expect((await api.listJobs()).some((job) => job.id === awaiting.id)).toBe(false);
   });
 });

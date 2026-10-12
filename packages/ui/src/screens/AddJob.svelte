@@ -4,7 +4,6 @@
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
   import Field from '../components/Field.svelte';
-  import Icon from '../components/Icon.svelte';
   import Tabs from '../components/Tabs.svelte';
   import { describeWarning } from '../lib/errors';
   import { tr } from '../lib/i18n.svelte';
@@ -70,11 +69,6 @@
 </script>
 
 <div class="stack" data-ui="add-job">
-  <div class="page-title">
-    <Button variant="ghost" onclick={() => navigate(paths.jobs)}><Icon name="back" size={18} />{tr('ui.back')}</Button>
-    <h1>{tr('ui.addJob.title')}</h1>
-  </div>
-
   <Tabs items={[{ id: 'one', label: tr('ui.addJob.tab.one') }, { id: 'many', label: tr('ui.addJob.tab.many') }]} bind:active={mode} label={tr('ui.addJob.tabs')} />
 
   <div id="panel-many" role="tabpanel" aria-labelledby="tab-many" hidden={mode !== 'many'}><BatchAdd /></div>

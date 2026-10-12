@@ -127,7 +127,7 @@ export function buildContainer(deps: ContainerDeps) {
     onError: (where, error) => log('applications', where, error instanceof Error ? error.message : String(error)),
   });
   const templateService = new TemplateService(templates, deps.newId);
-  const documentService = new DocumentService({ documents, applications, drive: deps.drive, now: deps.now });
+  const documentService = new DocumentService({ documents, applications, drive: deps.drive, jobs, companies, profileName: () => profile.getAll().name ?? '', now: deps.now });
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
   const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });

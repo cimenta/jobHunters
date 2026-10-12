@@ -10,9 +10,10 @@
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import ConfirmDialog from '../components/ConfirmDialog.svelte';
-  import { formatDate, formatSalary, shorten } from '../lib/format';
+  import { formatDate, formatSalary, safeHttpUrl, shorten } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
+  import { reportAvailability } from '../lib/job-notices';
   import { availabilityLabel, availabilityReasonLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -55,13 +56,7 @@
   }
 
   async function checkAvailability(): Promise<void> {
-    const { job, verdict } = await api.checkJobAvailability(id);
-    const reason = availabilityReasonLabel(job.availability_reason);
-    const title = job.title;
-    if (verdict.availability === 'online') toast.success(tr('ui.job.checkResult.online', { title }));
-    else if (job.availability === 'offline') toast.warning(tr('ui.job.checkResult.offline', { title, reason }));
-    else if (verdict.availability === 'offline') toast.warning(tr('ui.job.checkResult.suspected', { title, reason }));
-    else toast.warning(tr('ui.job.checkResult.unknown', { title, reason }));
+    reportAvailability(await api.checkJobAvailability(id));
     invalidate();
   }
 
@@ -77,10 +72,6 @@
 </script>
 
 <div class="stack" data-ui="job-detail">
-  <div class="only-narrow">
-    <Button variant="ghost" onclick={() => navigate(paths.jobs)}><Icon name="back" size={18} />{tr('ui.back')}</Button>
-  </div>
-
   {#if detail.status === 'loading'}
     <Skeleton lines={6} />
   {:else if detail.status === 'error'}
@@ -100,14 +91,14 @@
         <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
         <Badge text={current.text} color={current.color} textColor={current.textColor} />
         {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
-        {#if job.match_percent !== null && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
+        {#if typeof job.match_percent === 'number' && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
         {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
         {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
         {#if job.flags.includes('snapshot_missing')}<span class="warn small">{tr('ui.job.snapshotMissing')}</span>{/if}
       </div>
       <div class="row wrap">
-        {#if job.url !== ''}
-          <a href={job.url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
+        {#if safeHttpUrl(job.url) !== ''}
+          <a href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
         {/if}
         {#if job.status !== 'awaiting'}
         <select class="input status-select" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>

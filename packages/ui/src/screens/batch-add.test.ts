@@ -74,4 +74,17 @@ describe('BatchAdd robustness', () => {
     expect(screen.getByText(/Failed:/)).toBeInTheDocument();
     spy.mockRestore();
   });
+
+  it('stops the loop when the component is destroyed', async () => {
+    useDevBackend();
+    const spy = vi.spyOn(api, 'importJob');
+    const { unmount } = render(BatchAdd, { pauseMs: 50 });
+    await type(`${DEMO_URL}
+https://blocked.example/job/1`);
+    await fireEvent.click(screen.getByRole('button', { name: 'Add all' }));
+    unmount();
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockRestore();
+  });
 });

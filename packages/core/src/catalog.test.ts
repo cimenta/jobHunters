@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applicationRows, buildDashboard, CatalogService, companyRows, jobRows } from './catalog';
+import { applicationRows, buildDashboard, buildMenuCounts, CatalogService, companyRows, jobRows } from './catalog';
 import { InMemoryRepository } from './repository';
 import { errorOf } from './testing/errors';
 import { makeApplication, makeCompany, makeJob, makeReminder } from './testing/fixtures';
@@ -22,6 +22,22 @@ describe('views', () => {
     const rows = jobRows(jobs, companies, applications);
     expect(rows.map((r) => [r.id, r.company_name, r.application_count])).toEqual([['j1', 'Example s.r.o.', 2], ['j2', 'Example s.r.o.', 1], ['j3', '', 0]]);
     expect(rows[0]!.description).toHaveLength(200);
+  });
+  describe('match task of a job', () => {
+    const mt = (id: string, job_id: string, type: string, status: string, created_at: string): AiTask => ({ id, created_at, application_id: '', job_id, type, target_type: 'job', target_id: job_id, instructions: '', status, ai_note: '', completed_at: '' });
+    it('is empty without a task', () => {
+      expect(jobRows(jobs, companies, applications).map((r) => [r.match_task_status, r.match_task_id])).toEqual([['', ''], ['', ''], ['', '']]);
+    });
+    it('uses the newest match task and ignores other types and jobs', () => {
+      const tasks = [
+        mt('t1', 'j1', 'match_job', 'done', '2026-10-01T10:00:00Z'),
+        mt('t2', 'j1', 'match_job', 'pending', '2026-10-02T10:00:00Z'),
+        mt('t3', 'j1', 'cover_letter', 'failed', '2026-10-03T10:00:00Z'),
+        mt('t4', 'j2', 'import_job', 'done', '2026-10-03T10:00:00Z'),
+      ];
+      const rows = jobRows(jobs, companies, applications, tasks);
+      expect(rows.map((r) => [r.id, r.match_task_status, r.match_task_id])).toEqual([['j1', 'pending', 't2'], ['j2', '', ''], ['j3', '', '']]);
+    });
   });
   it('counts jobs and applications per company', () => {
     expect(companyRows(companies, jobs, applications).map((r) => [r.id, r.job_count, r.application_count])).toEqual([['c1', 2, 3], ['c2', 0, 0]]);
@@ -71,6 +87,20 @@ describe('buildDashboard AI tasks', () => {
   });
   it('has an empty count without tasks', () => {
     expect(buildDashboard({ ...base, tasks: [] }).aiTasksWaiting).toEqual({ total: 0, byType: {} });
+  });
+});
+
+describe('buildMenuCounts', () => {
+  const task = (id: string, status: string): AiTask => ({ id, created_at: '', application_id: '', job_id: '', type: 'match_job', target_type: 'job', target_id: '', instructions: '', status, ai_note: '', completed_at: '' });
+  it('counts new jobs (empty, unknown and evaluated ones too) and waiting tasks', () => {
+    const result = buildMenuCounts({
+      jobs: [makeJob({ id: 'a', status: 'new' }), makeJob({ id: 'b', status: '' }), makeJob({ id: 'c', status: 'weird' }), makeJob({ id: 'd', status: 'no' }), makeJob({ id: 'e', status: 'awaiting' }), makeJob({ id: 'f', status: 'new', match_percent: 80 })],
+      tasks: [task('1', 'pending'), task('2', 'in_progress'), task('3', 'done'), task('4', 'needs_input'), task('5', 'failed')],
+    });
+    expect(result).toEqual({ newJobs: 4, aiTasksWaiting: 2 });
+  });
+  it('is zero without data', () => {
+    expect(buildMenuCounts({ jobs: [], tasks: [] })).toEqual({ newJobs: 0, aiTasksWaiting: 0 });
   });
 });
 

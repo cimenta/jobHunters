@@ -12,6 +12,7 @@
   import { paths } from '../lib/route';
   import { invalidate } from '../state/invalidate.svelte';
   import StatusControl from './StatusControl.svelte';
+  import AdTab from './tabs/AdTab.svelte';
   import CommunicationsTab from './tabs/CommunicationsTab.svelte';
   import DocumentsTab from './tabs/DocumentsTab.svelte';
   import QuestionsTab from './tabs/QuestionsTab.svelte';
@@ -21,11 +22,12 @@
   let { id }: { id: string } = $props();
 
   const detail = useResource(() => api.getApplication(id), () => id);
-  let tab = $state('documents');
+  let tab = $state('ad');
 
   const items = $derived(
     detail.data
       ? [
+          { id: 'ad', label: tr('ui.app.tab.ad') },
           { id: 'documents', label: tr('ui.app.tab.documents'), count: detail.data.documents.length },
           { id: 'questions', label: tr('ui.app.tab.questions'), count: detail.data.questions.length },
           { id: 'communications', label: tr('ui.app.tab.communications'), count: detail.data.communications.length },
@@ -65,7 +67,9 @@
     <Card ui="application-detail.tabs">
       <Tabs {items} bind:active={tab} label={tr('ui.app.tabs')} />
       <div role="tabpanel" data-ui="application-detail.panel" id="panel-{tab}" aria-labelledby="tab-{tab}">
-        {#if tab === 'documents'}
+        {#if tab === 'ad'}
+          <AdTab detail={detail.data} />
+        {:else if tab === 'documents'}
           <DocumentsTab detail={detail.data} />
         {:else if tab === 'questions'}
           <QuestionsTab detail={detail.data} />

@@ -1,20 +1,19 @@
 <script lang="ts">
-  import MasterDetail from '../layout/MasterDetail.svelte';
-  import { router } from '../lib/router.svelte';
+  import Dialog from '../components/Dialog.svelte';
+  import { tr } from '../lib/i18n.svelte';
+  import { paths } from '../lib/route';
+  import { navigate, router } from '../lib/router.svelte';
   import AddJob from './AddJob.svelte';
   import JobDetail from './JobDetail.svelte';
   import JobsList from './JobsList.svelte';
-
-  const hasDetail = $derived(router.current.name === 'job-new' || router.current.name === 'job');
 </script>
 
-<MasterDetail {hasDetail}>
-  {#snippet list()}<JobsList />{/snippet}
-  {#snippet detail()}
-    {#if router.current.name === 'job-new'}
-      <AddJob />
-    {:else}
-      <JobDetail id={router.current.id ?? ''} />
-    {/if}
-  {/snippet}
-</MasterDetail>
+<JobsList />
+
+<Dialog open={router.current.name === 'job'} wide ui="job-dialog" title={tr('ui.job.detailTitle')} onclose={() => navigate(paths.jobs)}>
+  <JobDetail id={router.current.id ?? ''} />
+</Dialog>
+
+<Dialog open={router.current.name === 'job-new'} wide ui="add-job-dialog" title={tr('ui.addJob.title')} onclose={() => navigate(paths.jobs)}>
+  <AddJob />
+</Dialog>

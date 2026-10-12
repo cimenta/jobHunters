@@ -1,4 +1,4 @@
-import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, RemoveResult, Settings } from '@jobhunters/core';
+import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
@@ -29,6 +29,7 @@ export const api = {
   addTemplate: (input: { type: string; language: string; name: string; docUrl: string }) => call<Template>('addTemplate', input),
 
   getDashboard: () => call<Dashboard>('getDashboard'),
+  getMenuCounts: () => call<MenuCounts>('getMenuCounts'),
 
   listJobs: () => call<JobRow[]>('listJobs'),
   getJob: (id: string) => call<JobDetail>('getJob', { id }),

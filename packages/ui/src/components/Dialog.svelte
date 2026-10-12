@@ -1,3 +1,9 @@
+<script lang="ts" module>
+  // Shared by every open dialog: the first one remembers the original scroll style, the last one restores it.
+  let locks = 0;
+  let originalOverflow = '';
+</script>
+
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import { tr } from '../lib/i18n.svelte';
@@ -21,14 +27,20 @@
 
   $effect(() => {
     if (!open || !panel) return;
+    const mine = panel;
     const previous = document.activeElement as HTMLElement | null;
-    const first = panel.querySelector<HTMLElement>('input, select, textarea') ?? panel;
+    const first = mine.querySelector<HTMLElement>('input, select, textarea') ?? mine;
     first.focus();
-    const previousOverflow = document.body.style.overflow;
+    if (locks === 0) originalOverflow = document.body.style.overflow;
+    locks += 1;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = previousOverflow;
-      previous?.focus?.();
+      locks -= 1;
+      if (locks === 0) {
+        document.body.style.overflow = originalOverflow;
+        // Focus goes back only when the last dialog closes, and never steals it from a panel that is still open.
+        if (!document.activeElement || document.activeElement === document.body || mine.contains(document.activeElement)) previous?.focus?.();
+      }
     };
   });
 

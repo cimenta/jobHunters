@@ -104,9 +104,9 @@ export interface ResolvedJobStatus {
 }
 
 /** An ad in the status new that the AI has evaluated shows the match instead of the name of the status. */
-export function resolveJobStatus(styles: JobStatusStyles, status: string, matchPercent: number | null, locale: Locale): ResolvedJobStatus {
+export function resolveJobStatus(styles: JobStatusStyles, status: string, matchPercent: number | null | undefined, locale: Locale): ResolvedJobStatus {
   const code = jobStatusOf(styles, status);
-  if (code === 'new' && matchPercent !== null) {
+  if (code === 'new' && typeof matchPercent === 'number' && Number.isFinite(matchPercent)) {
     const color = matchColor(matchPercent);
     return { code, text: t('jobStatus.match', { percent: String(matchPercent) }, locale), color, textColor: readableTextColor(color) };
   }

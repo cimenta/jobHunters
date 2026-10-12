@@ -1,12 +1,12 @@
 import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
-import { DEFAULT_JOB_STATUS_STYLES, type JobStatusStyles } from './job-status';
+import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
 import { parseUrl } from './jobs/url';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
 import type { AiTask, Application, Company, Job, Reminder } from './types';
 
-export type JobRow = Job & { company_name: string; application_count: number };
+export type JobRow = Job & { company_name: string; application_count: number; match_task_status: string; match_task_id: string };
 export type CompanyRow = Company & { job_count: number; application_count: number };
 export type ApplicationRow = Application & { job_title: string; company_name: string };
 
@@ -22,14 +22,22 @@ function countBy<T>(items: readonly T[], key: (item: T) => string): Map<string, 
   return counts;
 }
 
-export function jobRows(jobs: readonly Job[], companies: readonly Company[], applications: readonly Application[]): JobRow[] {
+export function jobRows(jobs: readonly Job[], companies: readonly Company[], applications: readonly Application[], tasks: readonly AiTask[] = []): JobRow[] {
   const names = companyNames(companies);
   const counts = countBy(applications, (a) => a.job_id);
+  const newestMatch = new Map<string, AiTask>();
+  for (const task of tasks) {
+    if (task.type !== 'match_job') continue;
+    const current = newestMatch.get(task.job_id);
+    if (!current || task.created_at >= current.created_at) newestMatch.set(task.job_id, task);
+  }
   return jobs.map((job) => ({
     ...job,
     description: job.description.slice(0, DESCRIPTION_PREVIEW),
     company_name: names.get(job.company_id) ?? '',
     application_count: counts.get(job.id) ?? 0,
+    match_task_status: newestMatch.get(job.id)?.status ?? '',
+    match_task_id: newestMatch.get(job.id)?.id ?? '',
   }));
 }
 
@@ -70,6 +78,30 @@ export interface Dashboard {
   aiTasksWaiting: { total: number; byType: Record<string, number> };
 }
 
+/** AI tasks still waiting for the AI (pending or in progress), in total and per task type. */
+function countWaitingTasks(tasks: readonly AiTask[]): { total: number; byType: Record<string, number> } {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const task of tasks) {
+    if (task.status !== 'pending' && task.status !== 'in_progress') continue;
+    counts.set(task.type, (counts.get(task.type) ?? 0) + 1);
+    total++;
+  }
+  return { total, byType: Object.fromEntries(counts) as Record<string, number> };
+}
+
+export interface MenuCounts {
+  /** Jobs whose status is new (unknown or empty codes resolve to new). */
+  newJobs: number;
+  aiTasksWaiting: number;
+}
+
+export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; styles?: JobStatusStyles }): MenuCounts {
+  const styles = input.styles ?? DEFAULT_JOB_STATUS_STYLES;
+  const newJobs = input.jobs.filter((job) => jobStatusOf(styles, job.status) === 'new').length;
+  return { newJobs, aiTasksWaiting: countWaitingTasks(input.tasks).total };
+}
+
 export function buildDashboard(input: {
   reminders: readonly Reminder[];
   applications: readonly Application[];
@@ -97,14 +129,7 @@ export function buildDashboard(input: {
   for (const application of input.applications) {
     if ((APPLICATION_STATUSES as readonly string[]).includes(application.status)) statusCounts[application.status as ApplicationStatus]++;
   }
-  const counts = new Map<string, number>();
-  let total = 0;
-  for (const task of input.tasks) {
-    if (task.status !== 'pending' && task.status !== 'in_progress') continue;
-    counts.set(task.type, (counts.get(task.type) ?? 0) + 1);
-    total++;
-  }
-  const byType = Object.fromEntries(counts) as Record<string, number>;
+  const { total, byType } = countWaitingTasks(input.tasks);
   return {
     reminders: { overdue: buckets.overdue.map(describe), today: buckets.today.map(describe), soon: buckets.soon.map(describe) },
     statusCounts,

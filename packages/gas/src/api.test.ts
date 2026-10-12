@@ -286,6 +286,14 @@ describe('overview api', () => {
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 
+  it('shows the status and id of the newest match task on the job row', () => {
+    const { api, jobId } = seeded();
+    expect(api('listJobs')).toMatchObject({ ok: true, data: [{ match_task_status: '', match_task_id: '' }] });
+    api('updateSettings', { candidate_experience: 'Ten years of TypeScript' });
+    const task = (api('requestJobMatch', { id: jobId }) as { data: { id: string } }).data;
+    expect(api('listJobs')).toMatchObject({ ok: true, data: [{ match_task_status: 'pending', match_task_id: task.id }] });
+  });
+
   it('lists companies with counts and edits one', () => {
     const { api } = seeded();
     const list = api('listCompanies') as { ok: true; data: { id: string; job_count: number; application_count: number }[] };
@@ -398,6 +406,16 @@ describe('job import api', () => {
     const queued = api('importJob', { url: BLOCKED }) as { data: { task: { id: string } } };
     expect(api('removeAiTask', { id: queued.data.task.id })).toMatchObject({ ok: true });
     expect(container.jobs.list()).toEqual([]);
+  });
+
+  it('getMenuCounts counts waiting AI tasks and status-new jobs but not the awaiting placeholder', () => {
+    const { api } = setup(pages());
+    api('importJob', { url: BLOCKED });
+    const jobs = (api('listJobs') as { data: { status: string }[] }).data;
+    const result = api('getMenuCounts') as { ok: true; data: { newJobs: number; aiTasksWaiting: number } };
+    expect(result.ok).toBe(true);
+    expect(result.data.aiTasksWaiting).toBeGreaterThanOrEqual(1);
+    expect(result.data.newJobs).toBe(jobs.filter((j) => j.status === 'new').length);
   });
 
   it('getDashboard counts waiting AI tasks', () => {
