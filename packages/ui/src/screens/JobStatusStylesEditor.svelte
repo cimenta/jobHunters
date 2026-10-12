@@ -56,7 +56,7 @@
     }
     await api.saveJobStatuses(next);
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.jobStatus.savedStyles'));
   }
 </script>
 

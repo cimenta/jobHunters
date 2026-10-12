@@ -13,6 +13,7 @@ describe('parseSettings', () => {
       reminder_time: '08:00',
       reminder_email: '',
       availability_check_enabled: false,
+      result_notices: true,
       availability_check_hours: [18],
       availability_immediate_rules: ['offline_text'],
       default_document_set: ['resume', 'cover_letter'],
@@ -25,6 +26,7 @@ describe('parseSettings', () => {
     const { settings } = parseSettings({
       ui_language: 'cs',
       availability_check_enabled: 'TRUE',
+      result_notices: 'FALSE',
       availability_check_hours: '18, 8',
       availability_immediate_rules: 'offline_text,http_gone',
       offline_texts: 'gone\n\n  closed  \n',
@@ -34,6 +36,7 @@ describe('parseSettings', () => {
     expect(settings).toMatchObject({
       ui_language: 'cs',
       availability_check_enabled: true,
+      result_notices: false,
       availability_check_hours: [8, 18],
       availability_immediate_rules: ['offline_text', 'http_gone'],
       offline_texts: ['gone', 'closed'],
@@ -121,6 +124,14 @@ describe('SettingsService status_styles', () => {
     expect(service.update({ status_styles: '{"offer":{"color":"#15803d"}}' }).status_styles).toEqual({ offer: { color: '#15803d' } });
     expect(errorOf(() => service.update({ status_styles: '{"offer":{"color":"green"}}' }))).toMatchObject({ code: 'settings_invalid', params: { key: 'status_styles' } });
     expect(store.getAll().status_styles).toBe('{"offer":{"color":"#15803d"}}');
+  });
+});
+
+describe('result notices setting', () => {
+  it('parses result_notices, on by default', () => {
+    expect(parseSettings({}).settings.result_notices).toBe(true);
+    expect(parseSettings({ result_notices: 'FALSE' }).settings.result_notices).toBe(false);
+    expect(parseSettings({ result_notices: 'maybe' }).warnings).toHaveLength(1);
   });
 });
 

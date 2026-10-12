@@ -12,8 +12,10 @@
     footer?: Snippet;
     /** Identifier shown by the identifier labels (data-ui). */
     ui?: string;
+    /** Wider panel (up to 960px) on large screens. */
+    wide?: boolean;
   }
-  let { open, title, onclose, children, footer, ui }: Props = $props();
+  let { open, title, onclose, children, footer, ui, wide = false }: Props = $props();
 
   let panel = $state<HTMLElement>();
 
@@ -22,9 +24,10 @@
     const previous = document.activeElement as HTMLElement | null;
     const first = panel.querySelector<HTMLElement>('input, select, textarea') ?? panel;
     first.focus();
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.overflow = previousOverflow;
       previous?.focus?.();
     };
   });
@@ -36,6 +39,7 @@
       return;
     }
     if (event.key !== 'Tab' || !panel) return;
+    event.stopPropagation();
     const focusable = [...panel.querySelectorAll<HTMLElement>('a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)')];
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
@@ -54,7 +58,7 @@
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
   <div class="backdrop" onclick={(event) => event.target === event.currentTarget && onclose()}>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-    <div class="panel" role="dialog" aria-modal="true" aria-label={title} data-ui={ui} tabindex="-1" bind:this={panel} {onkeydown}>
+    <div class="panel" class:wide role="dialog" aria-modal="true" aria-label={title} data-ui={ui} tabindex="-1" bind:this={panel} {onkeydown}>
       <header>
         <h2>{title}</h2>
         <Button variant="ghost" label={tr('ui.close')} onclick={onclose}><Icon name="close" /></Button>
@@ -91,5 +95,6 @@
   @media (min-width: 640px) {
     .backdrop { align-items: center; padding: var(--space-4); }
     .panel { width: min(560px, 100%); border-radius: var(--radius-l); }
+    .panel.wide { width: min(960px, 100%); }
   }
 </style>

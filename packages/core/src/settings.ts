@@ -5,12 +5,15 @@ import { NO_LOCK, type Lock } from './lock';
 import type { AppWarning } from './row-codec';
 import { DEFAULT_PROMPTS, type PromptType } from './seed';
 import { parseJobStatusStyles, type JobStatusStyles } from './job-status';
+import { parseStatusTransitions, type StatusTransitions } from './status';
+import { parseUiState, type UiState } from './ui-state';
 import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
 
 export const SETTING_KEYS = [
   'ui_language',
   'ui_theme',
+  'result_notices',
   'candidate_experience',
   'default_document_language',
   'reminder_time',
@@ -23,6 +26,8 @@ export const SETTING_KEYS = [
   'default_document_set',
   'status_styles',
   'job_status_styles',
+  'status_transitions',
+  'ui_state',
   'ai_prompt_resume_tailor',
   'ai_prompt_cover_letter',
   'ai_prompt_other',
@@ -36,6 +41,8 @@ export type UiTheme = 'system' | 'light' | 'dark';
 export interface Settings {
   ui_language: Locale;
   ui_theme: UiTheme;
+  /** Whether the interface shows a notice when an operation finishes (success or error). */
+  result_notices: boolean;
   default_document_language: Locale;
   /** Free text: the candidate's experience, read by the AI when it evaluates a job match. */
   candidate_experience: string;
@@ -58,6 +65,10 @@ export interface Settings {
   status_styles: StatusStyles;
   /** Statuses of ads as JSON, see job-status.ts. */
   job_status_styles: JobStatusStyles;
+  /** Which status an application may move to, see status.ts. */
+  status_transitions: StatusTransitions;
+  /** What the interface remembers: Kanban on or off and the selected statuses. */
+  ui_state: UiState;
   /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
   ai_prompt_resume_tailor: string;
   ai_prompt_cover_letter: string;
@@ -72,6 +83,7 @@ const defaultPrompt = (type: PromptType): string => DEFAULT_PROMPTS.find((p) => 
 export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ui_language: 'en',
   ui_theme: 'system',
+  result_notices: 'true',
   candidate_experience: '',
   default_document_language: 'en',
   reminder_time: '08:00',
@@ -84,6 +96,8 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   default_document_set: 'resume,cover_letter',
   status_styles: '{}',
   job_status_styles: '{}',
+  status_transitions: '{}',
+  ui_state: '{}',
   ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
   ai_prompt_cover_letter: defaultPrompt('cover_letter'),
   ai_prompt_other: defaultPrompt('other'),
@@ -109,6 +123,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   default_document_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
   reminder_time: (raw) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(raw.trim()) ? raw.trim() : undefined),
   reminder_email: (raw) => (raw.trim() === '' || /^[^@\s]+@[^@\s]+$/.test(raw.trim()) ? raw.trim() : undefined),
+  result_notices: (raw) => (['true', 'false'].includes(raw.trim().toLowerCase()) ? raw.trim().toLowerCase() === 'true' : undefined),
   availability_check_enabled: (raw) => (['true', 'false'].includes(raw.trim().toLowerCase()) ? raw.trim().toLowerCase() === 'true' : undefined),
   availability_check_hours: (raw) => {
     const hours = items(raw, /,/).map((part) => (/^\d{1,2}$/.test(part) ? Number(part) : NaN));
@@ -127,6 +142,8 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   },
   status_styles: (raw) => parseStatusStyles(raw),
   job_status_styles: (raw) => parseJobStatusStyles(raw),
+  status_transitions: (raw) => parseStatusTransitions(raw),
+  ui_state: (raw) => parseUiState(raw),
   ai_prompt_resume_tailor: parsePrompt,
   ai_prompt_cover_letter: parsePrompt,
   ai_prompt_other: parsePrompt,

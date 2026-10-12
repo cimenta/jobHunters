@@ -4,9 +4,10 @@
   import type { Application } from '../api/types';
   import Button from '../components/Button.svelte';
   import Field from '../components/Field.svelte';
-  import { todayLocal } from '../lib/format';
+  import { formatDate, todayLocal } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { statusStyle } from '../lib/status';
+  import { app } from '../state/app.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
 
@@ -19,7 +20,7 @@
   // Only moves the rules allow: from "waiting" it is also possible to reschedule (waiting -> waiting).
   const options = $derived<ApplicationStatus[]>(
     isApplicationStatus(application.status)
-      ? APPLICATION_STATUSES.filter((to) => (application.status === 'waiting' && to === 'waiting') || canTransition(application.status as ApplicationStatus, to))
+      ? APPLICATION_STATUSES.filter((to) => (application.status === 'waiting' && to === 'waiting') || canTransition(application.status as ApplicationStatus, to, app.settings?.status_transitions))
       : [],
   );
   const needsDate = $derived(target === 'waiting');
@@ -33,8 +34,10 @@
   });
 
   async function change(): Promise<void> {
+    const from = statusStyle(application.status).text;
+    const date = needsDate ? remindAt : '';
     await api.setApplicationStatus(application.id, target, needsDate ? remindAt : undefined);
-    toast.success(tr('ui.app.statusChanged'));
+    toast.success(tr(date === '' ? 'ui.statusChanged' : 'ui.statusChangedRemind', { label: application.label, from, to: statusStyle(target).text, date: formatDate(date) }));
     invalidate();
   }
 </script>

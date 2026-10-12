@@ -1,3 +1,5 @@
+import { app } from './app.svelte';
+
 export interface ToastItem {
   id: number;
   kind: 'success' | 'error' | 'warning';
@@ -13,6 +15,7 @@ export function dismissToast(id: number): void {
 }
 
 function push(kind: ToastItem['kind'], text: string, lifetime: number): void {
+  if (app.settings?.result_notices === false) return;
   const id = nextId++;
   toasts.push({ id, kind, text });
   if (typeof setTimeout !== 'undefined') setTimeout(() => dismissToast(id), lifetime);

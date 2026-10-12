@@ -61,7 +61,7 @@ describe('AddJob', () => {
     await fireEvent.input(screen.getByLabelText('Location'), { target: { value: 'Brno' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
     await waitFor(() => expect(router.current.name).toBe('job'));
-    expect(toasts.map((t) => t.text)).toContain('Job saved');
+    expect(toasts.map((t) => t.text)).toContain('Job saved: "Demo Engineer"');
   });
 
   it('offers to paste the text when the page cannot be downloaded, and still saves', async () => {

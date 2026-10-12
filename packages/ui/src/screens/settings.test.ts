@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { ui } from '../lib/i18n.svelte';
 import { statusStyle } from '../lib/status';
-import { loadApp } from '../state/app.svelte';
+import { app, loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import Settings from './Settings.svelte';
@@ -25,8 +25,21 @@ describe('Settings', () => {
     await fireEvent.change(within(card).getByLabelText('Language of the app'), { target: { value: 'cs' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(ui.locale).toBe('cs'));
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Jazykové nastavení uloženo'));
     expect(await screen.findByRole('heading', { name: 'Nastavení' })).toBeInTheDocument();
     expect((await api.getSettings()).settings.ui_language).toBe('cs');
+  });
+
+  it('switches the result notices off and on', async () => {
+    await open();
+    await fireEvent.click(screen.getByLabelText('Show a notice when an operation finishes'));
+    await fireEvent.click(within(section('Notices')).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.result_notices).toBe(false));
+    await waitFor(() => expect(app.settings?.result_notices).toBe(false));
+    const before = toasts.length;
+    await fireEvent.click(within(section('Appearance')).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_theme).toBe('system'));
+    expect(toasts.length).toBe(before);
   });
 
   it('saves the documents created with a new application', async () => {
@@ -64,7 +77,7 @@ describe('Settings', () => {
   });
 
   it('edits the text and colour of a status, applies it everywhere and can reset it', async () => {
-    await open('Statuses');
+    await open('Status labels');
     const card = section('Status labels');
     const row = within(card).getByRole('group', { name: 'Sent' });
     await fireEvent.input(within(row).getByLabelText('Text for Sent'), { target: { value: 'Applied' } });
@@ -72,12 +85,22 @@ describe('Settings', () => {
     expect(within(row).getByText('Applied')).toHaveStyle({ backgroundColor: '#fde68a', color: '#111111' });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(statusStyle('sent').text).toBe('Applied'));
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Status labels saved'));
     expect((await api.getSettings()).settings.status_styles).toEqual({ sent: { text: { en: 'Applied' }, color: '#fde68a' } });
 
     await fireEvent.click(within(within(card).getByRole('group', { name: 'Sent' })).getByRole('button', { name: 'Reset to default' }));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(statusStyle('sent').text).toBe('Sent'));
     expect((await api.getSettings()).settings.status_styles).toEqual({});
+  });
+
+  it('keeps status labels and allowed changes on separate tabs', async () => {
+    await open('Status labels');
+    expect(document.querySelector('[data-ui="settings.status-labels"]')).not.toBeNull();
+    expect(document.querySelector('[data-ui="transitions"]')).toBeNull();
+    await fireEvent.click(screen.getByRole('tab', { name: 'Allowed status changes' }));
+    expect(document.querySelector('[data-ui="transitions"]')).not.toBeNull();
+    expect(document.querySelector('[data-ui="settings.status-labels"]')).toBeNull();
   });
 
   it('saves the colour mode and applies it at once', async () => {
@@ -87,6 +110,7 @@ describe('Settings', () => {
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'));
     expect((await api.getSettings()).settings.ui_theme).toBe('dark');
+    expect(toasts.map((t) => t.text)).toContain('Appearance saved (colour mode: Dark)');
     await fireEvent.change(within(card).getByLabelText('Colour mode'), { target: { value: 'system' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(document.documentElement.dataset.theme).toBeUndefined());
@@ -159,7 +183,7 @@ describe('Settings availability', () => {
   });
 
   it('saves the availability flag of a status', async () => {
-    await open('Statuses');
+    await open('Status labels');
     const card = section('Status labels');
     await fireEvent.click(within(card).getByLabelText('Check the availability of ads in status Sent'));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));

@@ -47,7 +47,7 @@ describe('CompanyDetail', () => {
     await fireEvent.input(screen.getByLabelText('Notes'), { target: { value: 'Friendly team' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getCompany(id)).company).toMatchObject({ website: 'https://example.com', notes: 'Friendly team' }));
-    expect(toasts.map((t) => t.text)).toContain('Saved');
+    expect(toasts.map((t) => t.text)).toContain('Company "Example s.r.o." saved');
   });
 
   it('refuses an empty name and a website that is not a web address', async () => {

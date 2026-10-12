@@ -88,6 +88,7 @@ export function buildContainer(deps: ContainerDeps) {
   const settings = new SettingsService(new SheetKeyValueStore('Settings', deps.grid('Settings'), lock, collect), lock);
 
   const applicationService = new ApplicationService({
+    transitions: () => settings.get().settings.status_transitions,
     applications,
     reminders,
     history,

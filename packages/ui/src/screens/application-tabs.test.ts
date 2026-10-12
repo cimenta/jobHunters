@@ -1,11 +1,15 @@
 import { fileIdFromUrl } from '@jobhunters/core';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { router } from '../lib/router.svelte';
-import { toasts } from '../state/toast.svelte';
+import { dismissToast, toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import ApplicationDetail from './ApplicationDetail.svelte';
+
+beforeEach(() => {
+  for (const item of [...toasts]) dismissToast(item.id);
+});
 
 async function androidApplicationId(): Promise<string> {
   return (await api.listApplications()).find((row) => row.job_title === 'Android Developer')!.id;
@@ -27,7 +31,7 @@ describe('Questions tab', () => {
     expect(screen.getByText('1 / 3 sentences')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getApplication(id)).questions[0]!.status).toBe('answered'));
-    expect(toasts.map((t) => t.text)).toContain('Answer saved');
+    expect(toasts.map((t) => t.text)).toContain('Answer saved for "Why do you want to work with us?"');
   });
 
   it('queues the AI to answer a question and shows the state of the task', async () => {
@@ -37,11 +41,26 @@ describe('Questions tab', () => {
     await fireEvent.input(screen.getByPlaceholderText('Your own instructions for the AI (optional)'), { target: { value: 'Be brief' } });
     await fireEvent.click(box);
     expect(await screen.findByText(/Waiting for the AI/)).toBeInTheDocument();
+    expect(toasts.map((t) => t.text)).toContain('AI answer requested for "Why do you want to work with us?"');
     const task = (await api.getApplication(id)).tasks[0]!;
     expect(task).toMatchObject({ type: 'answer_question', target_type: 'question', status: 'pending' });
     expect(task.instructions).toContain('Be brief');
     await fireEvent.click(screen.getByLabelText('Answer by AI'));
     await waitFor(async () => expect((await api.getApplication(id)).tasks).toEqual([]));
+    expect(toasts.map((t) => t.text)).toContain('AI answer request cancelled for "Why do you want to work with us?"');
+  });
+
+  it('shows an error notice when requesting the AI answer fails', async () => {
+    await open(/Questions/);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const spy = vi.spyOn(api, 'requestQuestionAi').mockRejectedValue(new Error('AI is down'));
+    try {
+      await fireEvent.click(await screen.findByLabelText('Answer by AI'));
+      await waitFor(() => expect(toasts.some((t) => t.kind === 'error')).toBe(true));
+      expect(toasts.some((t) => t.kind === 'success')).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('reports an answer over the limit instead of saving it', async () => {
@@ -49,6 +68,7 @@ describe('Questions tab', () => {
     await fireEvent.input(await screen.findByLabelText('Answer'), { target: { value: 'One. Two. Three. Four.' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(toasts.some((t) => /limit is 3/.test(t.text))).toBe(true));
+    expect(toasts.some((t) => t.kind === 'error' && /limit is 3/.test(t.text))).toBe(true);
     expect((await api.getApplication(id)).questions[0]!.answer).toBe('');
   });
 
@@ -61,9 +81,11 @@ describe('Questions tab', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
     await waitFor(async () => expect((await api.getApplication(id)).questions).toHaveLength(2));
     await screen.findByText('Salary expectations?');
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
     await fireEvent.click(screen.getAllByRole('button', { name: 'Delete' })[1]!);
     await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect((await api.getApplication(id)).questions).toHaveLength(1));
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
   });
 
   it('copies an answer to the clipboard', async () => {
@@ -88,6 +110,7 @@ describe('Communication tab', () => {
     await fireEvent.input(within(dialog).getByLabelText('Summary'), { target: { value: 'HR called' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getApplication(id)).communications).toHaveLength(2));
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
     expect(await screen.findByText('HR called')).toBeInTheDocument();
 
     const item = screen.getByText('HR called').closest('li')!;
@@ -100,6 +123,7 @@ describe('Communication tab', () => {
     await fireEvent.click(within(screen.getByText('HR called back').closest('li')!).getByRole('button', { name: 'Delete' }));
     await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect((await api.getApplication(id)).communications).toHaveLength(1));
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
   });
 
   it('requires a summary', async () => {
@@ -120,14 +144,17 @@ describe('Reminders tab', () => {
     await fireEvent.input(within(dialog).getByLabelText('Text'), { target: { value: 'Prepare for the interview' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
     expect(await screen.findByText('Prepare for the interview')).toBeInTheDocument();
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
 
     const item = screen.getByText('Prepare for the interview').closest('li')!;
     await fireEvent.click(within(item).getByRole('button', { name: 'Done' }));
     await waitFor(async () => expect((await api.getApplication(id)).reminders.find((r) => r.text === 'Prepare for the interview')!.status).toBe('done'));
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
 
     const other = screen.getByText('Ask about the status').closest('li')!;
     await fireEvent.click(within(other).getByRole('button', { name: 'Dismiss' }));
     await waitFor(async () => expect((await api.getApplication(id)).reminders.find((r) => r.text === 'Ask about the status')!.status).toBe('dismissed'));
+    expect(toasts.some((item) => item.kind === 'success')).toBe(true);
   });
 
   it('refuses a date in the past', async () => {
@@ -184,7 +211,7 @@ describe('Delete application (Timeline tab)', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect((await api.listApplications()).some((row) => row.id === id)).toBe(false));
     expect(backend.drive.folders.has(folderId)).toBe(false);
-    expect(toasts.map((t) => t.text)).toContain('Application deleted');
+    expect(toasts.map((t) => t.text)).toContain('Application deleted: "Example s.r.o. – Android Developer – #1 (2026-10)"');
     expect(router.current.name).toBe('applications');
   });
 

@@ -12,6 +12,7 @@
   import { tr } from '../../lib/i18n.svelte';
   import { documentTypeLabel } from '../../lib/labels';
   import { invalidate } from '../../state/invalidate.svelte';
+  import { notifyError } from '../../lib/notify';
   import { toast } from '../../state/toast.svelte';
 
   let { detail }: { detail: ApplicationDetail } = $props();
@@ -35,7 +36,7 @@
 
   async function exportPdf(doc: DocumentView): Promise<void> {
     await api.exportDocumentPdf(doc.id);
-    toast.success(tr('ui.docs.pdfExported'));
+    toast.success(tr('ui.docs.pdfExported', { name: documentTypeLabel(doc.type) }));
     invalidate();
   }
 
@@ -47,8 +48,15 @@
   async function toggleAi(doc: DocumentView, checked: boolean): Promise<void> {
     const task = taskOf(doc);
     try {
-      if (checked) await api.requestDocumentAi(doc.id, notes[doc.id] ?? '');
-      else if (task?.status === 'pending') await api.cancelAiTask(task.id);
+      if (checked) {
+        await api.requestDocumentAi(doc.id, notes[doc.id] ?? '');
+        toast.success(tr('ui.docs.aiRequested', { name: documentTypeLabel(doc.type) }));
+      } else if (task?.status === 'pending') {
+        await api.cancelAiTask(task.id);
+        toast.success(tr('ui.docs.aiCancelled', { name: documentTypeLabel(doc.type) }));
+      }
+    } catch (error) {
+      notifyError(error);
     } finally {
       invalidate();
     }
@@ -77,7 +85,7 @@
 
   async function add(): Promise<void> {
     await api.addApplicationDocument(detail.application.id, templateId);
-    toast.success(tr('ui.docs.added'));
+    toast.success(tr('ui.docs.added', { name: templates.find((template) => template.id === templateId)?.name ?? '', label: detail.application.label }));
     adding = false;
     invalidate();
   }

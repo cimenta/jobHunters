@@ -13,6 +13,8 @@ describe('parseRoute', () => {
     ['#/companies', { name: 'companies', query: {} }],
     ['#/companies/c1', { name: 'company', id: 'c1', query: {} }],
     ['#/settings', { name: 'settings', query: {} }],
+    ['#/help', { name: 'help', query: {} }],
+    ['#/help/x', { name: 'not-found', query: {} }],
     ['#/nope', { name: 'not-found', query: {} }],
     ['#/jobs/a/b', { name: 'not-found', query: {} }],
   ])('parses %j', (hash, expected) => {
@@ -40,6 +42,7 @@ describe('sectionOf', () => {
     expect(sectionOf(parseRoute('#/jobs/new'))).toBe('jobs');
     expect(sectionOf(parseRoute('#/applications/a1'))).toBe('applications');
     expect(sectionOf(parseRoute('#/companies/c1'))).toBe('companies');
+    expect(sectionOf(parseRoute('#/help'))).toBe('help');
     expect(sectionOf(parseRoute('#/'))).toBe('dashboard');
     expect(sectionOf(parseRoute('#/nope'))).toBe('dashboard');
   });

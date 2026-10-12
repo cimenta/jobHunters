@@ -55,6 +55,8 @@ export interface Application {
   snapshot_used: string;
   folder_url: string;
   notes: string;
+  /** Position among the cards of its status in the Kanban board; null = not placed yet (shown first). */
+  board_position: number | null;
 }
 
 export interface Reminder {

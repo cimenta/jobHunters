@@ -6,9 +6,10 @@
   import Button from '../../components/Button.svelte';
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
-  import { formatDate } from '../../lib/format';
+  import { formatDate, shorten } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
   import { invalidate } from '../../state/invalidate.svelte';
+  import { notifyError } from '../../lib/notify';
   import { toast } from '../../state/toast.svelte';
 
   let { question, task, ondelete }: { question: Question; task: AiTask | undefined; ondelete: () => void } = $props();
@@ -25,14 +26,21 @@
 
   async function save(): Promise<void> {
     await api.answerQuestion(question.id, answer);
-    toast.success(tr('ui.questions.answerSaved'));
+    toast.success(tr('ui.questions.answerSaved', { question: shorten(question.question, 40) }));
     invalidate();
   }
 
   async function toggleAi(checked: boolean): Promise<void> {
     try {
-      if (checked) await api.requestQuestionAi(question.id, notes);
-      else if (task?.status === 'pending') await api.cancelAiTask(task.id);
+      if (checked) {
+        await api.requestQuestionAi(question.id, notes);
+        toast.success(tr('ui.questions.aiRequested', { question: shorten(question.question, 40) }));
+      } else if (task?.status === 'pending') {
+        await api.cancelAiTask(task.id);
+        toast.success(tr('ui.questions.aiCancelled', { question: shorten(question.question, 40) }));
+      }
+    } catch (error) {
+      notifyError(error);
     } finally {
       invalidate();
     }

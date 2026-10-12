@@ -60,7 +60,7 @@
     formError = undefined;
     const result = await api.saveJob({ url: preview.url, text: usedText ? pasted : undefined, overrides });
     invalidate();
-    if (result.status === 'created') toast.success(tr('ui.addJob.saved'));
+    if (result.status === 'created') toast.success(tr('ui.addJob.saved', { title: result.job.title }));
     for (const warning of result.warnings) toast.warning(describeWarning(warning));
     navigate(paths.job(result.job.id));
   }

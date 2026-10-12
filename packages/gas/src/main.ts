@@ -62,9 +62,13 @@ export function api(method: string, args?: unknown): ApiResult {
   }
 }
 
-/** Run once from the Apps Script editor. */
-export function setup(): { spreadsheetUrl: string; rootFolderUrl: string } {
-  return runSetup();
+/**
+ * Run from the Apps Script editor after deploying (the first function of the file, so it is the default choice):
+ * creates or updates the folder, the spreadsheet, its sheets and the hourly trigger. The execution log lists
+ * what it did and ends with "Setup finished: OK" or "NOT OK"; the same verdict is the return value.
+ */
+export function setup(): string {
+  return runSetup((line) => Logger.log(line));
 }
 
 /**

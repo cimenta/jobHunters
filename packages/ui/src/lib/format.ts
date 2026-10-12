@@ -53,3 +53,9 @@ export function todayLocal(): string {
 export function formatVersion(version: string): string {
   return /^\d/.test(version) ? `v${version}` : version;
 }
+
+/** Cuts a user-written text to at most `max` characters (whitespace collapsed), ending with an ellipsis when it was longer. */
+export function shorten(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length <= max ? flat : `${flat.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}

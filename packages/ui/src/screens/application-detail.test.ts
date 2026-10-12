@@ -6,6 +6,7 @@ import { navigate, router } from '../lib/router.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import ApplicationDetail from './ApplicationDetail.svelte';
+import ApplicationsScreen from './ApplicationsScreen.svelte';
 import ApplicationsList from './ApplicationsList.svelte';
 
 async function androidApplicationId(): Promise<string> {
@@ -29,8 +30,8 @@ describe('ApplicationsList', () => {
     render(ApplicationsList);
     expect(await screen.findByText(/Data Analyst \(part time\) – #1/)).toBeInTheDocument();
     expect(screen.queryByText(/Android Developer – #1/)).toBeNull();
-    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: '' } });
-    expect(screen.getByText(/Android Developer – #1/)).toBeInTheDocument();
+    await fireEvent.click(within(screen.getByRole('group', { name: 'Status' })).getByLabelText('Waiting'));
+    expect(await screen.findByText(/Android Developer – #1/)).toBeInTheDocument();
   });
 
   it('explains an empty list and leads to the jobs', async () => {
@@ -70,7 +71,7 @@ describe('ApplicationDetail', () => {
     expect(button).toBeEnabled();
     await fireEvent.click(button);
     await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('waiting'));
-    expect(toasts.map((t) => t.text)).toContain('Status changed');
+    expect(toasts.map((t) => t.text)).toContain('"Example s.r.o. – Android Developer – #1 (2026-10)": status changed from Sent to Waiting, reminder on Oct 20, 2026');
   });
 
   it('shows the documents, previews them in a sandboxed frame and exports a PDF', async () => {
@@ -92,7 +93,7 @@ describe('ApplicationDetail', () => {
 
     await fireEvent.click(within(row).getByRole('button', { name: 'Export PDF' }));
     expect(await within(row).findByRole('link', { name: /Download PDF/ })).toHaveAttribute('href', expect.stringMatching(/^https:/));
-    expect(toasts.map((t) => t.text)).toContain('PDF exported');
+    expect(toasts.map((t) => t.text)).toContain('PDF of "Resume" exported');
   });
 
   it('adds another document from a template', async () => {
@@ -109,5 +110,28 @@ describe('ApplicationDetail', () => {
     useDevBackend();
     render(ApplicationDetail, { id: 'ghost' });
     expect(await screen.findByRole('alert')).toHaveTextContent('Application ghost was not found.');
+  });
+});
+
+describe('ApplicationsScreen', () => {
+  it('opens the application in a dialog over the list and closes back to the list', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    navigate(`#/applications/${id}`);
+    render(ApplicationsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Application' });
+    expect(await within(dialog).findByRole('heading', { name: /Android Developer – #1/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="applications"]')).not.toBeNull();
+    await fireEvent.keyDown(dialog, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Application' })).toBeNull());
+    expect(router.current.name).toBe('applications');
+  });
+
+  it('shows the error block in the dialog for an unknown application', async () => {
+    useDevBackend();
+    navigate('#/applications/does-not-exist');
+    render(ApplicationsScreen);
+    const dialog = await screen.findByRole('dialog', { name: 'Application' });
+    expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
   });
 });

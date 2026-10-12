@@ -26,7 +26,7 @@
     const next = buildStatusStyles(app.settings?.status_styles ?? {}, edits, ui.locale);
     await api.updateSettings({ status_styles: serializeStatusStyles(next) });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.status.savedLabels'));
   }
 </script>
 

@@ -39,23 +39,27 @@
 
   async function save(): Promise<void> {
     await api.updateJob(id, { notes, is_gig: gig });
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.job.savedNotes', { title: detail.data?.job.title ?? '' }));
     invalidate();
   }
 
   async function changeStatus(status: string): Promise<void> {
+    const job = detail.data?.job;
+    const from = job ? jobStatus(job).text : '';
+    const to = jobStatusOptions().find((option) => option.code === status)?.text ?? status;
     await api.updateJob(id, { status });
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.job.statusChanged', { title: job?.title ?? '', from, to }));
     invalidate();
   }
 
   async function checkAvailability(): Promise<void> {
     const { job, verdict } = await api.checkJobAvailability(id);
     const reason = availabilityReasonLabel(job.availability_reason);
-    if (verdict.availability === 'online') toast.success(tr('ui.job.checkResult.online'));
-    else if (job.availability === 'offline') toast.warning(tr('ui.job.checkResult.offline', { reason }));
-    else if (verdict.availability === 'offline') toast.warning(tr('ui.job.checkResult.suspected', { reason }));
-    else toast.warning(tr('ui.job.checkResult.unknown', { reason }));
+    const title = job.title;
+    if (verdict.availability === 'online') toast.success(tr('ui.job.checkResult.online', { title }));
+    else if (job.availability === 'offline') toast.warning(tr('ui.job.checkResult.offline', { title, reason }));
+    else if (verdict.availability === 'offline') toast.warning(tr('ui.job.checkResult.suspected', { title, reason }));
+    else toast.warning(tr('ui.job.checkResult.unknown', { title, reason }));
     invalidate();
   }
 
@@ -143,7 +147,7 @@
             <p class="description">{job.description === '' ? tr('ui.job.noDescription') : job.description}</p>
           </div>
         {:else}
-          <MatchTab jobId={job.id} match={detail.data.match} />
+          <MatchTab jobId={job.id} jobTitle={job.title} match={detail.data.match} />
         {/if}
       </div>
     </Card>

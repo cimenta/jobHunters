@@ -16,6 +16,7 @@
   import { toast } from '../state/toast.svelte';
   import JobStatusStylesEditor from './JobStatusStylesEditor.svelte';
   import StatusStylesEditor from './StatusStylesEditor.svelte';
+  import TransitionsEditor from './TransitionsEditor.svelte';
 
   const PROFILE_KEYS = ['name', 'email', 'phone', 'address', 'links'] as const;
   const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'] as const;
@@ -48,6 +49,7 @@
   let offlineTexts = $state('');
   let uiLanguage = $state('en');
   let uiTheme = $state('system');
+  let resultNotices = $state(true);
   let docLanguage = $state('en');
   let documentSet = $state<string[]>([]);
   let profileValues = $state<Record<string, string>>({ name: '', email: '', phone: '', address: '', links: '' });
@@ -61,6 +63,7 @@
     if (settings) {
       uiLanguage = settings.ui_language;
       uiTheme = settings.ui_theme;
+      resultNotices = settings.result_notices;
       experience = settings.candidate_experience;
       checkEnabled = settings.availability_check_enabled;
       checkHours = settings.availability_check_hours.join(', ');
@@ -78,31 +81,37 @@
   async function saveLanguage(): Promise<void> {
     await api.updateSettings({ ui_language: uiLanguage, default_document_language: docLanguage });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedLanguage'));
   }
 
   async function saveTheme(): Promise<void> {
     await api.updateSettings({ ui_theme: uiTheme });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedTheme', { mode: tr(`ui.theme.${uiTheme}`) }));
+  }
+
+  async function saveNotices(): Promise<void> {
+    await api.updateSettings({ result_notices: String(resultNotices) });
+    await reloadSettings();
+    toast.success(tr(resultNotices ? 'ui.settings.noticesOn' : 'ui.settings.noticesOff'));
   }
 
   async function saveExperience(): Promise<void> {
     await api.updateSettings({ candidate_experience: experience });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedExperience'));
   }
 
   async function savePrompts(): Promise<void> {
     await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, prompts[type]])));
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedPrompts'));
   }
 
   async function resetPrompts(): Promise<void> {
     await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])));
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.resetPrompts'));
   }
 
   function promptLabel(type: PromptType): string {
@@ -128,24 +137,24 @@
       offline_texts: offlineTexts,
     });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedAvailability'));
   }
 
   async function saveDocuments(): Promise<void> {
     await api.updateSettings({ default_document_set: documentSet.join(',') });
     await reloadSettings();
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedDocuments'));
   }
 
   async function saveProfile(): Promise<void> {
     await api.updateProfile(profileValues);
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.settings.savedProfile'));
     invalidate();
   }
 
   async function addTemplate(): Promise<void> {
     await api.addTemplate({ type: templateType, language: templateLanguage, name: templateName, docUrl: templateUrl });
-    toast.success(tr('ui.template.added'));
+    toast.success(tr('ui.template.added', { name: templateName }));
     templateName = '';
     templateUrl = '';
     invalidate();
@@ -164,7 +173,8 @@
       { id: 'availability', label: tr('ui.settings.tab.availability') },
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
-      { id: 'statuses', label: tr('ui.settings.tab.statuses') },
+      { id: 'statuslabels', label: tr('ui.settings.tab.statusLabels') },
+      { id: 'transitions', label: tr('ui.settings.tab.transitions') },
       { id: 'jobstatuses', label: tr('ui.settings.tab.jobStatuses') },
       { id: 'about', label: tr('ui.settings.tab.about') },
     ]}
@@ -201,6 +211,13 @@
       </select>
     </Field>
     <div><Button variant="primary" ui="settings.appearance.save" onclick={saveTheme}>{tr('ui.save')}</Button></div>
+  </Card>
+
+  <Card ui="settings.notices">
+    <h2>{tr('ui.settings.notices')}</h2>
+    <label class="check"><input type="checkbox" bind:checked={resultNotices} />{tr('ui.settings.resultNotices')}</label>
+    <p class="muted small">{tr('ui.settings.resultNoticesHint')}</p>
+    <div><Button variant="primary" ui="settings.notices.save" onclick={saveNotices}>{tr('ui.save')}</Button></div>
   </Card>
 
   {:else if tab === 'documents'}
@@ -318,11 +335,18 @@
     <div><Button variant="primary" ui="settings.templates.add" onclick={addTemplate}>{tr('ui.template.add')}</Button></div>
   </Card>
 
-  {:else if tab === 'statuses'}
+  {:else if tab === 'statuslabels'}
   <Card ui="settings.status-labels">
     <h2>{tr('ui.settings.statusLabels')}</h2>
     <p class="muted small">{tr('ui.settings.statusLabelsHint')}</p>
     <StatusStylesEditor />
+  </Card>
+
+  {:else if tab === 'transitions'}
+  <Card ui="settings.transitions">
+    <h2>{tr('ui.settings.transitions')}</h2>
+    <p class="muted small">{tr('ui.settings.transitionsHint')}</p>
+    <TransitionsEditor />
   </Card>
 
   {:else if tab === 'jobstatuses'}

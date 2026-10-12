@@ -3,7 +3,7 @@ import { expect, it } from 'vitest';
 
 it('has a navigation label for every section in both languages', () => {
   for (const locale of ['en', 'cs'] as const) {
-    for (const section of ['dashboard', 'jobs', 'applications', 'companies', 'settings']) {
+    for (const section of ['dashboard', 'jobs', 'applications', 'companies', 'settings', 'help']) {
       expect(CATALOGS[locale], `${locale}:${section}`).toHaveProperty(`ui.nav.${section}`);
     }
   }
@@ -28,4 +28,11 @@ it('omits the version while it is not known', () => {
   app.version = '';
   render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
   expect(document.querySelector('[data-ui="app.version"]')).toBeNull();
+});
+
+it('links the Help item last in the navigation', () => {
+  render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
+  const links = [...document.querySelectorAll('nav a.item')];
+  expect(links.at(-1)).toHaveAttribute('data-ui', 'nav.help');
+  expect(links.at(-1)).toHaveAttribute('href', '#/help');
 });

@@ -8,7 +8,7 @@
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
   import PostponeDialog from '../../components/PostponeDialog.svelte';
-  import { formatDate, todayLocal } from '../../lib/format';
+  import { formatDate, shorten, todayLocal } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
   import { invalidate } from '../../state/invalidate.svelte';
   import { toast } from '../../state/toast.svelte';
@@ -36,27 +36,28 @@
 
   async function add(): Promise<void> {
     await api.addReminder(detail.application.id, date, text);
-    toast.success(tr('ui.reminders.added'));
+    toast.success(tr('ui.reminders.added', { date: formatDate(date), text: shorten(text, 40) }));
     adding = false;
     invalidate();
   }
 
   async function complete(reminder: Reminder): Promise<void> {
     await api.completeReminder(reminder.id);
-    toast.success(tr('ui.reminder.completed'));
+    toast.success(tr('ui.reminder.completed', { text: shorten(reminder.text, 40) }));
     invalidate();
   }
 
   async function dismiss(reminder: Reminder): Promise<void> {
     await api.dismissReminder(reminder.id);
-    toast.success(tr('ui.reminders.dismissed'));
+    toast.success(tr('ui.reminders.dismissed', { text: shorten(reminder.text, 40) }));
     invalidate();
   }
 
   async function postpone(newDate: string): Promise<void> {
     if (!postponing) return;
-    await api.postponeReminder(postponing.id, newDate);
-    toast.success(tr('ui.reminder.postponed', { date: formatDate(newDate) }));
+    const target = postponing;
+    await api.postponeReminder(target.id, newDate);
+    toast.success(tr('ui.reminder.postponed', { date: formatDate(newDate), text: shorten(target.text, 40) }));
     invalidate();
   }
 </script>

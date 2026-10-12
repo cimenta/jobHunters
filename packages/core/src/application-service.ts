@@ -1,7 +1,8 @@
 import { t, type Locale } from './i18n';
 import { NotFoundError, ValidationError } from './errors';
 import type { AppendLog, Repository } from './repository';
-import { canTransition, isApplicationStatus, type ApplicationStatus } from './status';
+import { sortBoard } from './board';
+import { canTransition, isApplicationStatus, type ApplicationStatus, type StatusTransitions } from './status';
 import type { Application, Reminder, StatusHistoryEntry } from './types';
 
 export interface ApplicationServiceDeps {
@@ -13,6 +14,8 @@ export interface ApplicationServiceDeps {
   now: () => string;
   /** Language of texts the app writes into sheets (the user's UI language). */
   locale: () => Locale;
+  /** The allowed moves between statuses; the built-in rules when not given. */
+  transitions?: () => StatusTransitions;
 }
 
 export interface SetStatusOptions {
@@ -39,7 +42,7 @@ export class ApplicationService {
 
     const from = application.status;
     const reschedule = from === 'waiting' && to === 'waiting';
-    if (!reschedule && !canTransition(from, to)) {
+    if (!reschedule && !canTransition(from, to, this.deps.transitions?.())) {
       throw new ValidationError('transition_not_allowed', `Cannot move application ${applicationId} from ${from} to ${to}`, {
         id: applicationId,
         from,
@@ -68,11 +71,30 @@ export class ApplicationService {
     }
 
     const patch: Partial<Omit<Application, 'id'>> = { status: to, last_activity_at: timestamp };
+    if (!reschedule) patch.board_position = null;
     if (to === 'sent' && !application.applied_at) patch.applied_at = timestamp;
     const updated = applications.update(applicationId, patch);
 
     history.append({ application_id: applicationId, from, to, at: timestamp });
     return updated;
+  }
+
+  /**
+   * Moves a card of the Kanban board: changes the status when the column differs (with the same checks and effects as
+   * setStatus) and stores its place in the column. index is the place among the other cards of the column.
+   */
+  move(applicationId: string, to: ApplicationStatus, index: number, options: SetStatusOptions = {}): Application {
+    const { applications } = this.deps;
+    const application = applications.get(applicationId);
+    if (!application) throw new NotFoundError('application_not_found', `Application ${applicationId} not found`, { id: applicationId });
+    const moved = application.status === to ? application : this.setStatus(applicationId, to, options);
+    const others = sortBoard(applications.list().filter((a) => a.status === to && a.id !== applicationId));
+    const place = Math.max(0, Math.min(Number.isInteger(index) ? index : others.length, others.length));
+    const column = [...others.slice(0, place), moved, ...others.slice(place)];
+    column.forEach((card, position) => {
+      if (card.board_position !== position + 1) applications.update(card.id, { board_position: position + 1 });
+    });
+    return applications.get(applicationId)!;
   }
 
   private closeWaitingReminders(applicationId: string, timestamp: string): void {

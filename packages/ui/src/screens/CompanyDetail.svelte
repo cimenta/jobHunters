@@ -32,7 +32,7 @@
 
   async function save(): Promise<void> {
     await api.updateCompany(id, { name, website, notes });
-    toast.success(tr('ui.saved'));
+    toast.success(tr('ui.company.saved', { name }));
     invalidate();
   }
 </script>

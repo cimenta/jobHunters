@@ -2,6 +2,42 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.11.3] - 2026-10-12
+
+- Notices are more informative: they name what was changed and, for a change, from what to what.
+
+## [0.11.2] - 2026-10-12
+
+- `setup()` is the first function in the Apps Script editor's function list, so it is preselected. It writes every step it performed to the execution log (folder, spreadsheet, each sheet created or extended with which columns, Drive folders, the hourly trigger), checks at the end that every sheet has all its columns, and ends with "Setup finished: OK" or "Setup finished: NOT OK" with the reason. It returns "OK" or "NOT OK: reason".
+- The Help screen is split into tabs, one per topic.
+
+## [0.11.1] - 2026-10-12
+
+- New Help item in the main menu: explains how the application works, the typical flow and what each screen and Settings tab does.
+
+## [0.11.0] - 2026-10-12
+
+- A short notice appears when an operation finishes, on success and on failure; every operation reports now. New setting `result_notices` (Settings → General → Notices) switches the notices off. When off, a failed operation shows nothing; loading errors stay on the screen.
+
+## [0.10.6] - 2026-10-12
+
+- Settings: the Statuses tab is split into "Status labels" and "Allowed status changes".
+
+## [0.10.5] - 2026-10-12
+
+- Kanban: a "Hide empty columns" checkbox hides columns without applications; the choice is remembered (in `ui_state`).
+
+## [0.10.4] - 2026-10-12
+
+- The application detail opens as a pop-up over the list instead of a separate page; closing it returns to the list (or Kanban board) exactly as it was.
+
+## [0.10.3] - 2026-10-12
+
+- Kanban view of the applications: a "Kanban" switch in the list shows a column per status. Drag a card to another column to change its status (moving to Waiting asks for the reminder date) or within a column to change its order; every card also has a "Move to…" menu for touch screens. The order is stored in the new column `board_position` of the Applications sheet.
+- The status filter of the applications is a multiple choice. The selection is remembered separately for the list and for the board (in the board it chooses the columns shown), and so is the Kanban switch; all of it is stored in the app (new setting `ui_state`).
+- New setting `status_transitions` and a matrix in Settings, tab Statuses, to choose which status an application may move to. It applies everywhere (status control, Kanban, backend); the built-in rules are the default. Moving to Waiting still creates the reminder. New API method `moveApplication`.
+- Run `setup()` after deploying so the sheet gets the new column.
+
 ## [0.10.2] - 2026-10-12
 
 - `testSetupColumns` writes its result (`OK` or `FAILED: ...`) to the execution log, where the Apps Script editor shows it.

@@ -16,6 +16,7 @@
     { section: 'companies', icon: 'building', href: paths.companies },
     { section: 'tasks', icon: 'sparkle', href: paths.tasks },
     { section: 'settings', icon: 'settings', href: paths.settings },
+    { section: 'help', icon: 'help', href: paths.help },
   ];
   const current = $derived(sectionOf(router.current));
   const version = $derived(formatVersion(app.version));
@@ -26,6 +27,7 @@
     companies: () => tr('ui.nav.companies'),
     tasks: () => tr('ui.nav.tasks'),
     settings: () => tr('ui.nav.settings'),
+    help: () => tr('ui.nav.help'),
   };
 </script>
 
@@ -69,7 +71,8 @@
     text-align: center;
     text-decoration: none;
   }
-  .label { overflow-wrap: normal; word-break: keep-all; }
+  .item { min-width: 0; }
+  .label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; word-break: keep-all; }
   .item[aria-current='page'] { color: var(--accent); font-weight: 700; }
   main {
     min-width: 0;
@@ -77,6 +80,10 @@
     margin: 0 auto;
     padding: var(--space-4);
     padding-bottom: calc(64px + var(--space-6) + env(safe-area-inset-bottom));
+  }
+
+  @media (max-width: 420px) {
+    .item { font-size: 0.62rem; }
   }
 
   @media (min-width: 640px) {

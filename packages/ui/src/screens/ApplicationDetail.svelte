@@ -1,6 +1,5 @@
 <script lang="ts">
   import { api } from '../api';
-  import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
@@ -11,7 +10,6 @@
   import { tr } from '../lib/i18n.svelte';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
-  import { navigate } from '../lib/router.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import StatusControl from './StatusControl.svelte';
   import CommunicationsTab from './tabs/CommunicationsTab.svelte';
@@ -39,10 +37,6 @@
 </script>
 
 <div class="stack" data-ui="application-detail">
-  <div class="only-narrow">
-    <Button variant="ghost" onclick={() => navigate(paths.applications)}><Icon name="back" size={18} />{tr('ui.back')}</Button>
-  </div>
-
   {#if detail.status === 'loading'}
     <Skeleton lines={6} />
   {:else if detail.status === 'error'}

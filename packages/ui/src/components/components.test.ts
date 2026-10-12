@@ -1,12 +1,15 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { parseSettings } from '@jobhunters/core';
 import { createRawSnippet } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api/client';
 import { setLocale } from '../lib/i18n.svelte';
+import { navigate } from '../lib/router.svelte';
 import { app } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
+import ApplicationsScreen from '../screens/ApplicationsScreen.svelte';
 import TabsProbe from '../test/TabsProbe.svelte';
+import { useDevBackend } from '../test/transport';
 import Button from './Button.svelte';
 import Dialog from './Dialog.svelte';
 import EmptyState from './EmptyState.svelte';
@@ -138,5 +141,24 @@ describe('EmptyState, WarningList, ToastHost', () => {
     expect(screen.getByText('Saved!')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(screen.queryByText('Saved!')).toBeNull());
+  });
+});
+
+describe('Dialog nesting', () => {
+  it('keeps Tab focus inside the inner dialog when it is opened over the application dialog', async () => {
+    useDevBackend();
+    const rows = await (await import('../api')).api.listApplications();
+    navigate(`#/applications/${rows.find((row) => row.job_title === 'Android Developer')!.id}`);
+    render(ApplicationsScreen);
+    const outer = await screen.findByRole('dialog', { name: 'Application' });
+    await fireEvent.click(await within(outer).findByRole('tab', { name: /Reminders/ }));
+    await fireEvent.click((await within(outer).findAllByRole('button', { name: 'Postpone' }))[0]!);
+    const inner = await screen.findByRole('dialog', { name: 'Postpone reminder' });
+    const buttons = within(inner).getAllByRole('button');
+    const last = buttons[buttons.length - 1]!;
+    last.focus();
+    await fireEvent.keyDown(last, { key: 'Tab' });
+    expect(inner.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).toBe(buttons[0]);
   });
 });

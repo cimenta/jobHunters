@@ -23,7 +23,7 @@ describe('Dashboard', () => {
     const item = (await screen.findByText('Send the portfolio')).closest('li')!;
     await fireEvent.click(within(item).getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(screen.queryByText('Send the portfolio')).toBeNull());
-    expect(toasts.map((t) => t.text)).toContain('Reminder completed');
+    expect(toasts.map((t) => t.text)).toContain('Reminder completed: "Send the portfolio"');
   });
 
   it('postpones a reminder to a chosen date', async () => {
@@ -35,7 +35,7 @@ describe('Dashboard', () => {
     await fireEvent.input(within(dialog).getByLabelText('New date'), { target: { value: '2026-10-20' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Postpone' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(toasts.some((t) => /moved to/.test(t.text))).toBe(true);
+    expect(toasts.some((t) => t.text === 'Reminder postponed to Oct 20, 2026: "Send the portfolio"')).toBe(true);
   });
 
   it('opens the application of a reminder', async () => {

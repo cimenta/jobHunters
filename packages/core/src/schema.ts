@@ -15,7 +15,7 @@ const JOB_COLUMNS = [
 
 const APPLICATION_COLUMNS = [
   'id', 'job_id', 'attempt', 'label', 'language', 'status', 'applied_at', 'last_activity_at',
-  'snapshot_used', 'folder_url', 'notes',
+  'snapshot_used', 'folder_url', 'notes', 'board_position',
 ] as const satisfies readonly (keyof Application)[];
 
 const REMINDER_COLUMNS = [
@@ -71,8 +71,8 @@ export type SheetName = keyof typeof SHEETS;
 
 export type ColumnType = 'string' | 'number' | 'boolean';
 
-const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent']);
-const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences', 'match_percent']);
+const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent', 'board_position']);
+const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences', 'match_percent', 'board_position']);
 const BOOLEAN_COLUMNS = new Set(['is_gig']);
 
 export function columnType(column: string): ColumnType {

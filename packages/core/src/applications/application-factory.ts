@@ -97,6 +97,7 @@ export class ApplicationFactory {
       snapshot_used: '',
       folder_url: folder.url,
       notes: '',
+      board_position: null,
     });
     history.append({ application_id: application.id, from: '', to: 'draft', at: timestamp });
 

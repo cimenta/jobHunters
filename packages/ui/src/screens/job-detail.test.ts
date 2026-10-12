@@ -44,7 +44,7 @@ describe('JobDetail', () => {
     await fireEvent.input(await screen.findByRole('textbox', { name: 'Notes' }), { target: { value: 'Call on Monday' } });
     await fireEvent.click(screen.getByLabelText('Gig (short-term work)'));
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Saved'));
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Notes of "Android Developer" saved'));
     const saved = await api.getJob(id);
     expect(saved.job).toMatchObject({ notes: 'Call on Monday', is_gig: true });
   });

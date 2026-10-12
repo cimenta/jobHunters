@@ -52,6 +52,7 @@ export const api = {
   listApplications: () => call<ApplicationRow[]>('listApplications'),
   getApplication: (id: string) => call<ApplicationDetail>('getApplication', { id }),
   createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string }) => call<CreateApplicationResult>('createApplication', input),
+  moveApplication: (id: string, to: string, index: number, remindAt?: string) => call<ApplicationRow>('moveApplication', remindAt === undefined ? { id, to, index } : { id, to, index, remindAt }),
   setApplicationStatus: (id: string, to: string, remindAt?: string) => call<unknown>('setApplicationStatus', remindAt === undefined ? { id, to } : { id, to, remindAt }),
 
   deleteApplication: (id: string, trashFolder: boolean) => call<RemoveResult>('deleteApplication', { id, trashFolder }),

@@ -3,12 +3,14 @@
   import { api } from '../../api';
   import Button from '../../components/Button.svelte';
   import { tr } from '../../lib/i18n.svelte';
+  import { notifyError } from '../../lib/notify';
+  import { toast } from '../../state/toast.svelte';
   import { paths } from '../../lib/route';
   import { app } from '../../state/app.svelte';
   import { invalidate } from '../../state/invalidate.svelte';
 
   /** Apps Script turns a missing value into null, so both mean "no task". */
-  let { jobId, match }: { jobId: string; match: AiTask | null | undefined } = $props();
+  let { jobId, jobTitle = '', match }: { jobId: string; jobTitle?: string; match: AiTask | null | undefined } = $props();
 
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   const waiting = $derived(match?.status === 'pending');
@@ -32,9 +34,19 @@
   }
 
   async function toggle(checked: boolean): Promise<void> {
-    if (checked) await api.requestJobMatch(jobId);
-    else if (match && waiting) await api.cancelAiTask(match.id);
-    invalidate();
+    try {
+      if (checked) {
+        await api.requestJobMatch(jobId);
+        toast.success(tr('ui.match.requested', { title: jobTitle }));
+      } else if (match && waiting) {
+        await api.cancelAiTask(match.id);
+        toast.success(tr('ui.match.cancelled', { title: jobTitle }));
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      invalidate();
+    }
   }
 </script>
 

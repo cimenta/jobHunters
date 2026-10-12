@@ -8,7 +8,7 @@
   import EmptyState from '../../components/EmptyState.svelte';
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
-  import { formatDate } from '../../lib/format';
+  import { formatDate, shorten } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
   import { channelLabel, directionLabel } from '../../lib/labels';
   import { invalidate } from '../../state/invalidate.svelte';
@@ -52,15 +52,16 @@
     } else {
       await api.updateCommunication(editing.id, { direction, channel, summary, details });
     }
-    toast.success(tr('ui.comm.saved'));
+    toast.success(tr('ui.comm.saved', { summary: shorten(summary, 40) }));
     editing = undefined;
     invalidate();
   }
 
   async function remove(): Promise<void> {
     if (removing === undefined) return;
+    const removed = detail.communications.find((item) => item.id === removing);
     await api.removeCommunication(removing);
-    toast.success(tr('ui.comm.removed'));
+    toast.success(tr('ui.comm.removed', { summary: shorten(removed?.summary ?? '', 40) }));
     invalidate();
   }
 </script>

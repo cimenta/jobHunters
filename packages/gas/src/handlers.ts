@@ -55,6 +55,19 @@ export function createHandlers(c: Container): Record<string, Handler> {
       return c.lock.run(() => c.jobService.save(input));
     },
 
+    moveApplication: (args) => {
+      const input = asRecord(args, 'moveApplication');
+      const id = requireString(input, 'id', 'moveApplication');
+      const to = requireString(input, 'to', 'moveApplication') as ApplicationStatus;
+      const index = input.index;
+      if (typeof index !== 'number') throw new ValidationError('invalid_arguments', 'Argument index must be a number', { method: 'moveApplication' });
+      const remindAt = input.remindAt;
+      if (remindAt !== undefined && typeof remindAt !== 'string') {
+        throw new ValidationError('invalid_arguments', 'Argument remindAt must be a string', { method: 'moveApplication' });
+      }
+      return c.lock.run(() => c.applicationService.move(id, to, index, remindAt === undefined ? {} : { remindAt }));
+    },
+
     setApplicationStatus: (args) => {
       const input = asRecord(args, 'setApplicationStatus');
       const id = requireString(input, 'id', 'setApplicationStatus');

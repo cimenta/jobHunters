@@ -3,6 +3,7 @@
   import ApplicationsScreen from './ApplicationsScreen.svelte';
   import CompaniesScreen from './CompaniesScreen.svelte';
   import Dashboard from './Dashboard.svelte';
+  import Help from './Help.svelte';
   import JobsScreen from './JobsScreen.svelte';
   import NotFound from './NotFound.svelte';
   import Settings from './Settings.svelte';
@@ -21,6 +22,8 @@
   <TasksScreen />
 {:else if router.current.name === 'settings'}
   <Settings />
+{:else if router.current.name === 'help'}
+  <Help />
 {:else}
   <NotFound />
 {/if}

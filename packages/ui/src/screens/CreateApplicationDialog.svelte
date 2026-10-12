@@ -33,7 +33,7 @@
   async function create(): Promise<void> {
     const result = await api.createApplication({ jobId: job.id, language, fromApplicationId: from === '' ? undefined : from });
     invalidate();
-    toast.success(tr('ui.createApp.created'));
+    toast.success(tr('ui.createApp.created', { label: result.application.label, title: job.title }));
     for (const warning of result.warnings) toast.warning(describeWarning(warning));
     onclose();
     navigate(paths.application(result.application.id));

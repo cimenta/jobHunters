@@ -6,8 +6,9 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 const OUT = 'dist';
-// Apps Script only calls top-level functions, so each export of main.ts gets a global stub.
-const EXPORTS = ['api', 'setup', 'doGet', 'smokeTest', 'onHourlyTick', 'testSetupColumns'];
+// Apps Script only calls top-level functions, so each export of main.ts gets a global stub. The editor lists them
+// in this order and preselects the first, so setup stays first.
+const EXPORTS = ['setup', 'api', 'doGet', 'smokeTest', 'testSetupColumns', 'onHourlyTick'];
 
 rmSync(OUT, { recursive: true, force: true });
 mkdirSync(OUT, { recursive: true });

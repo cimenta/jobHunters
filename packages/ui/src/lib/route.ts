@@ -1,5 +1,5 @@
-export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'tasks' | 'settings' | 'not-found';
-export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'tasks' | 'settings';
+export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'tasks' | 'settings' | 'help' | 'not-found';
+export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'tasks' | 'settings' | 'help';
 export interface Route {
   name: RouteName;
   id?: string;
@@ -32,6 +32,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'companies') return second === undefined ? route('companies') : route('company', second);
   if (first === 'tasks' && second === undefined) return route('tasks');
   if (first === 'settings' && second === undefined) return route('settings');
+  if (first === 'help' && second === undefined) return route('help');
   return route('not-found');
 }
 
@@ -51,6 +52,8 @@ export function sectionOf(route: Route): Section {
       return 'tasks';
     case 'settings':
       return 'settings';
+    case 'help':
+      return 'help';
     default:
       return 'dashboard';
   }
@@ -65,6 +68,7 @@ export const paths = {
   companies: '#/companies',
   tasks: '#/tasks',
   settings: '#/settings',
+  help: '#/help',
   job: (id: string) => `#/jobs/${enc(id)}`,
   application: (id: string) => `#/applications/${enc(id)}`,
   company: (id: string) => `#/companies/${enc(id)}`,

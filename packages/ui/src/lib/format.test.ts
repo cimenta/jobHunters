@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDate, formatSalary, plusDays } from './format';
+import { formatDate, formatSalary, plusDays, shorten } from './format';
 import { setLocale } from './i18n.svelte';
 import { app } from '../state/app.svelte';
 
@@ -58,5 +58,16 @@ describe('formatDate in the time zone of the script', () => {
     app.timeZone = 'Not/AZone';
     expect(formatDate('2026-10-12T18:00:00.000Z')).toMatch(/Oct 1[23], 2026/);
     app.timeZone = '';
+  });
+});
+
+describe('shorten', () => {
+  it('keeps short texts and collapses whitespace', () => {
+    expect(shorten('  hello\n world ', 40)).toBe('hello world');
+  });
+  it('cuts long texts to the limit with an ellipsis', () => {
+    const out = shorten('a'.repeat(60), 40);
+    expect(out).toHaveLength(40);
+    expect(out.endsWith('…')).toBe(true);
   });
 });

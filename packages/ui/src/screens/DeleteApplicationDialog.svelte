@@ -26,7 +26,7 @@
   async function confirm(): Promise<void> {
     const result = await api.deleteApplication(application.id, trashFolder);
     invalidate();
-    toast.success(tr('ui.deleteApp.done'));
+    toast.success(tr('ui.deleteApp.done', { label: application.label }));
     for (const warning of result.warnings) toast.warning(describeWarning(warning));
     onclose();
     navigate(paths.applications);

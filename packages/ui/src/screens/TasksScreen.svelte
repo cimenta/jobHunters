@@ -55,9 +55,11 @@
   }
 
   async function remove(id: string): Promise<void> {
+    const task = rows.find((row) => row.id === id);
+    const what = task ? [task.company_name, task.job_title].filter((part) => part !== '').join(' – ') : '';
     await api.removeAiTask(id);
     openId = undefined;
-    toast.success(tr('ui.tasks.removed'));
+    toast.success(tr('ui.tasks.removed', { type: task ? typeLabel(task.type) : '', what }));
     invalidate();
   }
 </script>

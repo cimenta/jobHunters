@@ -7,6 +7,7 @@
   import EmptyState from '../../components/EmptyState.svelte';
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
+  import { shorten } from '../../lib/format';
   import { parseAmount } from '../../lib/job-draft';
   import { tr } from '../../lib/i18n.svelte';
   import { invalidate } from '../../state/invalidate.svelte';
@@ -31,7 +32,7 @@
 
   async function add(): Promise<void> {
     await api.addQuestion(detail.application.id, text, maxSentences ?? null);
-    toast.success(tr('ui.questions.added'));
+    toast.success(tr('ui.questions.added', { question: shorten(text, 40) }));
     adding = false;
     invalidate();
   }
@@ -54,8 +55,9 @@
 
   async function remove(): Promise<void> {
     if (removing === undefined) return;
+    const removed = detail.questions.find((item) => item.id === removing);
     await api.removeQuestion(removing);
-    toast.success(tr('ui.questions.removed'));
+    toast.success(tr('ui.questions.removed', { question: shorten(removed?.question ?? '', 40) }));
     invalidate();
   }
 </script>

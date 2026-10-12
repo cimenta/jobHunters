@@ -10,6 +10,7 @@ export function makeApplication(overrides: Partial<Application> = {}): Applicati
     status: 'draft',
     applied_at: '',
     last_activity_at: '',
+    board_position: null,
     snapshot_used: '',
     folder_url: '',
     notes: '',

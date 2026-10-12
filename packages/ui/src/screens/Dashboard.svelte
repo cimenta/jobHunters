@@ -10,7 +10,7 @@
   import PostponeDialog from '../components/PostponeDialog.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
-  import { formatDate } from '../lib/format';
+  import { formatDate, shorten } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -36,14 +36,15 @@
 
   async function complete(reminder: DashboardReminder): Promise<void> {
     await api.completeReminder(reminder.id);
-    toast.success(tr('ui.reminder.completed'));
+    toast.success(tr('ui.reminder.completed', { text: shorten(reminder.text, 40) }));
     invalidate();
   }
 
   async function postpone(date: string): Promise<void> {
     if (!postponing) return;
-    await api.postponeReminder(postponing.id, date);
-    toast.success(tr('ui.reminder.postponed', { date: formatDate(date) }));
+    const target = postponing;
+    await api.postponeReminder(target.id, date);
+    toast.success(tr('ui.reminder.postponed', { date: formatDate(date), text: shorten(target.text, 40) }));
     invalidate();
   }
 </script>
