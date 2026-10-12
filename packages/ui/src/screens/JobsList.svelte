@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { JobRow } from '@jobhunters/core';
+  import { JOB_SORTS, type JobRow, type JobSort } from '@jobhunters/core';
   import { api } from '../api';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
@@ -9,7 +9,7 @@
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
-  import { filterJobs, type JobFilters } from '../lib/filters';
+  import { filterJobs, sortJobs, type JobFilters } from '../lib/filters';
   import { tr } from '../lib/i18n.svelte';
   import { reportAvailability } from '../lib/job-notices';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
@@ -21,6 +21,7 @@
   import { navigate, router } from '../lib/router.svelte';
   import { app } from '../state/app.svelte';
   import { invalidate } from '../state/invalidate.svelte';
+  import { saveUiState, uiState } from '../state/ui-state';
   import { toast } from '../state/toast.svelte';
 
   const jobs = useResource(() => api.listJobs());
@@ -29,8 +30,11 @@
   let gig = $state(false);
   let status = $state('');
 
-  const rows = $derived(filterJobs(jobs.data ?? [], { text, availability, gig, status }));
-  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '');
+  const hideApplied = $derived(uiState().jobs_hide_applied);
+  const sort = $derived(uiState().jobs_sort);
+
+  const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied }), sort));
+  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '' || hideApplied);
 
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   /** The no-experience hint is shown once, on the first card whose checkbox is disabled, so the list stays calm. */
@@ -87,6 +91,8 @@
     availability = '';
     gig = false;
     status = '';
+    saveUiState({ jobs_hide_applied: false });
+    document.getElementById('job-search')?.focus();
   }
 </script>
 
@@ -102,15 +108,15 @@
     <ErrorBlock error={jobs.error} onretry={invalidate} />
   {:else if (jobs.data ?? []).length === 0}
     <EmptyState ui="jobs.empty" icon="briefcase" title={tr('ui.jobs.emptyTitle')} text={tr('ui.jobs.emptyText')}>
-      <Button variant="primary" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
+      <Button ui="jobs.add-job" variant="primary" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
     </EmptyState>
   {:else}
-    <div class="filters" data-ui="jobs.filters">
+    <div class="filters-wrap"><div class="filters" data-ui="jobs.filters">
       <Field label={tr('ui.jobs.search')} for="job-search">
         <input id="job-search" data-ui="jobs.search" class="input" type="search" placeholder={tr('ui.jobs.searchPlaceholder')} bind:value={text} />
       </Field>
       <Field label={tr('ui.jobs.availability')} for="job-availability">
-        <select id="job-availability" class="input" bind:value={availability}>
+        <select id="job-availability" data-ui="jobs.availability" class="input" bind:value={availability}>
           <option value="">{tr('ui.jobs.availabilityAll')}</option>
           <option value="online">{availabilityLabel('online')}</option>
           <option value="offline">{availabilityLabel('offline')}</option>
@@ -118,17 +124,26 @@
         </select>
       </Field>
       <Field label={tr('ui.jobs.status')} for="job-status-filter">
-        <select id="job-status-filter" class="input" bind:value={status}>
+        <select id="job-status-filter" data-ui="jobs.status" class="input" bind:value={status}>
           <option value="">{tr('ui.jobs.statusAll')}</option>
           {#each jobStatusOptions(true) as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
         </select>
       </Field>
-      <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
-    </div>
+      <Field label={tr('ui.jobs.sort')} for="job-sort">
+        <select id="job-sort" data-ui="jobs.sort" class="input" value={sort} onchange={(event) => saveUiState({ jobs_sort: event.currentTarget.value as JobSort })}>
+          {#each JOB_SORTS as option (option)}<option value={option}>{tr(`ui.jobs.sort.${option}`)}</option>{/each}
+        </select>
+      </Field>
+      <div class="checks" data-ui="jobs.checks">
+        <label class="check" title={tr('ui.job.gig')}><input type="checkbox" data-ui="jobs.gig" bind:checked={gig} />{tr('ui.jobs.gigShort')}</label>
+        <label class="check" title={tr('ui.jobs.hideApplied')}><input type="checkbox" data-ui="jobs.hide-applied" checked={hideApplied} onchange={(event) => saveUiState({ jobs_hide_applied: event.currentTarget.checked })} />{tr('ui.jobs.hideAppliedShort')}</label>
+      </div>
+      {#if filtered}<Button variant="secondary" ui="jobs.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
+    </div></div>
 
     {#if rows.length === 0}
-      <EmptyState title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')}>
-        {#if filtered}<Button onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
+      <EmptyState ui="jobs.no-match" title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')}>
+        {#if filtered}<Button ui="jobs.clear-empty" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
       </EmptyState>
     {:else}
       <ul class="list" data-ui="jobs.list">
@@ -154,7 +169,7 @@
               <div class="actions" data-ui="job.{job.id}.actions">
                 <div class="icons">
                   {#if safeHttpUrl(job.url) !== ''}
-                    <a class="icon-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.jobs.card.open')} title={tr('ui.jobs.card.open')}><Icon name="external" size={18} /></a>
+                    <a data-ui="job.{job.id}.link" class="icon-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.jobs.card.open')} title={tr('ui.jobs.card.open')}><Icon name="external" size={18} /></a>
                   {/if}
                   {#if job.status !== 'awaiting'}
                     <Button variant="ghost" label={tr('ui.jobs.card.check')} ui="job.{job.id}.check" onclick={() => check(job)}><Icon name="refresh" size={18} /></Button>
@@ -173,7 +188,7 @@
                       <span class="pending" role="img" aria-label={tr('ui.match.pending')} title={tr('ui.match.pending')}><Icon name="clock" size={18} /></span>
                     {/if}
                     <label class="check-box" title={tr('ui.match.request')} data-ui="job.{job.id}.match">
-                      <input type="checkbox" checked={active} disabled={running || busy.includes(job.id) || (!hasExperience && !active)} onchange={(event) => toggleMatch(job, event.currentTarget)} />
+                      <input data-ui="job.{job.id}.ai-match" type="checkbox" checked={active} disabled={running || busy.includes(job.id) || (!hasExperience && !active)} onchange={(event) => toggleMatch(job, event.currentTarget)} />
                       <span class="sr-only">{tr('ui.match.request')}</span>
                     </label>
                   </div>
@@ -190,8 +205,18 @@
 <ConfirmDialog open={deleting !== undefined} text={tr('ui.job.deleteConfirm', { title: deleting?.title ?? '' })} onconfirm={() => (deleting ? remove(deleting) : undefined)} onclose={() => (deleting = undefined)} />
 
 <style>
-  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); align-items: end; }
-  .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
+  .filters-wrap { container-type: inline-size; }
+  .filters { display: flex; flex-direction: column; gap: var(--space-3); }
+  .filters > :global(*) { min-width: 0; }
+  .checks { display: flex; flex-direction: column; }
+  .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); white-space: nowrap; }
+  @container (min-width: 560px) {
+    .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; }
+  }
+  @container (min-width: 900px) {
+    .filters { grid-template-columns: minmax(120px, 1fr) 170px 130px 160px max-content max-content; }
+    .filters > .checks, .filters > :global(.btn) { min-width: max-content; }
+  }
   .card-row { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); }
   .card-row:hover, .card-row.current { border-color: var(--accent); }
   .card-row.current { background: var(--accent-soft); }

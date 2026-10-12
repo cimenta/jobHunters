@@ -73,7 +73,7 @@
 
   <div id="panel-many" role="tabpanel" aria-labelledby="tab-many" hidden={mode !== 'many'}><BatchAdd /></div>
   <div id="panel-one" class="stack" role="tabpanel" aria-labelledby="tab-one" hidden={mode !== 'one'}>
-    <Card>
+    <Card ui="add-job.form">
       <form
         class="stack"
         onsubmit={(event) => {
@@ -87,7 +87,7 @@
         <div class="row wrap">
           <Button type="submit" variant="primary" ui="add-job.read" {loading} disabled={url.trim() === ''}>{tr('ui.addJob.find')}</Button>
           {#if !pasting && preview && preview.duplicateOf === ''}
-            <Button onclick={() => (pasting = true)}>{tr('ui.addJob.pasteInstead')}</Button>
+            <Button ui="add-job.show-paste" onclick={() => (pasting = true)}>{tr('ui.addJob.pasteInstead')}</Button>
           {/if}
         </div>
       </form>
@@ -96,7 +96,7 @@
     {#if preview && preview.duplicateOf !== ''}
       <Card ui="add-job.duplicate">
         <h2>{tr('ui.addJob.duplicateTitle')}</h2>
-        <div><Button variant="primary" onclick={() => navigate(paths.job(preview!.duplicateOf))}>{tr('ui.addJob.openExisting')}</Button></div>
+        <div><Button ui="add-job.open-duplicate" variant="primary" onclick={() => navigate(paths.job(preview!.duplicateOf))}>{tr('ui.addJob.openExisting')}</Button></div>
       </Card>
     {/if}
 
@@ -106,9 +106,9 @@
           <p class="muted">{tr('ui.addJob.notFetched', { status: preview.fetchStatus })}</p>
         {/if}
         <Field label={tr('ui.addJob.pasteLabel')} for="job-text">
-          <textarea id="job-text" class="input" rows="8" bind:value={pasted}></textarea>
+          <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" bind:value={pasted}></textarea>
         </Field>
-        <div><Button variant="primary" disabled={pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button></div>
+        <div><Button ui="add-job.read-text" variant="primary" disabled={pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button></div>
       </Card>
     {/if}
 
@@ -117,19 +117,19 @@
         <h2>{tr('ui.addJob.review')}</h2>
         <div class="grid">
           <Field label={tr('ui.job.title')} for="draft-title" hint={missing('title') ? tr('ui.addJob.missing') : undefined} warn>
-            <input id="draft-title" class="input" bind:value={draft.title} />
+            <input data-ui="add-job.title" id="draft-title" class="input" bind:value={draft.title} />
           </Field>
           <Field label={tr('ui.job.company')} for="draft-company" hint={missing('company') ? tr('ui.addJob.missing') : undefined} warn>
-            <input id="draft-company" class="input" bind:value={draft.company} />
+            <input data-ui="add-job.company" id="draft-company" class="input" bind:value={draft.company} />
           </Field>
           <Field label={tr('ui.job.location')} for="draft-location" hint={missing('location') ? tr('ui.addJob.missing') : undefined} warn>
-            <input id="draft-location" class="input" bind:value={draft.location} />
+            <input data-ui="add-job.location" id="draft-location" class="input" bind:value={draft.location} />
           </Field>
-          <Field label={tr('ui.job.salaryMin')} for="draft-min"><input id="draft-min" class="input" inputmode="decimal" bind:value={draft.salary_min} /></Field>
-          <Field label={tr('ui.job.salaryMax')} for="draft-max"><input id="draft-max" class="input" inputmode="decimal" bind:value={draft.salary_max} /></Field>
-          <Field label={tr('ui.job.currency')} for="draft-currency"><input id="draft-currency" class="input" maxlength="3" bind:value={draft.salary_currency} /></Field>
+          <Field label={tr('ui.job.salaryMin')} for="draft-min"><input data-ui="add-job.salary-min" id="draft-min" class="input" inputmode="decimal" bind:value={draft.salary_min} /></Field>
+          <Field label={tr('ui.job.salaryMax')} for="draft-max"><input data-ui="add-job.salary-max" id="draft-max" class="input" inputmode="decimal" bind:value={draft.salary_max} /></Field>
+          <Field label={tr('ui.job.currency')} for="draft-currency"><input data-ui="add-job.currency" id="draft-currency" class="input" maxlength="3" bind:value={draft.salary_currency} /></Field>
           <Field label={tr('ui.job.period')} for="draft-period">
-            <select id="draft-period" class="input" bind:value={draft.salary_period}>
+            <select data-ui="add-job.period" id="draft-period" class="input" bind:value={draft.salary_period}>
               <option value=""></option>
               <option value="hour">{tr('ui.period.hour')}</option>
               <option value="day">{tr('ui.period.day')}</option>
@@ -139,11 +139,11 @@
             </select>
           </Field>
         </div>
-        <label class="check"><input type="checkbox" bind:checked={draft.is_gig} />{tr('ui.job.gig')}</label>
+        <label class="check"><input data-ui="add-job.gig" type="checkbox" bind:checked={draft.is_gig} />{tr('ui.job.gig')}</label>
         <Field label={tr('ui.job.description')} for="draft-description" hint={missing('description') ? tr('ui.addJob.missing') : undefined} warn>
-          <textarea id="draft-description" class="input" rows="8" bind:value={draft.description}></textarea>
+          <textarea data-ui="add-job.description" id="draft-description" class="input" rows="8" bind:value={draft.description}></textarea>
         </Field>
-        <Field label={tr('ui.job.notes')} for="draft-notes"><textarea id="draft-notes" class="input" rows="3" bind:value={draft.notes}></textarea></Field>
+        <Field label={tr('ui.job.notes')} for="draft-notes"><textarea data-ui="add-job.notes" id="draft-notes" class="input" rows="3" bind:value={draft.notes}></textarea></Field>
         {#if formError}<p class="error" role="alert">{formError}</p>{/if}
         <div><Button variant="primary" ui="add-job.save" onclick={save}>{tr('ui.addJob.save')}</Button></div>
       </Card>

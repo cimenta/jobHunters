@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApplicationService } from './application-service';
 import { sortBoard } from './board';
 import { InMemoryAppendLog, InMemoryRepository } from './repository';
-import { parseUiState } from './ui-state';
+import { JOB_SORTS, parseUiState } from './ui-state';
 import { DEFAULT_TRANSITIONS, canTransition, parseStatusTransitions, serializeStatusTransitions } from './status';
 import { parseSettings } from './settings';
 import { errorOf } from './testing/errors';
@@ -109,11 +109,23 @@ describe('ApplicationService.move', () => {
 
 describe('ui state setting', () => {
   it('defaults, parses and drops unknown statuses', () => {
-    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [] });
+    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_sort: 'newest' });
     expect(parseUiState('{"applications_hide_empty":true}')?.applications_hide_empty).toBe(true);
     expect(parseUiState('{"applications_hide_empty":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_status_board":["sent","nope","sent"]}'))
-      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'] });
+      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_sort: 'newest' });
+  });
+
+  it('parses the Jobs screen choices and keeps defaults for a 0.12.2 value', () => {
+    const parsed = parseUiState('{"jobs_sort":"match_desc","jobs_hide_applied":true}');
+    expect(parsed?.jobs_sort).toBe('match_desc');
+    expect(parsed?.jobs_hide_applied).toBe(true);
+    expect(parseUiState('{"jobs_sort":"nope"}')).toBeUndefined();
+    expect(parseUiState('{"jobs_sort":1}')).toBeUndefined();
+    expect(parseUiState('{"jobs_hide_applied":"yes"}')).toBeUndefined();
+    expect(parseUiState('{"applications_kanban":true,"applications_hide_empty":true,"applications_status_list":[],"applications_status_board":[]}'))
+      .toMatchObject({ jobs_hide_applied: false, jobs_sort: 'newest' });
+    expect(JOB_SORTS).toEqual(['newest', 'oldest', 'match_desc', 'match_asc']);
   });
 
   it('refuses a wrong shape', () => {

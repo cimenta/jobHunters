@@ -35,6 +35,15 @@
     saveUiState(kanban ? { applications_status_board: next } : { applications_status_list: next });
   }
 
+  /** Filters are the search text and the status selection of the current view; the Kanban switch and "hide empty columns" are view settings. */
+  const filtered = $derived(text.trim() !== '' || selected.length > 0);
+
+  function clear(): void {
+    text = '';
+    chooseStatuses([]);
+    document.getElementById('app-search')?.focus();
+  }
+
   function setKanban(on: boolean): void {
     statusChoice = undefined;
     saveUiState({ applications_kanban: on });
@@ -50,24 +59,25 @@
     <ErrorBlock error={applications.error} onretry={invalidate} />
   {:else if (applications.data ?? []).length === 0}
     <EmptyState ui="applications.empty" icon="file" title={tr('ui.apps.emptyTitle')} text={tr('ui.apps.emptyText')}>
-      <Button variant="primary" onclick={() => navigate(paths.jobs)}>{tr('ui.apps.goToJobs')}</Button>
+      <Button ui="applications.find-jobs" variant="primary" onclick={() => navigate(paths.jobs)}>{tr('ui.apps.goToJobs')}</Button>
     </EmptyState>
   {:else}
     <div class="filters" data-ui="applications.filters">
       <Field label={tr('ui.jobs.search')} for="app-search">
-        <input id="app-search" class="input" type="search" bind:value={text} />
+        <input id="app-search" data-ui="applications.search" class="input" type="search" bind:value={text} />
       </Field>
       <MultiSelect ui="applications.status" label={tr('ui.apps.status')} allLabel={tr('ui.apps.allStatuses')} options={statusOptions} {selected} onchange={chooseStatuses} />
-      <label class="check"><input type="checkbox" checked={kanban} onchange={(event) => setKanban(event.currentTarget.checked)} />{tr('ui.apps.kanban')}</label>
+      <label class="check"><input type="checkbox" data-ui="applications.kanban" checked={kanban} onchange={(event) => setKanban(event.currentTarget.checked)} />{tr('ui.apps.kanban')}</label>
       {#if kanban}
-        <label class="check"><input type="checkbox" checked={uiState().applications_hide_empty} onchange={(event) => saveUiState({ applications_hide_empty: event.currentTarget.checked })} />{tr('ui.apps.hideEmpty')}</label>
+        <label class="check"><input type="checkbox" data-ui="applications.hide-empty" checked={uiState().applications_hide_empty} onchange={(event) => saveUiState({ applications_hide_empty: event.currentTarget.checked })} />{tr('ui.apps.hideEmpty')}</label>
       {/if}
+      {#if filtered}<Button variant="secondary" ui="applications.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
     </div>
 
     {#if kanban}
       <KanbanBoard rows={filterApplications(applications.data ?? [], { text })} statuses={columns} hideEmpty={uiState().applications_hide_empty} transitions={app.settings?.status_transitions ?? DEFAULT_TRANSITIONS} onmoved={invalidate} />
     {:else if rows.length === 0}
-      <EmptyState title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')} />
+      <EmptyState ui="applications.no-match" title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')} />
     {:else}
       <ul class="list" data-ui="applications.list">
         {#each rows as application (application.id)}
@@ -90,7 +100,7 @@
 </div>
 
 <style>
-  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); }
+  .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); align-items: end; }
   .stack-tight { display: flex; flex-direction: column; gap: 2px; }
   .label { font-weight: 600; }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }

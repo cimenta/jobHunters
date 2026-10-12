@@ -47,7 +47,7 @@
             <th scope="row">{statusStyle(from).text}</th>
             {#each APPLICATION_STATUSES as to (to)}
               <td>
-                <input
+                <input data-ui="transitions.{from}.{to}"
                   type="checkbox"
                   disabled={from === to}
                   checked={matrix[from].includes(to)}

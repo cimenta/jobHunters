@@ -74,7 +74,7 @@
     <Card ui="dashboard.reminders">
       <h2>{tr('ui.dashboard.reminders')}</h2>
       {#if groups.length === 0}
-        <EmptyState icon="check" title={tr('ui.dashboard.noReminders')} />
+        <EmptyState ui="dashboard.no-reminders" icon="check" title={tr('ui.dashboard.noReminders')} />
       {:else}
         {#each groups as group (group.key)}
           <div class="group" class:overdue={group.key === 'overdue'}>

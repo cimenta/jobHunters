@@ -44,14 +44,14 @@
 <div class="stack" data-ui="timeline">
   <div class="row wrap" data-ui="timeline.filters">
     {#each TYPES as type (type)}
-      <button type="button" class="chip" class:off={hidden.includes(type)} aria-pressed={!hidden.includes(type)} onclick={() => toggle(type)}>{typeLabel(type)}</button>
+      <button data-ui="timeline.filter.{type}" type="button" class="chip" class:off={hidden.includes(type)} aria-pressed={!hidden.includes(type)} onclick={() => toggle(type)}>{typeLabel(type)}</button>
     {/each}
     <span class="grow"></span>
-    <Button onclick={() => (newestFirst = !newestFirst)}>{newestFirst ? tr('ui.timeline.oldest') : tr('ui.timeline.newest')}</Button>
+    <Button ui="timeline.order" onclick={() => (newestFirst = !newestFirst)}>{newestFirst ? tr('ui.timeline.oldest') : tr('ui.timeline.newest')}</Button>
   </div>
 
   {#if events.length === 0}
-    <EmptyState icon="clock" title={tr('ui.timeline.empty')} />
+    <EmptyState ui="timeline.empty" icon="clock" title={tr('ui.timeline.empty')} />
   {:else}
     <ul class="list">
       {#each events as event, index (index)}

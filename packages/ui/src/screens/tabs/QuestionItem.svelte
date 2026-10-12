@@ -81,11 +81,11 @@
   </Field>
   <div class="ai" data-ui="question.ai.{question.id}">
     <label class="check">
-      <input type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(event.currentTarget.checked)} />
+      <input data-ui="question.{question.id}.ai-toggle" type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(event.currentTarget.checked)} />
       {tr('ui.questions.ai')}
     </label>
     {#if !active}
-      <textarea class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes}></textarea>
+      <textarea data-ui="question.{question.id}.ai-notes" class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes}></textarea>
     {/if}
     {#if task}
       <div class="row wrap" data-ui="question.ai.status.{question.id}">
@@ -101,8 +101,8 @@
       {question.max_sentences === null ? tr('ui.questions.counterNoMax', { count: countSentences(answer) }) : tr('ui.questions.counter', { count: countSentences(answer), max: question.max_sentences })}
     </span>
     <span class="grow"></span>
-    <Button onclick={copy} disabled={answer === ''}><Icon name="copy" size={16} />{tr('ui.copy')}</Button>
-    <Button variant="danger" onclick={ondelete}><Icon name="trash" size={16} />{tr('ui.delete')}</Button>
+    <Button ui="question.{question.id}.copy" onclick={copy} disabled={answer === ''}><Icon name="copy" size={16} />{tr('ui.copy')}</Button>
+    <Button ui="question.{question.id}.delete" variant="danger" onclick={ondelete}><Icon name="trash" size={16} />{tr('ui.delete')}</Button>
     <Button variant="primary" ui="question.save.{question.id}" onclick={save}>{tr('ui.save')}</Button>
   </div>
 </li>

@@ -95,7 +95,7 @@
   <div><Button ui="documents.add" onclick={openAdd}><Icon name="plus" size={18} />{tr('ui.docs.add')}</Button></div>
 
   {#if detail.documents.length === 0}
-    <EmptyState icon="file" title={tr('ui.docs.empty')} />
+    <EmptyState ui="documents.empty" icon="file" title={tr('ui.docs.empty')} />
   {:else}
     <ul class="list">
       {#each detail.documents as doc (doc.id)}
@@ -107,21 +107,21 @@
             {#if doc.pdf_stale}<Badge text={tr('ui.docs.pdfStale')} color="var(--warning-soft)" textColor="var(--text)" />{/if}
           </div>
           <div class="actions">
-            <a href={doc.doc_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.docs.openDoc')}</a>
+            <a data-ui="doc.{doc.id}.doc-link" href={doc.doc_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.docs.openDoc')}</a>
             <Button ui="doc.preview.{doc.id}" onclick={() => togglePreview(doc)}>{previewId === doc.id ? tr('ui.docs.hidePreview') : tr('ui.docs.preview')}</Button>
             <Button ui="doc.export.{doc.id}" onclick={() => exportPdf(doc)}><Icon name="download" size={16} />{tr('ui.docs.exportPdf')}</Button>
             {#if doc.pdf_url !== ''}
-              <a href={doc.pdf_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
+              <a data-ui="doc.{doc.id}.pdf-link" href={doc.pdf_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
               <span class="muted small">{formatDate(doc.pdf_exported_at)}</span>
             {/if}
           </div>
           <div class="ai" data-ui="doc.ai.{doc.id}">
             <label class="check">
-              <input type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(doc, event.currentTarget.checked)} />
+              <input data-ui="doc.{doc.id}.ai-toggle" type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(doc, event.currentTarget.checked)} />
               {tr('ui.docs.ai')}
             </label>
             {#if !active}
-              <textarea class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes[doc.id]}></textarea>
+              <textarea data-ui="doc.{doc.id}.ai-notes" class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes[doc.id]}></textarea>
             {/if}
             {#if task}
               <div class="row wrap" data-ui="doc.ai.status.{doc.id}">
@@ -146,7 +146,7 @@
     <p class="muted">{tr('ui.docs.noTemplates')}</p>
   {:else}
     <Field label={tr('ui.docs.template')} for="doc-template">
-      <select id="doc-template" class="input" bind:value={templateId}>
+      <select data-ui="add-document.template" id="doc-template" class="input" bind:value={templateId}>
         {#each templates as template (template.id)}
           <option value={template.id}>{template.name} ({documentTypeLabel(template.type)})</option>
         {/each}
@@ -154,7 +154,7 @@
     </Field>
   {/if}
   {#snippet footer()}
-    <Button onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
+    <Button ui="add-document.cancel" onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
     <Button variant="primary" ui="add-document.submit" disabled={templateId === ''} onclick={add}>{tr('ui.add')}</Button>
   {/snippet}
 </Dialog>

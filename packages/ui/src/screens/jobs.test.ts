@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
+import { setLocale } from '../lib/i18n.svelte';
 import { navigate, router } from '../lib/router.svelte';
 import { loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
@@ -36,8 +37,8 @@ describe('JobsList', () => {
     expect(screen.getByText('Data Analyst (part time)')).toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText('Search'), { target: { value: 'zzzz' } });
     expect(screen.getByText('Nothing matches')).toBeInTheDocument();
-    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
-    await fireEvent.click(screen.getByLabelText('Gig (short-term work)'));
+    await fireEvent.click(document.querySelector('[data-ui="jobs.clear-empty"]')!);
+    await fireEvent.click(screen.getByLabelText('Gig'));
     expect(screen.queryByText('Android Developer')).toBeNull();
     expect(screen.getByText('Data Analyst (part time)')).toBeInTheDocument();
   });
@@ -125,6 +126,260 @@ describe('JobsList status', () => {
     await waitFor(() => expect(screen.getAllByRole('listitem').length).toBe(1));
     expect(all).toBeGreaterThan(1);
     expect(screen.getByText(jobs[0]!.title)).toBeInTheDocument();
+  });
+});
+
+describe('JobsList sort and hide', () => {
+  async function open() {
+    const backend = useDevBackend();
+    await loadApp();
+    const rows = await api.listJobs();
+    return { backend, rows };
+  }
+
+  const titles = (): string[] => [...document.querySelectorAll('[data-ui="jobs.list"] a.job .title')].map((el) => el.textContent ?? '');
+  const sortBox = () => screen.getByLabelText('Sort by') as HTMLSelectElement;
+  const hideBox = () => screen.getByLabelText('Hide with application') as HTMLInputElement;
+
+  it('offers the sort dropdown with four options and the hide checkbox', async () => {
+    await open();
+    render(JobsList);
+    await screen.findByText('Android Developer');
+    expect([...sortBox().options].map((o) => o.text)).toEqual(['Newest', 'Oldest', 'Best match', 'Worst match']);
+    expect(sortBox().value).toBe('newest');
+    expect(hideBox().checked).toBe(false);
+  });
+
+  it('lists the newest job first by default and the oldest first on request', async () => {
+    const { backend, rows } = await open();
+    rows.forEach((job, index) => backend.container.jobs.update(job.id, { found_at: `2026-09-${String(10 + index).padStart(2, '0')}T08:00:00.000Z` }));
+    const byFound = [...(await api.listJobs())].sort((a, b) => b.found_at.localeCompare(a.found_at));
+    render(JobsList);
+    await screen.findByText('Android Developer');
+    const shown = titles();
+    expect(shown[0]).toBe(byFound[0]!.title);
+    expect(shown[shown.length - 1]).toBe(byFound[byFound.length - 1]!.title);
+    await fireEvent.change(sortBox(), { target: { value: 'oldest' } });
+    const reversed = titles();
+    expect(reversed[0]).toBe(byFound[byFound.length - 1]!.title);
+    expect(reversed[reversed.length - 1]).toBe(byFound[0]!.title);
+  });
+
+  it('puts the best match first and jobs without a match last', async () => {
+    const { backend, rows } = await open();
+    backend.container.jobs.update(rows[0]!.id, { match_percent: 40 });
+    backend.container.jobs.update(rows[1]!.id, { match_percent: 90 });
+    render(JobsList);
+    await screen.findByText(rows[0]!.title);
+    await fireEvent.change(sortBox(), { target: { value: 'match_desc' } });
+    const best = titles();
+    expect(best.slice(0, 2)).toEqual([rows[1]!.title, rows[0]!.title]);
+    await fireEvent.change(sortBox(), { target: { value: 'match_asc' } });
+    const worst = titles();
+    expect(worst.slice(0, 2)).toEqual([rows[0]!.title, rows[1]!.title]);
+    expect(worst).toHaveLength(rows.length);
+  });
+
+  it('hides jobs with an application, also together with the status filter', async () => {
+    const { backend, rows } = await open();
+    const withApps = rows.filter((job) => job.application_count > 0);
+    const without = rows.filter((job) => job.application_count === 0);
+    expect(withApps.length).toBeGreaterThan(0);
+    expect(without.length).toBeGreaterThan(0);
+    backend.container.jobs.update(without[0]!.id, { status: 'no' });
+    render(JobsList);
+    await screen.findByText(rows[0]!.title);
+    await fireEvent.click(hideBox());
+    expect(titles()).toHaveLength(without.length);
+    for (const job of withApps) expect(screen.queryByText(job.title)).toBeNull();
+    expect(document.querySelectorAll('[data-ui="jobs.list"]')[0]!.textContent).not.toMatch(/\d+ applications?/);
+    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'no' } });
+    expect(titles()).toEqual([without[0]!.title]);
+  });
+
+  it('remembers both choices in the app and restores them on the next render', async () => {
+    await open();
+    const first = render(JobsList);
+    await screen.findByText('Android Developer');
+    await fireEvent.change(sortBox(), { target: { value: 'match_asc' } });
+    await fireEvent.click(hideBox());
+    await waitFor(async () => {
+      const state = (await api.getSettings()).settings.ui_state;
+      expect(state.jobs_sort).toBe('match_asc');
+      expect(state.jobs_hide_applied).toBe(true);
+    });
+    first.unmount();
+    await loadApp();
+    render(JobsList);
+    await screen.findByLabelText('Sort by');
+    expect(sortBox().value).toBe('match_asc');
+    expect(hideBox().checked).toBe(true);
+  });
+
+  it('clears the hide checkbox with Clear filters but keeps the sort', async () => {
+    await open();
+    render(JobsList);
+    await screen.findByText('Android Developer');
+    await fireEvent.change(sortBox(), { target: { value: 'oldest' } });
+    await fireEvent.click(hideBox());
+    await fireEvent.input(screen.getByLabelText('Search'), { target: { value: 'zzzz' } });
+    await fireEvent.click(document.querySelector('[data-ui="jobs.clear-empty"]')!);
+    expect(hideBox().checked).toBe(false);
+    expect(sortBox().value).toBe('oldest');
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_hide_applied).toBe(false));
+  });
+});
+
+describe('JobsList clear filters button', () => {
+  const button = (): HTMLElement | null => document.querySelector('[data-ui="jobs.clear-filters"]');
+  const search = () => screen.getByLabelText('Search') as HTMLInputElement;
+  const availability = () => screen.getByLabelText('Availability') as HTMLSelectElement;
+  const statusBox = () => screen.getByLabelText('Status') as HTMLSelectElement;
+  const gigBox = () => screen.getByLabelText('Gig') as HTMLInputElement;
+  const hideBox = () => screen.getByLabelText('Hide with application') as HTMLInputElement;
+
+  async function open(): Promise<void> {
+    useDevBackend();
+    await loadApp();
+    render(JobsList);
+    await screen.findByText('Android Developer');
+  }
+
+  it('is not shown while nothing is filtered', async () => {
+    await open();
+    expect(button()).toBeNull();
+  });
+
+  it('gives every filter control a data-ui hook', async () => {
+    await open();
+    await fireEvent.input(search(), { target: { value: 'analyst' } });
+    for (const id of ['search', 'availability', 'status', 'sort', 'checks', 'gig', 'hide-applied', 'clear-filters']) {
+      expect(document.querySelector(`[data-ui="jobs.${id}"]`), id).not.toBeNull();
+    }
+    await fireEvent.input(search(), { target: { value: 'zzzz' } });
+    expect(document.querySelector('[data-ui="jobs.clear-empty"]')).not.toBeNull();
+  });
+
+  it('names the checkboxes by their visible short text and keeps the full wording as title', async () => {
+    await open();
+    expect(gigBox().closest('label')!.getAttribute('title')).toBe('Gig (short-term work)');
+    expect(hideBox().closest('label')!.getAttribute('title')).toBe('Hide jobs with an application');
+    expect(gigBox().hasAttribute('aria-label')).toBe(false);
+    expect(hideBox().hasAttribute('aria-label')).toBe(false);
+  });
+
+  it('shows Czech short texts', async () => {
+    await open();
+    setLocale('cs');
+    try {
+      await waitFor(() => expect(document.querySelector('[data-ui="jobs.checks"] label')?.textContent?.trim()).toBe('Brigáda'));
+      const stack = document.querySelector('[data-ui="jobs.checks"]')!;
+      const texts = [...stack.querySelectorAll('label')].map((label) => label.textContent?.trim());
+      expect(texts).toEqual(['Brigáda', 'Skrýt s přihláškou']);
+    } finally {
+      setLocale('en');
+    }
+  });
+
+  it('looks like a button (secondary style, not ghost)', async () => {
+    await open();
+    await fireEvent.input(search(), { target: { value: 'analyst' } });
+    expect(button()!.classList.contains('btn')).toBe(true);
+    expect(button()!.classList.contains('secondary')).toBe(true);
+    expect(button()!.classList.contains('ghost')).toBe(false);
+  });
+
+  it('stacks the gig and hide checkboxes in one container with short texts and full hover titles', async () => {
+    await open();
+    const stack = document.querySelector('[data-ui="jobs.checks"]')!;
+    expect(stack).not.toBeNull();
+    expect(stack.contains(gigBox())).toBe(true);
+    expect(stack.contains(hideBox())).toBe(true);
+    const gigLabel = gigBox().closest('label')!;
+    const hideLabel = hideBox().closest('label')!;
+    expect(gigLabel.parentElement).toBe(hideLabel.parentElement);
+    expect(gigLabel.textContent?.trim()).toBe('Gig');
+    expect(hideLabel.textContent?.trim()).toBe('Hide with application');
+    expect(gigLabel.getAttribute('title')).toBe('Gig (short-term work)');
+    expect(hideLabel.getAttribute('title')).toBe('Hide jobs with an application');
+  });
+
+  it('appears with a search text, clears it, focuses the search and disappears', async () => {
+    await open();
+    await fireEvent.input(search(), { target: { value: 'analyst' } });
+    expect(button()).not.toBeNull();
+    expect(button()).toHaveTextContent('Clear filters');
+    await fireEvent.click(button()!);
+    expect(search().value).toBe('');
+    expect(button()).toBeNull();
+    expect(document.activeElement).toBe(search());
+  });
+
+  it('appears for the availability filter alone and resets only it', async () => {
+    await open();
+    await fireEvent.change(availability(), { target: { value: 'online' } });
+    expect(button()).not.toBeNull();
+    await fireEvent.click(button()!);
+    expect(availability().value).toBe('');
+    expect(button()).toBeNull();
+  });
+
+  it('appears for the status filter alone and resets only it', async () => {
+    await open();
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    expect(button()).not.toBeNull();
+    await fireEvent.click(button()!);
+    expect(statusBox().value).toBe('');
+    expect(button()).toBeNull();
+  });
+
+  it('appears for the gig checkbox alone and resets only it', async () => {
+    await open();
+    await fireEvent.click(gigBox());
+    expect(button()).not.toBeNull();
+    await fireEvent.click(button()!);
+    expect(gigBox().checked).toBe(false);
+    expect(button()).toBeNull();
+  });
+
+  it('appears for hide-applied alone, resets it and saves that', async () => {
+    await open();
+    await fireEvent.click(hideBox());
+    expect(button()).not.toBeNull();
+    await fireEvent.click(button()!);
+    expect(hideBox().checked).toBe(false);
+    expect(button()).toBeNull();
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_hide_applied).toBe(false));
+  });
+
+  it('keeps the other filters it was not asked about out of the way: clears all at once but keeps the sort', async () => {
+    await open();
+    await fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'match_asc' } });
+    await fireEvent.input(search(), { target: { value: 'a' } });
+    await fireEvent.change(availability(), { target: { value: 'offline' } });
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    await fireEvent.click(gigBox());
+    await fireEvent.click(hideBox());
+    await fireEvent.click(button()!);
+    expect(search().value).toBe('');
+    expect(availability().value).toBe('');
+    expect(statusBox().value).toBe('');
+    expect(gigBox().checked).toBe(false);
+    expect(hideBox().checked).toBe(false);
+    expect((screen.getByLabelText('Sort by') as HTMLSelectElement).value).toBe('match_asc');
+    await waitFor(async () => {
+      const state = (await api.getSettings()).settings.ui_state;
+      expect(state.jobs_sort).toBe('match_asc');
+      expect(state.jobs_hide_applied).toBe(false);
+    });
+  });
+
+  it('keeps both buttons working when nothing matches', async () => {
+    await open();
+    await fireEvent.input(search(), { target: { value: 'zzzz' } });
+    expect(screen.getAllByRole('button', { name: 'Clear filters' })).toHaveLength(2);
+    await fireEvent.click(button()!);
+    expect(await screen.findByText('Android Developer')).toBeInTheDocument();
   });
 });
 

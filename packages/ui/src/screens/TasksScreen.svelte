@@ -80,7 +80,7 @@
     <EmptyState ui="tasks.empty" icon="sparkle" title={tr('ui.tasks.emptyTitle')} text={tr('ui.tasks.emptyText')} />
   {:else}
     <div class="scroll" data-ui="tasks.list">
-      <table>
+      <table data-ui="tasks.table">
         <thead>
           <tr>
             <th>{tr('ui.tasks.col.created')}</th>
@@ -119,7 +119,7 @@
         {#if selected.completed_at !== ''}<span class="muted small">{tr('ui.tasks.col.processed')}: {formatDate(selected.completed_at)}</span>{/if}
       </div>
       {#if selected.company_name !== ''}<span class="muted small">{selected.company_name}</span>{/if}
-      {#if selected.job_title !== ''}<a href={paths.job(selected.job_id)} onclick={() => (openId = undefined)}>{selected.job_title}</a>{/if}
+      {#if selected.job_title !== ''}<a data-ui="tasks.job-link" href={paths.job(selected.job_id)} onclick={() => (openId = undefined)}>{selected.job_title}</a>{/if}
       <div>
         <h3>{tr('ui.tasks.instructions')}</h3>
         <p class="text">{selected.instructions}</p>

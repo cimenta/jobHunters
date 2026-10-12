@@ -189,13 +189,13 @@
   <Card ui="settings.language">
     <h2>{tr('ui.settings.language')}</h2>
     <Field label={tr('ui.settings.uiLanguage')} for="set-ui-language">
-      <select id="set-ui-language" class="input" bind:value={uiLanguage}>
+      <select data-ui="settings.ui-language" id="set-ui-language" class="input" bind:value={uiLanguage}>
         <option value="en">{tr('ui.language.en')}</option>
         <option value="cs">{tr('ui.language.cs')}</option>
       </select>
     </Field>
     <Field label={tr('ui.settings.docLanguage')} for="set-doc-language">
-      <select id="set-doc-language" class="input" bind:value={docLanguage}>
+      <select data-ui="settings.doc-language" id="set-doc-language" class="input" bind:value={docLanguage}>
         <option value="en">{tr('ui.language.en')}</option>
         <option value="cs">{tr('ui.language.cs')}</option>
       </select>
@@ -206,7 +206,7 @@
   <Card ui="settings.appearance">
     <h2>{tr('ui.settings.appearance')}</h2>
     <Field label={tr('ui.settings.theme')} for="set-ui-theme">
-      <select id="set-ui-theme" class="input" bind:value={uiTheme}>
+      <select data-ui="settings.theme" id="set-ui-theme" class="input" bind:value={uiTheme}>
         <option value="system">{tr('ui.theme.system')}</option>
         <option value="light">{tr('ui.theme.light')}</option>
         <option value="dark">{tr('ui.theme.dark')}</option>
@@ -217,7 +217,7 @@
 
   <Card ui="settings.notices">
     <h2>{tr('ui.settings.notices')}</h2>
-    <label class="check"><input type="checkbox" bind:checked={resultNotices} />{tr('ui.settings.resultNotices')}</label>
+    <label class="check"><input data-ui="settings.result-notices" type="checkbox" bind:checked={resultNotices} />{tr('ui.settings.resultNotices')}</label>
     <p class="muted small">{tr('ui.settings.resultNoticesHint')}</p>
     <div><Button variant="primary" ui="settings.notices.save" onclick={saveNotices}>{tr('ui.save')}</Button></div>
   </Card>
@@ -228,7 +228,7 @@
     <fieldset class="checks">
       <legend>{tr('ui.settings.documentSet')}</legend>
       {#each DOCUMENT_TYPES as type (type)}
-        <label class="check"><input type="checkbox" value={type} bind:group={documentSet} />{documentTypeLabel(type)}</label>
+        <label class="check"><input data-ui="settings.document.{type}" type="checkbox" value={type} bind:group={documentSet} />{documentTypeLabel(type)}</label>
       {/each}
     </fieldset>
     <div><Button variant="primary" ui="settings.documents.save" onclick={saveDocuments}>{tr('ui.save')}</Button></div>
@@ -239,7 +239,7 @@
     <h2>{tr('ui.settings.experience')}</h2>
     <p class="muted small">{tr('ui.settings.experienceHint')}</p>
     <Field label={tr('ui.settings.experience')} for="set-experience">
-      <textarea id="set-experience" class="input" rows="14" maxlength="40000" bind:value={experience}></textarea>
+      <textarea data-ui="settings.experience.text" id="set-experience" class="input" rows="14" maxlength="40000" bind:value={experience}></textarea>
     </Field>
     <div><Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button></div>
   </Card>
@@ -249,7 +249,7 @@
     <p class="muted small">{tr('ui.settings.promptsHint')}</p>
     {#each PROMPT_TYPES as type (type)}
       <Field label={promptLabel(type)} for="set-prompt-{type}">
-        <textarea id="set-prompt-{type}" class="input" rows="9" maxlength="10000" bind:value={prompts[type]}></textarea>
+        <textarea data-ui="settings.prompt.{type}" id="set-prompt-{type}" class="input" rows="9" maxlength="10000" bind:value={prompts[type]}></textarea>
       </Field>
       <p class="muted small">{tr('ui.settings.promptPlaceholders')} {#each PROMPT_PLACEHOLDERS[type] as name (name)}<code>{'{{' + name + '}}'}</code>{' '}{/each}</p>
     {/each}
@@ -262,20 +262,20 @@
   <Card ui="settings.availability">
     <h2>{tr('ui.settings.availability')}</h2>
     <p class="muted small">{tr('ui.settings.availabilityHint')}</p>
-    <label class="check"><input type="checkbox" bind:checked={checkEnabled} />{tr('ui.settings.availabilityEnabled')}</label>
+    <label class="check"><input data-ui="settings.check-enabled" type="checkbox" bind:checked={checkEnabled} />{tr('ui.settings.availabilityEnabled')}</label>
     <Field label={tr('ui.settings.availabilityHours')} for="set-check-hours">
-      <input id="set-check-hours" class="input" inputmode="numeric" bind:value={checkHours} />
+      <input data-ui="settings.check-hours" id="set-check-hours" class="input" inputmode="numeric" bind:value={checkHours} />
     </Field>
     <p class="muted small">{tr('ui.settings.availabilityHoursHint', { zone: app.timeZone })}</p>
     <fieldset class="checks">
       <legend>{tr('ui.settings.availabilityRules')}</legend>
       {#each OFFLINE_RULES as rule (rule)}
-        <label class="check"><input type="checkbox" value={rule} bind:group={immediateRules} />{tr(`ui.availability.rule.${rule}`)}</label>
+        <label class="check"><input data-ui="settings.immediate-rule.{rule}" type="checkbox" value={rule} bind:group={immediateRules} />{tr(`ui.availability.rule.${rule}`)}</label>
       {/each}
     </fieldset>
     <p class="muted small">{tr('ui.settings.availabilityRulesHint')}</p>
     <Field label={tr('ui.settings.offlineTexts')} for="set-offline-texts">
-      <textarea id="set-offline-texts" class="input" rows="5" bind:value={offlineTexts}></textarea>
+      <textarea data-ui="settings.offline-texts" id="set-offline-texts" class="input" rows="5" bind:value={offlineTexts}></textarea>
     </Field>
     <div><Button variant="primary" ui="settings.availability.save" onclick={saveAvailability}>{tr('ui.save')}</Button></div>
   </Card>
@@ -290,7 +290,7 @@
     {:else}
       <div class="grid">
         {#each PROFILE_KEYS as key (key)}
-          <Field label={profileLabel(key)} for="profile-{key}"><input id="profile-{key}" class="input" bind:value={profileValues[key]} /></Field>
+          <Field label={profileLabel(key)} for="profile-{key}"><input data-ui="settings.profile.{key}" id="profile-{key}" class="input" bind:value={profileValues[key]} /></Field>
         {/each}
       </div>
       <div><Button variant="primary" ui="settings.profile.save" onclick={saveProfile}>{tr('ui.save')}</Button></div>
@@ -313,26 +313,26 @@
           <li class="list-item">
             <span class="grow">{template.name}</span>
             <span class="muted small">{documentTypeLabel(template.type)} · {template.language === '' ? tr('ui.template.allLanguages') : template.language}</span>
-            <a href={template.doc_url} target="_blank" rel="noopener noreferrer">{tr('ui.open')}</a>
+            <a data-ui="settings.template.{template.id}.link" href={template.doc_url} target="_blank" rel="noopener noreferrer">{tr('ui.open')}</a>
           </li>
         {/each}
       </ul>
     {/if}
     <div class="grid">
       <Field label={tr('ui.template.type')} for="template-type">
-        <select id="template-type" class="input" bind:value={templateType}>
+        <select data-ui="settings.template-type" id="template-type" class="input" bind:value={templateType}>
           {#each DOCUMENT_TYPES as type (type)}<option value={type}>{documentTypeLabel(type)}</option>{/each}
         </select>
       </Field>
       <Field label={tr('ui.template.language')} for="template-language">
-        <select id="template-language" class="input" bind:value={templateLanguage}>
+        <select data-ui="settings.template-language" id="template-language" class="input" bind:value={templateLanguage}>
           <option value="">{tr('ui.template.allLanguages')}</option>
           <option value="en">{tr('ui.language.en')}</option>
           <option value="cs">{tr('ui.language.cs')}</option>
         </select>
       </Field>
-      <Field label={tr('ui.template.name')} for="template-name"><input id="template-name" class="input" bind:value={templateName} /></Field>
-      <Field label={tr('ui.template.url')} for="template-url"><input id="template-url" class="input" inputmode="url" bind:value={templateUrl} /></Field>
+      <Field label={tr('ui.template.name')} for="template-name"><input data-ui="settings.template-name" id="template-name" class="input" bind:value={templateName} /></Field>
+      <Field label={tr('ui.template.url')} for="template-url"><input data-ui="settings.template-url" id="template-url" class="input" inputmode="url" bind:value={templateUrl} /></Field>
     </div>
     <div><Button variant="primary" ui="settings.templates.add" onclick={addTemplate}>{tr('ui.template.add')}</Button></div>
   </Card>
@@ -364,7 +364,7 @@
     <p>JobHunters</p>
     <p class="muted">{tr('ui.settings.version', { version: app.version })}</p>
     <label class="check" data-ui="settings.show-ids">
-      <input type="checkbox" checked={ids.visible} onchange={(event) => setIdsVisible(event.currentTarget.checked)} />{tr('ui.settings.showIds')}
+      <input data-ui="settings.show-ids-toggle" type="checkbox" checked={ids.visible} onchange={(event) => setIdsVisible(event.currentTarget.checked)} />{tr('ui.settings.showIds')}
     </label>
     <p class="muted small">{tr('ui.settings.showIdsHint')}</p>
   </Card>

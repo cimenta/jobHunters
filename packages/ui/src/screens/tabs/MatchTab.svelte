@@ -56,7 +56,7 @@
     <div><a href={paths.settings} data-ui="job-detail.match.settings">{tr('ui.match.openSettings')}</a></div>
   {:else}
     <label class="check" data-ui="job-detail.match.request">
-      <input type="checkbox" checked={active} disabled={running} onchange={(event) => toggle(event.currentTarget.checked)} />
+      <input data-ui="job-detail.match.toggle" type="checkbox" checked={active} disabled={running} onchange={(event) => toggle(event.currentTarget.checked)} />
       {tr('ui.match.request')}
     </label>
     {#if match}

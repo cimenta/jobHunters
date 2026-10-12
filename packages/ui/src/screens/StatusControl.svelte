@@ -56,7 +56,7 @@
     </Field>
     {#if needsDate}
       <Field label={tr('ui.app.remindOn')} for="status-remind">
-        <input id="status-remind" class="input" type="date" min={today} bind:value={remindAt} />
+        <input data-ui="status-control.remind-date" id="status-remind" class="input" type="date" min={today} bind:value={remindAt} />
       </Field>
     {/if}
     <Button variant="primary" ui="status-control.change" disabled={!ready} onclick={change}>{tr('ui.app.changeStatus')}</Button>

@@ -73,7 +73,7 @@
     <div class="panel" class:wide role="dialog" aria-modal="true" aria-label={title} data-ui={ui} tabindex="-1" bind:this={panel} {onkeydown}>
       <header>
         <h2>{title}</h2>
-        <Button variant="ghost" label={tr('ui.close')} onclick={onclose}><Icon name="close" /></Button>
+        <Button ui={ui ? `${ui}.close` : undefined} variant="ghost" label={tr('ui.close')} onclick={onclose}><Icon name="close" /></Button>
       </header>
       <div class="body">{@render children?.()}</div>
       {#if footer}<footer>{@render footer()}</footer>{/if}

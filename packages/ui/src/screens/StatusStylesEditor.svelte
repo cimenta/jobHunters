@@ -34,10 +34,10 @@
   {#each APPLICATION_STATUSES as status (status)}
     <div class="row wrap status-row" data-ui="status.{status}" role="group" aria-label={defaultText(status)}>
       <div class="preview"><Badge text={previewText(status)} color={edits[status].color} textColor={readableTextColor(edits[status].color)} /></div>
-      <input class="input text" maxlength={STATUS_TEXT_MAX} placeholder={defaultText(status)} aria-label={tr('ui.status.textFor', { status: defaultText(status) })} bind:value={edits[status].text} />
-      <input class="input color" type="color" aria-label={tr('ui.status.colorFor', { status: defaultText(status) })} bind:value={edits[status].color} />
-      <label class="check"><input type="checkbox" aria-label={tr('ui.status.checkFor', { status: defaultText(status) })} bind:checked={edits[status].check} />{tr('ui.status.check')}</label>
-      <Button variant="ghost" onclick={() => reset(status)}>{tr('ui.status.reset')}</Button>
+      <input data-ui="status.{status}.text" class="input text" maxlength={STATUS_TEXT_MAX} placeholder={defaultText(status)} aria-label={tr('ui.status.textFor', { status: defaultText(status) })} bind:value={edits[status].text} />
+      <input data-ui="status.{status}.color" class="input color" type="color" aria-label={tr('ui.status.colorFor', { status: defaultText(status) })} bind:value={edits[status].color} />
+      <label class="check"><input data-ui="status.{status}.check" type="checkbox" aria-label={tr('ui.status.checkFor', { status: defaultText(status) })} bind:checked={edits[status].check} />{tr('ui.status.check')}</label>
+      <Button ui="status.{status}.reset" variant="ghost" onclick={() => reset(status)}>{tr('ui.status.reset')}</Button>
     </div>
   {/each}
   <div><Button variant="primary" ui="status-styles.save" onclick={save}>{tr('ui.save')}</Button></div>

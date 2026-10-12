@@ -27,13 +27,13 @@
 <div class="field">
   <span class="label">{label}</span>
   <details class="multi" data-ui={ui}>
-    <summary class="input">{summary}</summary>
+    <summary class="input" data-ui={ui ? `${ui}.summary` : undefined}>{summary}</summary>
     <div class="panel" role="group" aria-label={label}>
       {#each options as option (option.value)}
-        <label class="check"><input type="checkbox" checked={selected.includes(option.value)} onchange={(event) => toggle(option.value, event.currentTarget.checked)} />{option.text}</label>
+        <label class="check"><input data-ui={ui ? `${ui}.option.${option.value}` : undefined} type="checkbox" checked={selected.includes(option.value)} onchange={(event) => toggle(option.value, event.currentTarget.checked)} />{option.text}</label>
       {/each}
       {#if selected.length > 0}
-        <button type="button" class="clear" onclick={() => onchange([])}>{tr('ui.multi.clear')}</button>
+        <button data-ui={ui ? `${ui}.clear` : undefined} type="button" class="clear" onclick={() => onchange([])}>{tr('ui.multi.clear')}</button>
       {/if}
     </div>
   </details>

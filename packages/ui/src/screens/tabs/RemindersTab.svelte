@@ -65,7 +65,7 @@
 <div class="stack" data-ui="reminders">
   <div><Button ui="reminders.add" onclick={openAdd}><Icon name="plus" size={18} />{tr('ui.reminders.add')}</Button></div>
   {#if ordered.length === 0}
-    <EmptyState icon="clock" title={tr('ui.reminders.empty')} />
+    <EmptyState ui="reminders.empty" icon="clock" title={tr('ui.reminders.empty')} />
   {:else}
     <ul class="list">
       {#each ordered as reminder (reminder.id)}
@@ -75,9 +75,9 @@
             <p class="muted small">{formatDate(reminder.due_at)}</p>
           </div>
           {#if reminder.status === 'open'}
-            <Button variant="ghost" label={tr('ui.reminder.done')} onclick={() => complete(reminder)}><Icon name="check" size={18} /></Button>
-            <Button variant="ghost" label={tr('ui.reminder.postpone')} onclick={() => (postponing = reminder)}><Icon name="clock" size={18} /></Button>
-            <Button variant="ghost" label={tr('ui.reminder.dismiss')} onclick={() => dismiss(reminder)}><Icon name="trash" size={18} /></Button>
+            <Button ui="reminder.{reminder.id}.done" variant="ghost" label={tr('ui.reminder.done')} onclick={() => complete(reminder)}><Icon name="check" size={18} /></Button>
+            <Button ui="reminder.{reminder.id}.postpone" variant="ghost" label={tr('ui.reminder.postpone')} onclick={() => (postponing = reminder)}><Icon name="clock" size={18} /></Button>
+            <Button ui="reminder.{reminder.id}.dismiss" variant="ghost" label={tr('ui.reminder.dismiss')} onclick={() => dismiss(reminder)}><Icon name="trash" size={18} /></Button>
           {:else}
             <Badge text={statusText(reminder.status)} color="var(--surface-2)" textColor="var(--text)" />
           {/if}
@@ -89,12 +89,12 @@
 
 <Dialog open={adding} title={tr('ui.reminders.add')} onclose={() => (adding = false)} ui="add-reminder-dialog">
   <div class="stack">
-    <Field label={tr('ui.reminders.date')} for="reminder-date"><input id="reminder-date" class="input" type="date" min={today} bind:value={date} /></Field>
-    <Field label={tr('ui.reminders.text')} for="reminder-text"><input id="reminder-text" class="input" bind:value={text} /></Field>
+    <Field label={tr('ui.reminders.date')} for="reminder-date"><input data-ui="add-reminder.date" id="reminder-date" class="input" type="date" min={today} bind:value={date} /></Field>
+    <Field label={tr('ui.reminders.text')} for="reminder-text"><input data-ui="add-reminder.text" id="reminder-text" class="input" bind:value={text} /></Field>
   </div>
   {#snippet footer()}
-    <Button onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
-    <Button variant="primary" disabled={!valid} onclick={add}>{tr('ui.add')}</Button>
+    <Button ui="add-reminder.cancel" onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
+    <Button ui="add-reminder.save" variant="primary" disabled={!valid} onclick={add}>{tr('ui.add')}</Button>
   {/snippet}
 </Dialog>
 

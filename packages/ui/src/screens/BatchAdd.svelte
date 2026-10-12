@@ -97,7 +97,7 @@
 </script>
 
 <div class="stack" data-ui="batch">
-  <Card>
+  <Card ui="batch.form">
     <form
       class="stack"
       onsubmit={(event) => {
@@ -118,12 +118,12 @@
 
   <div aria-live="polite">
   {#if rows.length > 0 || finished}
-    <Card>
+    <Card ui="batch.results">
       {#if finished}
         <p data-ui="batch.summary"><strong>{summary}</strong></p>
         {#if stoppedNote}<p>{stoppedNote}</p>{/if}
         {#if queuedCount > 0}
-          <p>{tr('ui.batch.queuedHint')} <a href={paths.tasks}>{tr('ui.batch.openTasks')}</a></p>
+          <p>{tr('ui.batch.queuedHint')} <a data-ui="batch.open-tasks" href={paths.tasks}>{tr('ui.batch.openTasks')}</a></p>
         {/if}
       {/if}
       <ul class="results">
@@ -131,7 +131,7 @@
           <li data-ui="batch.result.{index}" class={row.kind}>
             <strong>{row.label}</strong>
             {#if row.detail}
-              {#if row.href}<a href={row.href}>{row.detail}</a>{:else}<span class="muted">{row.detail}</span>{/if}
+              {#if row.href}<a data-ui="batch.result.{index}.link" href={row.href}>{row.detail}</a>{:else}<span class="muted">{row.detail}</span>{/if}
             {/if}
           </li>
         {/each}

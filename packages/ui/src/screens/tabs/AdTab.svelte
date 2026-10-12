@@ -21,7 +21,7 @@
       <div class="text" style="white-space: pre-wrap">{job.description}</div>
     {/if}
     {#if safeHttpUrl(job.url) !== ''}
-      <a href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
+      <a data-ui="ad.link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
     {/if}
   {:else}
     <p class="muted">{tr('ui.app.adEmpty')}</p>

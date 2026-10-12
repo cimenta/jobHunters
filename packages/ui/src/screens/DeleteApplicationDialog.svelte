@@ -37,11 +37,11 @@
   <div class="stack">
     <p>{tr('ui.deleteApp.text', { label: application.label })}</p>
     {#if application.folder_url !== ''}
-      <label class="check"><input type="checkbox" bind:checked={trashFolder} />{tr('ui.deleteApp.trash')}</label>
+      <label class="check"><input data-ui="delete-application.trash-folder" type="checkbox" bind:checked={trashFolder} />{tr('ui.deleteApp.trash')}</label>
     {/if}
   </div>
   {#snippet footer()}
-    <Button onclick={onclose}>{tr('ui.cancel')}</Button>
+    <Button ui="delete-application.cancel" onclick={onclose}>{tr('ui.cancel')}</Button>
     <Button variant="danger" ui="delete-application.confirm" onclick={confirm}>{tr('ui.delete')}</Button>
   {/snippet}
 </Dialog>

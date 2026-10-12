@@ -69,7 +69,7 @@
 <div class="stack" data-ui="communications">
   <div><Button ui="communications.add" onclick={openAdd}><Icon name="plus" size={18} />{tr('ui.comm.add')}</Button></div>
   {#if detail.communications.length === 0}
-    <EmptyState icon="file" title={tr('ui.comm.empty')} />
+    <EmptyState ui="communications.empty" icon="file" title={tr('ui.comm.empty')} />
   {:else}
     <ul class="list">
       {#each detail.communications as entry (entry.id)}
@@ -81,8 +81,8 @@
           <p class="summary">{entry.summary}</p>
           {#if entry.details !== ''}<p class="details muted">{entry.details}</p>{/if}
           <div class="row">
-            <Button variant="ghost" label={tr('ui.edit')} onclick={() => openEdit(entry)}><Icon name="edit" size={18} /></Button>
-            <Button variant="ghost" label={tr('ui.delete')} onclick={() => (removing = entry.id)}><Icon name="trash" size={18} /></Button>
+            <Button ui="comm.{entry.id}.edit" variant="ghost" label={tr('ui.edit')} onclick={() => openEdit(entry)}><Icon name="edit" size={18} /></Button>
+            <Button ui="comm.{entry.id}.remove" variant="ghost" label={tr('ui.delete')} onclick={() => (removing = entry.id)}><Icon name="trash" size={18} /></Button>
           </div>
         </li>
       {/each}
@@ -93,24 +93,24 @@
 <Dialog ui="communication-dialog" open={editing !== undefined} title={editing?.id === undefined ? tr('ui.comm.add') : tr('ui.comm.edit')} onclose={() => (editing = undefined)}>
   <div class="stack">
     <Field label={tr('ui.comm.direction')} for="comm-direction">
-      <select id="comm-direction" class="input" bind:value={direction}>
+      <select data-ui="communication.direction" id="comm-direction" class="input" bind:value={direction}>
         {#each DIRECTIONS as option (option)}<option value={option}>{directionLabel(option)}</option>{/each}
       </select>
     </Field>
     <Field label={tr('ui.comm.channel')} for="comm-channel">
-      <select id="comm-channel" class="input" bind:value={channel}>
+      <select data-ui="communication.channel" id="comm-channel" class="input" bind:value={channel}>
         {#each CHANNELS as option (option)}<option value={option}>{channelLabel(option)}</option>{/each}
       </select>
     </Field>
-    <Field label={tr('ui.comm.summary')} for="comm-summary"><input id="comm-summary" class="input" bind:value={summary} /></Field>
-    <Field label={tr('ui.comm.details')} for="comm-details"><textarea id="comm-details" class="input" rows="4" bind:value={details}></textarea></Field>
+    <Field label={tr('ui.comm.summary')} for="comm-summary"><input data-ui="communication.summary" id="comm-summary" class="input" bind:value={summary} /></Field>
+    <Field label={tr('ui.comm.details')} for="comm-details"><textarea data-ui="communication.details" id="comm-details" class="input" rows="4" bind:value={details}></textarea></Field>
     {#if editing?.id === undefined}
-      <Field label={tr('ui.comm.when')} for="comm-when"><input id="comm-when" class="input" type="datetime-local" bind:value={when} /></Field>
+      <Field label={tr('ui.comm.when')} for="comm-when"><input data-ui="communication.when" id="comm-when" class="input" type="datetime-local" bind:value={when} /></Field>
     {/if}
   </div>
   {#snippet footer()}
-    <Button onclick={() => (editing = undefined)}>{tr('ui.cancel')}</Button>
-    <Button variant="primary" disabled={summary.trim() === ''} onclick={save}>{tr('ui.save')}</Button>
+    <Button ui="communication.cancel" onclick={() => (editing = undefined)}>{tr('ui.cancel')}</Button>
+    <Button ui="communication.save" variant="primary" disabled={summary.trim() === ''} onclick={save}>{tr('ui.save')}</Button>
   {/snippet}
 </Dialog>
 

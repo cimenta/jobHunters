@@ -2,6 +2,31 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.12.7] - 2026-10-13
+
+- The Jobs filter drop-downs have shorter texts ("Any", "All", "Newest", "Best match" ...), so the whole filter bar, including "Clear filters", fits one row on a 1280px screen.
+
+## [0.12.6] - 2026-10-12
+
+- The identifier labels (Alt+Shift+I) now cover all important elements: every button, input, drop-down, checkbox, text area, link, dialog, card, table and empty state, including the Settings, Add job, Company, Communications, Documents, Questions and Reminders forms. Existing identifiers are unchanged.
+
+## [0.12.5] - 2026-10-12
+
+- The "Clear filters" buttons on Jobs and Applications now look like buttons (border and background).
+- The Jobs filter bar fits on one row on wide screens: narrower drop-downs, the two checkboxes stacked under each other with short texts ("Gig", "Hide with application"); the full wording shows on hover.
+
+## [0.12.4] - 2026-10-12
+
+- A "Clear filters" button in the filter bars of Jobs and Applications. It appears when any filter is on and resets the filters (on Jobs not the sort order; on Applications not the Kanban switch or "Hide empty columns").
+- Help describes the button.
+
+## [0.12.3] - 2026-10-12
+
+- The Jobs screen can hide jobs that have an application (checkbox "Hide jobs with an application") and sort the list by newest, oldest, best or worst match. Jobs without a match always come last when sorting by match.
+- Both choices are remembered between visits (new fields `jobs_hide_applied` and `jobs_sort` in the setting `ui_state`).
+- The list is now sorted newest first by default; before it followed the order of the sheet (oldest first). Choose "Oldest first" to get the old order.
+- Help describes the new controls.
+
 ## [0.12.2] - 2026-10-12
 
 - The main menu shows counts: the number of new jobs next to "Jobs" and the number of waiting AI tasks next to "AI tasks". A count of zero is hidden; above 99 it shows 99+. On wide screens the numbers sit in one column at the right edge, on small screens they are badges on the icons.

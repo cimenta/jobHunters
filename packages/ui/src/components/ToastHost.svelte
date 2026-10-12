@@ -10,7 +10,7 @@
     <div class="toast {item.kind}" role={item.kind === 'error' ? 'alert' : 'status'}>
       <Icon name={item.kind === 'success' ? 'check' : 'alert'} size={18} />
       <span class="grow">{item.text}</span>
-      <Button variant="ghost" label={tr('ui.close')} onclick={() => dismissToast(item.id)}><Icon name="close" size={16} /></Button>
+      <Button ui="toast.close.{item.id}" variant="ghost" label={tr('ui.close')} onclick={() => dismissToast(item.id)}><Icon name="close" size={16} /></Button>
     </div>
   {/each}
 </div>

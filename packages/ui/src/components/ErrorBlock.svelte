@@ -10,7 +10,7 @@
 <div class="error" role="alert">
   <Icon name="alert" size={24} />
   <p>{describeError(error)}</p>
-  {#if onretry}<Button onclick={onretry}><Icon name="refresh" size={16} />{tr('ui.retry')}</Button>{/if}
+  {#if onretry}<Button ui="error.retry" onclick={onretry}><Icon name="refresh" size={16} />{tr('ui.retry')}</Button>{/if}
 </div>
 
 <style>

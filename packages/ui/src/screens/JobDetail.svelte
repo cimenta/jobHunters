@@ -98,7 +98,7 @@
       </div>
       <div class="row wrap">
         {#if safeHttpUrl(job.url) !== ''}
-          <a href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
+          <a data-ui="job-detail.url-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
         {/if}
         {#if job.status !== 'awaiting'}
         <select class="input status-select" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
@@ -107,7 +107,7 @@
         <Button ui="job-detail.check-availability" onclick={checkAvailability}>{tr('ui.job.checkAvailability')}</Button>
         {/if}
         {#if job.folder_url !== ''}
-          <a href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>
+          <a data-ui="job-detail.folder-link" href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>
         {/if}
       </div>
     </Card>
@@ -151,8 +151,8 @@
           </div>
         {:else if tab === 'notes'}
           <div class="stack" data-ui="job-detail.notes">
-            <Field label={tr('ui.job.notes')} for="job-notes"><textarea id="job-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
-            <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
+            <Field label={tr('ui.job.notes')} for="job-notes"><textarea data-ui="job-detail.notes-input" id="job-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
+            <label class="check"><input data-ui="job-detail.gig" type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
             <div><Button variant="primary" ui="job-detail.save" onclick={save}>{tr('ui.save')}</Button></div>
           </div>
         {:else if tab === 'description'}

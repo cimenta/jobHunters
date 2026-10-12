@@ -43,14 +43,14 @@
 <Dialog {open} title={tr('ui.job.createApplication')} {onclose} ui="create-application-dialog">
   <div class="stack">
     <Field label={tr('ui.createApp.language')} for="create-language">
-      <select id="create-language" class="input" bind:value={language}>
+      <select data-ui="create-application.language" id="create-language" class="input" bind:value={language}>
         <option value="en">{tr('ui.language.en')}</option>
         <option value="cs">{tr('ui.language.cs')}</option>
       </select>
     </Field>
     {#if applications.length > 0}
       <Field label={tr('ui.createApp.from')} for="create-from">
-        <select id="create-from" class="input" bind:value={from}>
+        <select data-ui="create-application.from" id="create-from" class="input" bind:value={from}>
           <option value="">{tr('ui.createApp.fromNone')}</option>
           {#each applications as application (application.id)}
             <option value={application.id}>{application.label}</option>
@@ -60,7 +60,7 @@
     {/if}
   </div>
   {#snippet footer()}
-    <Button onclick={onclose}>{tr('ui.cancel')}</Button>
+    <Button ui="create-application.cancel" onclick={onclose}>{tr('ui.cancel')}</Button>
     <Button variant="primary" ui="create-application.submit" onclick={create}>{tr('ui.createApp.submit')}</Button>
   {/snippet}
 </Dialog>

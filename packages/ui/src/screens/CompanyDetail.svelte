@@ -39,7 +39,7 @@
 
 <div class="stack" data-ui="company-detail">
   <div class="only-narrow">
-    <Button variant="ghost" onclick={() => navigate(paths.companies)}><Icon name="back" size={18} />{tr('ui.back')}</Button>
+    <Button ui="company-detail.back" variant="ghost" onclick={() => navigate(paths.companies)}><Icon name="back" size={18} />{tr('ui.back')}</Button>
   </div>
 
   {#if detail.status === 'loading'}
@@ -49,9 +49,9 @@
   {:else if detail.data}
     <Card ui="company-detail.form">
       <h1>{detail.data.company.name}</h1>
-      <Field label={tr('ui.company.name')} for="company-name"><input id="company-name" class="input" bind:value={name} /></Field>
-      <Field label={tr('ui.company.website')} for="company-website"><input id="company-website" class="input" inputmode="url" bind:value={website} /></Field>
-      <Field label={tr('ui.company.notes')} for="company-notes"><textarea id="company-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
+      <Field label={tr('ui.company.name')} for="company-name"><input data-ui="company-detail.name" id="company-name" class="input" bind:value={name} /></Field>
+      <Field label={tr('ui.company.website')} for="company-website"><input data-ui="company-detail.website" id="company-website" class="input" inputmode="url" bind:value={website} /></Field>
+      <Field label={tr('ui.company.notes')} for="company-notes"><textarea data-ui="company-detail.notes" id="company-notes" class="input" rows="3" bind:value={notes}></textarea></Field>
       <div><Button variant="primary" ui="company-detail.save" onclick={save}>{tr('ui.save')}</Button></div>
     </Card>
 
@@ -62,7 +62,7 @@
       {:else}
         <ul class="list">
           {#each detail.data.jobs as job (job.id)}
-            <li><a class="list-item" href={paths.job(job.id)}><span class="grow">{job.title}</span></a></li>
+            <li><a data-ui="company-detail.job.{job.id}" class="list-item" href={paths.job(job.id)}><span class="grow">{job.title}</span></a></li>
           {/each}
         </ul>
       {/if}
@@ -73,7 +73,7 @@
       <ul class="list">
         {#each detail.data.applications as application (application.id)}
           <li>
-            <a class="list-item" href={paths.application(application.id)}>
+            <a data-ui="company-detail.application.{application.id}" class="list-item" href={paths.application(application.id)}>
               <span class="grow">{application.label}</span>
               <StatusBadge status={application.status} />
             </a>

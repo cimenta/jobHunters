@@ -4,6 +4,6 @@
   import { paths } from '../lib/route';
 </script>
 
-<EmptyState icon="search" title={tr('ui.notFound.title')} text={tr('ui.notFound.text')}>
-  <a href={paths.dashboard}>{tr('ui.notFound.home')}</a>
+<EmptyState ui="not-found.empty" icon="search" title={tr('ui.notFound.title')} text={tr('ui.notFound.text')}>
+  <a data-ui="not-found.home" href={paths.dashboard}>{tr('ui.notFound.home')}</a>
 </EmptyState>

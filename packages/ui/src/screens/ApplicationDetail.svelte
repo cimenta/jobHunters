@@ -51,10 +51,10 @@
         <StatusBadge status={application.status} />
       </div>
       <div class="row wrap small">
-        {#if detail.data.job}<a href={paths.job(detail.data.job.id)}>{tr('ui.app.job')}: {detail.data.job.title}</a>{/if}
-        {#if detail.data.company}<a href={paths.company(detail.data.company.id)}>{tr('ui.app.company')}: {detail.data.company.name}</a>{/if}
+        {#if detail.data.job}<a data-ui="application-detail.job-link" href={paths.job(detail.data.job.id)}>{tr('ui.app.job')}: {detail.data.job.title}</a>{/if}
+        {#if detail.data.company}<a data-ui="application-detail.company-link" href={paths.company(detail.data.company.id)}>{tr('ui.app.company')}: {detail.data.company.name}</a>{/if}
         {#if application.folder_url !== ''}
-          <a href={application.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.app.folder')}</a>
+          <a data-ui="application-detail.folder-link" href={application.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.app.folder')}</a>
         {/if}
         {#if application.language === 'en' || application.language === 'cs'}
           <span class="muted" data-ui="application-detail.language">{tr('ui.app.language', { language: tr(`ui.language.${application.language}`) })}</span>

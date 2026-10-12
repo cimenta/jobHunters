@@ -30,9 +30,9 @@
   {:else if (companies.data ?? []).length === 0}
     <EmptyState ui="companies.empty" icon="building" title={tr('ui.companies.emptyTitle')} text={tr('ui.companies.emptyText')} />
   {:else}
-    <Field label={tr('ui.jobs.search')} for="company-search"><input id="company-search" class="input" type="search" bind:value={text} /></Field>
+    <Field label={tr('ui.jobs.search')} for="company-search"><input data-ui="companies.search" id="company-search" class="input" type="search" bind:value={text} /></Field>
     {#if rows.length === 0}
-      <EmptyState title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')} />
+      <EmptyState ui="companies.no-match" title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')} />
     {:else}
       <ul class="list" data-ui="companies.list">
         {#each rows as company (company.id)}

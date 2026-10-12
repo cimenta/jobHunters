@@ -28,10 +28,10 @@
 
 <Dialog {open} title={tr('ui.reminder.postponeTitle')} {onclose} ui="postpone-dialog">
   <Field label={tr('ui.reminder.newDate')} for="postpone-date">
-    <input id="postpone-date" class="input" type="date" min={today} bind:value={date} />
+    <input data-ui="postpone.date" id="postpone-date" class="input" type="date" min={today} bind:value={date} />
   </Field>
   {#snippet footer()}
-    <Button onclick={onclose}>{tr('ui.cancel')}</Button>
-    <Button variant="primary" disabled={!valid} onclick={confirm}>{tr('ui.reminder.postpone')}</Button>
+    <Button ui="postpone.cancel" onclick={onclose}>{tr('ui.cancel')}</Button>
+    <Button ui="postpone.confirm" variant="primary" disabled={!valid} onclick={confirm}>{tr('ui.reminder.postpone')}</Button>
   {/snippet}
 </Dialog>

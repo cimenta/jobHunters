@@ -64,20 +64,20 @@
   {#each rows as row (row.code)}
     <div class="row wrap status-row" data-ui="job-status.{row.code}" role="group" aria-label={defaultText(row.code)}>
       <div class="preview"><Badge text={label(row)} color={row.color} textColor={readableTextColor(row.color)} /></div>
-      <input class="input text" maxlength={STATUS_TEXT_MAX} placeholder={defaultText(row.code)} aria-label={tr('ui.status.textFor', { status: defaultText(row.code) })} bind:value={row.text} />
-      <input class="input color" type="color" aria-label={tr('ui.status.colorFor', { status: defaultText(row.code) })} bind:value={row.color} />
-      <label class="check"><input type="checkbox" aria-label={tr('ui.status.checkFor', { status: defaultText(row.code) })} bind:checked={row.check} />{tr('ui.status.check')}</label>
+      <input data-ui="job-status.{row.code}.text" class="input text" maxlength={STATUS_TEXT_MAX} placeholder={defaultText(row.code)} aria-label={tr('ui.status.textFor', { status: defaultText(row.code) })} bind:value={row.text} />
+      <input data-ui="job-status.{row.code}.color" class="input color" type="color" aria-label={tr('ui.status.colorFor', { status: defaultText(row.code) })} bind:value={row.color} />
+      <label class="check"><input data-ui="job-status.{row.code}.check" type="checkbox" aria-label={tr('ui.status.checkFor', { status: defaultText(row.code) })} bind:checked={row.check} />{tr('ui.status.check')}</label>
       {#if builtin(row.code)}
-        <Button variant="ghost" onclick={() => reset(row)}>{tr('ui.status.reset')}</Button>
+        <Button ui="job-status.{row.code}.reset" variant="ghost" onclick={() => reset(row)}>{tr('ui.status.reset')}</Button>
       {:else}
-        <Button variant="ghost" onclick={() => (rows = rows.filter((other) => other.code !== row.code))}>{tr('ui.jobStatus.delete')}</Button>
+        <Button ui="job-status.{row.code}.remove" variant="ghost" onclick={() => (rows = rows.filter((other) => other.code !== row.code))}>{tr('ui.jobStatus.delete')}</Button>
       {/if}
     </div>
   {/each}
   <div class="row wrap status-row" data-ui="job-status.add">
-    <input class="input text" maxlength={STATUS_TEXT_MAX} placeholder={tr('ui.jobStatus.newText')} aria-label={tr('ui.jobStatus.newText')} bind:value={newText} />
-    <input class="input color" type="color" aria-label={tr('ui.jobStatus.newColor')} bind:value={newColor} />
-    <Button disabled={newText.trim() === ''} onclick={add}>{tr('ui.jobStatus.add')}</Button>
+    <input data-ui="job-status.new-text" class="input text" maxlength={STATUS_TEXT_MAX} placeholder={tr('ui.jobStatus.newText')} aria-label={tr('ui.jobStatus.newText')} bind:value={newText} />
+    <input data-ui="job-status.new-color" class="input color" type="color" aria-label={tr('ui.jobStatus.newColor')} bind:value={newColor} />
+    <Button ui="job-status.add-button" disabled={newText.trim() === ''} onclick={add}>{tr('ui.jobStatus.add')}</Button>
   </div>
   <div><Button variant="primary" ui="job-statuses.save" onclick={save}>{tr('ui.save')}</Button></div>
 </div>

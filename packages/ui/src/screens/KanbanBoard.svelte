@@ -132,11 +132,11 @@
           }}
           ondrop={(event) => dropOn(event, column.status, column.cards, card.id)}
         >
-          <a class="title" draggable="false" href={paths.application(card.id)}>{card.label}</a>
+          <a data-ui="kanban.card.{card.id}.link" class="title" draggable="false" href={paths.application(card.id)}>{card.label}</a>
           <span class="muted small">{[card.job_title, card.company_name].filter((part) => part !== '').join(' · ')}</span>
           {#if card.last_activity_at !== ''}<span class="muted small">{formatDate(card.last_activity_at)}</span>{/if}
           {#if targets(card).length > 0}
-            <select
+            <select data-ui="kanban.card.{card.id}.move"
               class="input move"
               aria-label={tr('ui.kanban.moveTo')}
               value=""
@@ -161,7 +161,7 @@
 
 <Dialog open={pending !== undefined} title={tr('ui.kanban.waitingTitle')} onclose={() => (pending = undefined)} ui="kanban.waiting">
   <Field label={tr('ui.app.remindOn')} for="kanban-remind">
-    <input id="kanban-remind" class="input" type="date" min={today} bind:value={remindAt} />
+    <input data-ui="kanban.remind-date" id="kanban-remind" class="input" type="date" min={today} bind:value={remindAt} />
   </Field>
   {#snippet footer()}
     <Button variant="primary" ui="kanban.waiting.confirm" disabled={remindAt === '' || remindAt < today} onclick={confirmWaiting}>{tr('ui.app.changeStatus')}</Button>

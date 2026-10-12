@@ -111,6 +111,95 @@ describe('Kanban', () => {
   });
 });
 
+describe('Applications clear filters button', () => {
+  const button = (): HTMLElement | null => document.querySelector('[data-ui="applications.clear-filters"]');
+  const statusGroup = () => within(screen.getByRole('group', { name: 'Status' }));
+
+  async function list(): Promise<void> {
+    useDevBackend();
+    await loadApp();
+    render(ApplicationsList);
+    await screen.findByLabelText('Kanban');
+  }
+
+  it('is not shown while nothing is filtered', async () => {
+    await list();
+    expect(button()).toBeNull();
+  });
+
+  it('gives every filter control a data-ui hook', async () => {
+    await list();
+    await fireEvent.click(screen.getByLabelText('Kanban'));
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'zzzz' } });
+    for (const id of ['search', 'kanban', 'hide-empty', 'status', 'clear-filters']) {
+      expect(document.querySelector(`[data-ui="applications.${id}"]`), id).not.toBeNull();
+    }
+  });
+
+  it('looks like a button (secondary style, not ghost)', async () => {
+    await list();
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'zzzz' } });
+    expect(button()!.classList.contains('secondary')).toBe(true);
+    expect(button()!.classList.contains('ghost')).toBe(false);
+  });
+
+  it('appears with a search text, clears it and focuses the search', async () => {
+    await list();
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'zzzz' } });
+    expect(button()).not.toBeNull();
+    expect(button()).toHaveTextContent('Clear filters');
+    await fireEvent.click(button()!);
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('');
+    expect(button()).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole('searchbox'));
+  });
+
+  it('appears with a status selection alone and clears it, also in the saved state', async () => {
+    await list();
+    await fireEvent.click(statusGroup().getByLabelText('Sent'));
+    expect(button()).not.toBeNull();
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_status_list).toEqual(['sent']));
+    await fireEvent.click(button()!);
+    expect(button()).toBeNull();
+    expect(statusGroup().getByLabelText('Sent')).not.toBeChecked();
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_status_list).toEqual([]));
+  });
+
+  it('clears both the search and the statuses at once', async () => {
+    await list();
+    await fireEvent.input(screen.getByRole('searchbox'), { target: { value: 'android' } });
+    await fireEvent.click(statusGroup().getByLabelText('Sent'));
+    await fireEvent.click(button()!);
+    expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('');
+    expect(statusGroup().getByLabelText('Sent')).not.toBeChecked();
+    expect(button()).toBeNull();
+  });
+
+  it('on the board clears the board selection, keeps Kanban on and leaves hide-empty and the list selection alone', async () => {
+    await list();
+    await fireEvent.click(statusGroup().getByLabelText('Sent'));
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_status_list).toEqual(['sent']));
+    await fireEvent.click(screen.getByLabelText('Kanban'));
+    await screen.findByRole('group', { name: 'Applications by status' });
+    expect(button()).toBeNull();
+    await fireEvent.click(screen.getByLabelText('Hide empty columns'));
+    await fireEvent.click(statusGroup().getByLabelText('Waiting'));
+    expect(button()).not.toBeNull();
+    await fireEvent.click(button()!);
+    expect(button()).toBeNull();
+    expect(screen.getByLabelText('Kanban')).toBeChecked();
+    expect(screen.getByLabelText('Hide empty columns')).toBeChecked();
+    expect(screen.getByRole('group', { name: 'Applications by status' })).toBeInTheDocument();
+    await waitFor(async () => {
+      const state = (await api.getSettings()).settings.ui_state;
+      expect(state.applications_status_board).toEqual([]);
+      expect(state.applications_status_list).toEqual(['sent']);
+      expect(state.applications_kanban).toBe(true);
+      expect(state.applications_hide_empty).toBe(true);
+    });
+  });
+});
+
 describe('Allowed status changes', () => {
   it('forbids a move for the whole app once it is unticked, and can be reset', async () => {
     useDevBackend();

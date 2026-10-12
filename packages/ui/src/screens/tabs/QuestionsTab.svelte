@@ -68,7 +68,7 @@
     <Button ui="questions.queue-all" disabled={openCount === 0} onclick={queueAll}>{tr('ui.questions.queueAll')}</Button>
   </div>
   {#if detail.questions.length === 0}
-    <EmptyState icon="file" title={tr('ui.questions.empty')} />
+    <EmptyState ui="questions.empty" icon="file" title={tr('ui.questions.empty')} />
   {:else}
     <ul class="list">
       {#each detail.questions as question (question.id)}
@@ -80,12 +80,12 @@
 
 <Dialog open={adding} title={tr('ui.questions.add')} onclose={() => (adding = false)} ui="add-question-dialog">
   <div class="stack">
-    <Field label={tr('ui.questions.text')} for="question-text"><textarea id="question-text" class="input" rows="3" bind:value={text}></textarea></Field>
-    <Field label={tr('ui.questions.maxSentences')} for="question-limit"><input id="question-limit" class="input" inputmode="numeric" bind:value={limit} /></Field>
+    <Field label={tr('ui.questions.text')} for="question-text"><textarea data-ui="add-question.text" id="question-text" class="input" rows="3" bind:value={text}></textarea></Field>
+    <Field label={tr('ui.questions.maxSentences')} for="question-limit"><input data-ui="add-question.limit" id="question-limit" class="input" inputmode="numeric" bind:value={limit} /></Field>
   </div>
   {#snippet footer()}
-    <Button onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
-    <Button variant="primary" disabled={!valid} onclick={add}>{tr('ui.add')}</Button>
+    <Button ui="add-question.cancel" onclick={() => (adding = false)}>{tr('ui.cancel')}</Button>
+    <Button ui="add-question.save" variant="primary" disabled={!valid} onclick={add}>{tr('ui.add')}</Button>
   {/snippet}
 </Dialog>
 
