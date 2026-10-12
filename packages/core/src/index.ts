@@ -1,4 +1,5 @@
 export * from './application-service';
+export * from './availability';
 export * from './applications';
 export * from './catalog';
 export * from './drive';
@@ -21,3 +22,4 @@ export * from './status-style';
 export * from './types';
 export * from './util';
 export * from './prompt';
+export * from './scheduler';

@@ -164,7 +164,7 @@ export class JobService {
       page = this.deps.fetcher.fetch(url);
     } catch (error) {
       this.report('fetch', error);
-      page = { status: 0, html: '' };
+      page = { status: 0, finalUrl: url, html: '' };
     }
     if (page.status === 200 && page.html.trim() !== '') {
       const { parserId, job } = parseJobPage(page.html, url, { onError: (id, error) => this.report(`parser:${id}`, error) });

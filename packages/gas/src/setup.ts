@@ -1,6 +1,7 @@
 import { buildSetupPlan, type SheetSetup } from '@jobhunters/core';
 import { GasDrive } from './adapters/gas-drive';
 import { ROOT_FOLDER_ID_KEY, SPREADSHEET_ID_KEY } from './props';
+import { ensureHourlyTrigger } from './triggers';
 
 function getOrCreateRoot(props: GoogleAppsScript.Properties.Properties): GoogleAppsScript.Drive.Folder {
   const id = props.getProperty(ROOT_FOLDER_ID_KEY);
@@ -60,5 +61,6 @@ export function runSetup(): { spreadsheetUrl: string; rootFolderUrl: string } {
 
   const drive = new GasDrive();
   for (const name of ['Profile', 'Templates', 'Companies']) drive.ensureFolder(root.getId(), name);
+  ensureHourlyTrigger();
   return { spreadsheetUrl: spreadsheet.getUrl(), rootFolderUrl: root.getUrl() };
 }

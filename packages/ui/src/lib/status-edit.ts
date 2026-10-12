@@ -1,5 +1,5 @@
 import {
-  APPLICATION_STATUSES, DEFAULT_STATUS_COLORS, type ApplicationStatus, type Locale, type StatusStyle, type StatusStyles,
+  APPLICATION_STATUSES, DEFAULT_STATUS_CHECK, DEFAULT_STATUS_COLORS, type ApplicationStatus, type Locale, type StatusStyle, type StatusStyles,
 } from '@jobhunters/core';
 
 export interface StatusEdit {
@@ -7,12 +7,14 @@ export interface StatusEdit {
   text: string;
   /** #rrggbb */
   color: string;
+  /** Whether jobs with an application in this status get their availability checked. */
+  check: boolean;
 }
 
 export function initialEdits(styles: StatusStyles, locale: Locale): Record<ApplicationStatus, StatusEdit> {
   const edits = {} as Record<ApplicationStatus, StatusEdit>;
   for (const status of APPLICATION_STATUSES) {
-    edits[status] = { text: styles[status]?.text?.[locale] ?? '', color: styles[status]?.color ?? DEFAULT_STATUS_COLORS[status] };
+    edits[status] = { text: styles[status]?.text?.[locale] ?? '', color: styles[status]?.color ?? DEFAULT_STATUS_COLORS[status], check: styles[status]?.check ?? DEFAULT_STATUS_CHECK[status] };
   }
   return edits;
 }
@@ -30,7 +32,8 @@ export function buildStatusStyles(existing: StatusStyles, edits: Record<Applicat
     if (Object.keys(texts).length > 0) style.text = texts;
     const color = edit.color.toLowerCase();
     if (color !== DEFAULT_STATUS_COLORS[status]) style.color = color;
-    if (style.text !== undefined || style.color !== undefined) result[status] = style;
+    if (edit.check !== DEFAULT_STATUS_CHECK[status]) style.check = edit.check;
+    if (style.text !== undefined || style.color !== undefined || style.check !== undefined) result[status] = style;
   }
   return result;
 }

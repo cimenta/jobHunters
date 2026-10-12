@@ -6,9 +6,11 @@ export const app = $state<{
   phase: 'loading' | 'ready' | 'error';
   error: unknown;
   version: string;
+  /** Time zone of the script; times are shown in it. Empty = the browser's. */
+  timeZone: string;
   settings: Settings | undefined;
   warnings: AppWarning[];
-}>({ phase: 'loading', error: undefined, version: '', settings: undefined, warnings: [] });
+}>({ phase: 'loading', error: undefined, version: '', timeZone: '', settings: undefined, warnings: [] });
 
 /** 'system' leaves the choice to the device (prefers-color-scheme), the others force it. */
 export function applyTheme(theme: UiTheme): void {
@@ -23,6 +25,7 @@ export async function loadApp(): Promise<void> {
   try {
     const [info, loaded] = await Promise.all([api.getAppInfo(), api.getSettings()]);
     app.version = info.version;
+    app.timeZone = info.timeZone;
     app.settings = loaded.settings;
     app.warnings = loaded.warnings;
     setLocale(loaded.settings.ui_language);

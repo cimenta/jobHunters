@@ -92,6 +92,11 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return { job, company: c.companies.get(job.company_id), applications, match: c.aiTaskService.matchFor(id) };
     },
 
+    checkJobAvailability: (args) => {
+      const id = requireString(asRecord(args, 'checkJobAvailability'), 'id', 'checkJobAvailability');
+      return c.availabilityService.check(id);
+    },
+
     requestJobMatch: (args) => {
       const id = requireString(asRecord(args, 'requestJobMatch'), 'id', 'requestJobMatch');
       return c.lock.run(() => c.aiTaskService.requestMatch(id));

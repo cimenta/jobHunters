@@ -19,7 +19,7 @@ describe('build', () => {
   it('exposes top-level functions Apps Script can call', () => {
     const code = readFileSync(dist('Code.js'), 'utf8');
     const stubs = [...code.matchAll(/^function (\w+)\(/gm)].map((m) => m[1]).sort();
-    expect(stubs).toEqual(['api', 'doGet', 'setup', 'smokeTest']);
+    expect(stubs).toEqual(['api', 'doGet', 'onHourlyTick', 'setup', 'smokeTest']);
   });
 
   it('ships the UI as one self-contained page', () => {

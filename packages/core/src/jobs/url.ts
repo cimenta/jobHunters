@@ -107,3 +107,18 @@ export function titleFromUrl(url: string): string {
   const words = safeDecode(slug).replace(/[-_]+/g, ' ').replace(/\s+\d+$/, '').trim();
   return words === '' ? host : words;
 }
+
+/** Turns the Location header of a redirect into an absolute address; undefined when it cannot be resolved. */
+export function resolveRedirect(base: string, location: string): string | undefined {
+  const target = location.trim();
+  if (target === '') return undefined;
+  if (/^https?:\/\//i.test(target)) return target;
+  const match = /^(https?:)\/\/([^\/?#]+)([^?#]*)/i.exec(base.trim());
+  if (!match) return undefined;
+  const [, scheme, authority, path] = match;
+  if (target.startsWith('//')) return `${scheme}${target}`;
+  if (target.startsWith('/')) return `${scheme}//${authority}${target}`;
+  if (target.startsWith('?') || target.startsWith('#')) return `${scheme}//${authority}${path}${target}`;
+  const directory = path!.slice(0, path!.lastIndexOf('/') + 1);
+  return `${scheme}//${authority}${directory === '' ? '/' : directory}${target}`;
+}

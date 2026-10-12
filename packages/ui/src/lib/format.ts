@@ -1,6 +1,18 @@
+import { app } from '../state/app.svelte';
 import { tr, ui } from './i18n.svelte';
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** The script's time zone, which every displayed time uses; undefined (the browser's) until it is known or when it is not a valid name. */
+function zone(): string | undefined {
+  if (app.timeZone === '') return undefined;
+  try {
+    new Intl.DateTimeFormat(undefined, { timeZone: app.timeZone });
+    return app.timeZone;
+  } catch {
+    return undefined;
+  }
+}
 
 /** A date (YYYY-MM-DD) or a date-time, in the current language. Anything else is returned unchanged. */
 export function formatDate(value: string): string {
@@ -10,7 +22,7 @@ export function formatDate(value: string): string {
   }
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleString(ui.locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleString(ui.locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: zone() });
 }
 
 export function formatSalary(job: { salary_min: number | null; salary_max: number | null; salary_currency: string; salary_period: string }): string {

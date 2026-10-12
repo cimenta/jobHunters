@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { APPLICATION_STATUSES, DEFAULT_STATUS_COLORS, STATUS_TEXT_MAX, readableTextColor, serializeStatusStyles, t, type ApplicationStatus } from '@jobhunters/core';
+  import { APPLICATION_STATUSES, DEFAULT_STATUS_CHECK, DEFAULT_STATUS_COLORS, STATUS_TEXT_MAX, readableTextColor, serializeStatusStyles, t, type ApplicationStatus } from '@jobhunters/core';
   import { api } from '../api';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
@@ -19,7 +19,7 @@
   const previewText = (status: ApplicationStatus): string => edits[status].text.trim() || defaultText(status);
 
   function reset(status: ApplicationStatus): void {
-    edits[status] = { text: '', color: DEFAULT_STATUS_COLORS[status] };
+    edits[status] = { text: '', color: DEFAULT_STATUS_COLORS[status], check: DEFAULT_STATUS_CHECK[status] };
   }
 
   async function save(): Promise<void> {
@@ -36,6 +36,7 @@
       <div class="preview"><Badge text={previewText(status)} color={edits[status].color} textColor={readableTextColor(edits[status].color)} /></div>
       <input class="input text" maxlength={STATUS_TEXT_MAX} placeholder={defaultText(status)} aria-label={tr('ui.status.textFor', { status: defaultText(status) })} bind:value={edits[status].text} />
       <input class="input color" type="color" aria-label={tr('ui.status.colorFor', { status: defaultText(status) })} bind:value={edits[status].color} />
+      <label class="check"><input type="checkbox" aria-label={tr('ui.status.checkFor', { status: defaultText(status) })} bind:checked={edits[status].check} />{tr('ui.status.check')}</label>
       <Button variant="ghost" onclick={() => reset(status)}>{tr('ui.status.reset')}</Button>
     </div>
   {/each}
@@ -47,4 +48,5 @@
   .preview { min-width: 120px; }
   .text { flex: 1 1 200px; width: auto; }
   .color { flex: none; }
+  .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
 </style>

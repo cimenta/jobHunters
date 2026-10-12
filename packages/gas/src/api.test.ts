@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { FetchResult } from '@jobhunters/core';
+import type { FakePage } from '@jobhunters/core/testing';
 import { makeApplication } from '@jobhunters/core/testing';
 import { createApi } from './api';
 import { createHandlers } from './handlers';
 import { makeTestContainer } from './test-container';
 
-function setup(pages: Record<string, FetchResult> = {}) {
+function setup(pages: Record<string, FakePage> = {}) {
   const { container, grid, drive } = makeTestContainer(pages);
   const api = createApi({ handlers: createHandlers(container), log: container.log });
   return { api, container, grid, drive };
@@ -13,7 +13,7 @@ function setup(pages: Record<string, FetchResult> = {}) {
 
 describe('api', () => {
   it('returns app info', () => {
-    expect(setup().api('getAppInfo')).toEqual({ ok: true, data: { version: '9.9.9', locales: ['en', 'cs'] } });
+    expect(setup().api('getAppInfo')).toEqual({ ok: true, data: { version: '9.9.9', locales: ['en', 'cs'], timeZone: 'UTC' } });
   });
 
   it('rejects unknown methods, including inherited property names', () => {
@@ -127,6 +127,31 @@ describe('jobs api', () => {
     const listed = api('listJobs') as { ok: true; data: { title: string; description: string }[] };
     expect(listed.data.map((j) => j.title)).toEqual(['Data Analyst']);
     expect(listed.data[0]!.description.length).toBeLessThanOrEqual(200);
+  });
+
+  it('checks the availability of a job on demand and rejects bad calls', () => {
+    const pages: Record<string, FakePage> = { [CLEAN_URL]: { status: 200, html: AD } };
+    const { api, container } = setup(pages);
+    const id = (api('saveJob', { url: AD_URL }) as { data: { job: { id: string } } }).data.job.id;
+    expect(api('checkJobAvailability', { id })).toMatchObject({ ok: true, data: { changed: false, verdict: { availability: 'online' }, job: { id, availability: 'online' } } });
+    expect(container.jobs.get(id)?.last_checked_at).not.toBe('');
+    pages[CLEAN_URL] = { status: 200, html: AD + ' This position has been filled.' };
+    container.settings.update({ offline_texts: 'position has been filled' });
+    expect(api('checkJobAvailability', { id })).toMatchObject({ ok: true, data: { changed: true, job: { availability: 'offline' } } });
+    expect(api('checkJobAvailability', { id: 'zz' })).toMatchObject({ ok: false, error: { code: 'job_not_found' } });
+    expect(api('checkJobAvailability', {})).toMatchObject({ ok: false });
+  });
+
+  it('runs the scheduled availability check in the configured hour only', () => {
+    const pages: Record<string, FakePage> = { [CLEAN_URL]: { status: 200, html: AD } };
+    const { api, container } = setup(pages);
+    const id = (api('saveJob', { url: AD_URL }) as { data: { job: { id: string } } }).data.job.id;
+    pages[CLEAN_URL] = { status: 200, html: AD + ' This position has been filled.' };
+    container.settings.update({ availability_check_enabled: 'true', availability_check_hours: '18', offline_texts: 'position has been filled' });
+    expect(container.scheduler.tick({ day: '2026-10-12', hour: 17 })).toEqual([]);
+    expect(container.jobs.get(id)?.availability).toBe('online');
+    expect(container.scheduler.tick({ day: '2026-10-12', hour: 18 })).toEqual(['availability']);
+    expect(container.jobs.get(id)?.availability).toBe('offline');
   });
 
   it('answers duplicate for the same ad and saves a failed download with a warning', () => {

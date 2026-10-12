@@ -8,6 +8,14 @@ import type { AiTask, AiTaskRow, Application, ApplicationRow, Communication, Com
 export interface AppInfo {
   version: string;
   locales: string[];
+  /** Time zone of the script; every time is shown in it. */
+  timeZone: string;
+}
+
+export interface AvailabilityCheck {
+  job: Job;
+  verdict: { availability: 'online' | 'offline' | 'unknown'; rule: string; reason: string };
+  changed: boolean;
 }
 
 export interface JobDetail {

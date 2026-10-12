@@ -6,6 +6,8 @@ export interface StatusStyle {
   text?: Partial<Record<Locale, string>>;
   /** #rrggbb */
   color?: string;
+  /** Whether jobs with an application in this status get their availability checked. */
+  check?: boolean;
 }
 export type StatusStyles = Partial<Record<ApplicationStatus, StatusStyle>>;
 
@@ -20,6 +22,18 @@ export const DEFAULT_STATUS_COLORS: Readonly<Record<ApplicationStatus, string>> 
   rejected: '#b91c1c',
   ghosted: '#475569',
   withdrawn: '#6b7280',
+};
+
+/** Applications that are still open are checked; finished ones are not. */
+export const DEFAULT_STATUS_CHECK: Readonly<Record<ApplicationStatus, boolean>> = {
+  draft: true,
+  sent: true,
+  waiting: true,
+  interview: false,
+  offer: false,
+  rejected: false,
+  ghosted: false,
+  withdrawn: false,
 };
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
@@ -45,6 +59,10 @@ export function parseStatusStyles(raw: string): StatusStyles | undefined {
       if (typeof entry.color !== 'string' || !COLOR.test(entry.color)) return undefined;
       style.color = entry.color.toLowerCase();
     }
+    if (entry.check !== undefined) {
+      if (typeof entry.check !== 'boolean') return undefined;
+      style.check = entry.check;
+    }
     if (entry.text !== undefined) {
       if (!plainObject(entry.text)) return undefined;
       const texts: Partial<Record<Locale, string>> = {};
@@ -59,6 +77,12 @@ export function parseStatusStyles(raw: string): StatusStyles | undefined {
     out[status] = style;
   }
   return out;
+}
+
+/** Whether the availability of jobs with an application in this status is checked. */
+export function statusChecksAvailability(styles: StatusStyles, status: string): boolean {
+  if (!isApplicationStatus(status)) return false;
+  return styles[status]?.check ?? DEFAULT_STATUS_CHECK[status];
 }
 
 export function serializeStatusStyles(styles: StatusStyles): string {

@@ -37,7 +37,7 @@ export function createHandlers(c: Container): Record<string, Handler> {
   return {
     ...createApplicationHandlers(c),
 
-    getAppInfo: () => ({ version: c.appVersion, locales: [...SUPPORTED_LOCALES] }),
+    getAppInfo: () => ({ version: c.appVersion, locales: [...SUPPORTED_LOCALES], timeZone: c.timeZone() }),
 
     getSettings: () => {
       const { settings, warnings } = c.settings.get();

@@ -132,3 +132,37 @@ describe('Settings identifier labels', () => {
     expect(ids.visible).toBe(false);
   });
 });
+
+describe('Settings availability', () => {
+  it('saves the schedule, the immediate rules and the offline texts', async () => {
+    await open('Availability');
+    const card = section('Availability of ads');
+    await fireEvent.click(within(card).getByLabelText('Check the availability regularly'));
+    await fireEvent.input(within(card).getByLabelText('Hours of the check'), { target: { value: '8, 18' } });
+    await fireEvent.click(within(card).getByLabelText('the page is not found (404 or 410)'));
+    await fireEvent.input(within(card).getByLabelText('Texts that mean the ad is gone (one per line)'), { target: { value: 'gone\nclosed' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => {
+      const settings = (await api.getSettings()).settings;
+      expect(settings).toMatchObject({ availability_check_enabled: true, availability_check_hours: [8, 18], offline_texts: ['gone', 'closed'] });
+      expect([...settings.availability_immediate_rules].sort()).toEqual(['http_gone', 'offline_text']);
+    });
+  });
+
+  it('refuses invalid hours with a message and keeps the old setting', async () => {
+    await open('Availability');
+    const card = section('Availability of ads');
+    await fireEvent.input(within(card).getByLabelText('Hours of the check'), { target: { value: '25' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toasts.some((t) => t.kind === 'error')).toBe(true));
+    expect((await api.getSettings()).settings.availability_check_hours).toEqual([18]);
+  });
+
+  it('saves the availability flag of a status', async () => {
+    await open('Statuses');
+    const card = section('Status labels');
+    await fireEvent.click(within(card).getByLabelText('Check the availability of ads in status Sent'));
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.status_styles).toEqual({ sent: { check: false } }));
+  });
+});

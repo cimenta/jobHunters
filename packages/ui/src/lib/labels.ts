@@ -1,5 +1,18 @@
 import { tr } from './i18n.svelte';
 
+/** "suspected http_gone: 404" -> a sentence in the language of the app. */
+export function availabilityReasonLabel(reason: string): string {
+  if (reason === '') return '';
+  const suspected = reason.startsWith('suspected ');
+  const body = suspected ? reason.slice('suspected '.length) : reason;
+  const split = body.indexOf(': ');
+  const rule = split < 0 ? body : body.slice(0, split);
+  const detail = split < 0 ? '' : body.slice(split + 2);
+  const known = ['http_gone', 'redirect_elsewhere', 'valid_until_past', 'offline_text', 'unknown_response'];
+  const text = known.includes(rule) ? tr(`ui.availability.reason.${rule}`, { detail }) : body;
+  return suspected ? tr('ui.availability.suspected', { reason: text }) : text;
+}
+
 export function availabilityLabel(value: string): string {
   switch (value) {
     case 'online':

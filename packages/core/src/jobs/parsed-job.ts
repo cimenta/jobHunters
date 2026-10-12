@@ -1,3 +1,4 @@
+import type { FetchResult } from './fetcher';
 import { detectLanguage, truncateForCell } from './html';
 
 export interface ParsedJob {
@@ -23,6 +24,8 @@ export interface JobParser {
   id: string;
   matches(url: string): boolean;
   parse(html: string, url: string): ParsedJob;
+  /** Optional rule of the portal for the availability check; undefined = no opinion. */
+  detectAvailability?(result: FetchResult, url: string): { availability: 'online' | 'offline' | 'unknown'; reason: string } | undefined;
 }
 
 export function emptyParsedJob(): ParsedJob {

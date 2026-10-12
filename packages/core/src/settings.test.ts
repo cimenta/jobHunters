@@ -12,7 +12,9 @@ describe('parseSettings', () => {
       default_document_language: 'en',
       reminder_time: '08:00',
       reminder_email: '',
-      availability_check_days: 1,
+      availability_check_enabled: false,
+      availability_check_hours: [18],
+      availability_immediate_rules: ['offline_text'],
       default_document_set: ['resume', 'cover_letter'],
     });
     expect(settings.offline_texts.length).toBeGreaterThan(0);
@@ -22,14 +24,18 @@ describe('parseSettings', () => {
   it('parses stored values', () => {
     const { settings } = parseSettings({
       ui_language: 'cs',
-      availability_check_days: '7',
+      availability_check_enabled: 'TRUE',
+      availability_check_hours: '18, 8',
+      availability_immediate_rules: 'offline_text,http_gone',
       offline_texts: 'gone\n\n  closed  \n',
       pdf_service_order: 'a, b ,',
       reminder_email: 'you@example.invalid',
     });
     expect(settings).toMatchObject({
       ui_language: 'cs',
-      availability_check_days: 7,
+      availability_check_enabled: true,
+      availability_check_hours: [8, 18],
+      availability_immediate_rules: ['offline_text', 'http_gone'],
       offline_texts: ['gone', 'closed'],
       pdf_service_order: ['a', 'b'],
       reminder_email: 'you@example.invalid',
@@ -50,14 +56,14 @@ describe('parseSettings', () => {
   });
 
   it('falls back to the default and warns on an invalid value', () => {
-    const { settings, warnings } = parseSettings({ reminder_time: '25:00', ui_language: 'de', availability_check_days: '0' });
+    const { settings, warnings } = parseSettings({ reminder_time: '25:00', ui_language: 'de', availability_check_hours: '24' });
     expect(settings.reminder_time).toBe('08:00');
     expect(settings.ui_language).toBe('en');
-    expect(settings.availability_check_days).toBe(1);
+    expect(settings.availability_check_hours).toEqual([18]);
     expect(warnings).toEqual([
       { code: 'setting_invalid', params: { key: 'ui_language', value: 'de' } },
       { code: 'setting_invalid', params: { key: 'reminder_time', value: '25:00' } },
-      { code: 'setting_invalid', params: { key: 'availability_check_days', value: '0' } },
+      { code: 'setting_invalid', params: { key: 'availability_check_hours', value: '24' } },
     ]);
   });
 });
@@ -115,5 +121,16 @@ describe('SettingsService status_styles', () => {
     expect(service.update({ status_styles: '{"offer":{"color":"#15803d"}}' }).status_styles).toEqual({ offer: { color: '#15803d' } });
     expect(errorOf(() => service.update({ status_styles: '{"offer":{"color":"green"}}' }))).toMatchObject({ code: 'settings_invalid', params: { key: 'status_styles' } });
     expect(store.getAll().status_styles).toBe('{"offer":{"color":"#15803d"}}');
+  });
+});
+
+describe('availability settings', () => {
+  it('refuse bad hours, duplicates, a non-boolean and an unknown rule', () => {
+    for (const hours of ['', 'x', '1.5', '-1', '8,8', '8,,24']) {
+      expect(parseSettings({ availability_check_hours: hours }).warnings, hours).toHaveLength(1);
+    }
+    expect(parseSettings({ availability_check_enabled: 'yes' }).warnings).toHaveLength(1);
+    expect(parseSettings({ availability_immediate_rules: 'offline_text,nonsense' }).warnings).toHaveLength(1);
+    expect(parseSettings({ availability_immediate_rules: '' }).settings.availability_immediate_rules).toEqual([]);
   });
 });

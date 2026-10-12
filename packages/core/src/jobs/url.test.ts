@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { errorOf } from '../testing/errors';
-import { hostIs, jobUrlKey, normalizeJobUrl, parseUrl, titleFromUrl } from './url';
+import { hostIs, jobUrlKey, normalizeJobUrl, parseUrl, resolveRedirect, titleFromUrl } from './url';
 
 describe('parseUrl', () => {
   it('splits a web address without the URL class', () => {
@@ -76,5 +76,18 @@ describe('titleFromUrl', () => {
   it('falls back to the host when there is no slug, and ignores the company slug of Jobs.cz', () => {
     expect(titleFromUrl('https://www.jobs.cz/rpd/2000000001/')).toBe('jobs.cz');
     expect(titleFromUrl('https://www.jobs.cz/fp/example-s-r-o-1/2000000001/')).toBe('jobs.cz');
+  });
+});
+
+describe('resolveRedirect', () => {
+  const base = 'https://www.example.com/jobs/detail/42?x=1';
+  it('resolves absolute, scheme-relative, root-relative, relative and query-only targets', () => {
+    expect(resolveRedirect(base, 'https://other.example.org/a')).toBe('https://other.example.org/a');
+    expect(resolveRedirect(base, '//cdn.example.com/a')).toBe('https://cdn.example.com/a');
+    expect(resolveRedirect(base, '/list')).toBe('https://www.example.com/list');
+    expect(resolveRedirect(base, '43')).toBe('https://www.example.com/jobs/detail/43');
+    expect(resolveRedirect(base, '?page=2')).toBe('https://www.example.com/jobs/detail/42?page=2');
+    expect(resolveRedirect(base, '  ')).toBeUndefined();
+    expect(resolveRedirect('not a url', '/x')).toBeUndefined();
   });
 });

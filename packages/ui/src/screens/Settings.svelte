@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
+  import { OFFLINE_RULES, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -41,6 +41,10 @@
   let tab = $state('general');
   let experience = $state('');
   let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '' });
+  let checkEnabled = $state(false);
+  let checkHours = $state('18');
+  let immediateRules = $state<string[]>([]);
+  let offlineTexts = $state('');
   let uiLanguage = $state('en');
   let uiTheme = $state('system');
   let docLanguage = $state('en');
@@ -57,6 +61,10 @@
       uiLanguage = settings.ui_language;
       uiTheme = settings.ui_theme;
       experience = settings.candidate_experience;
+      checkEnabled = settings.availability_check_enabled;
+      checkHours = settings.availability_check_hours.join(', ');
+      immediateRules = [...settings.availability_immediate_rules];
+      offlineTexts = settings.offline_texts.join('\n');
       prompts = Object.fromEntries(PROMPT_TYPES.map((type) => [type, settings[`ai_prompt_${type}`]])) as Record<PromptType, string>;
       docLanguage = settings.default_document_language;
       documentSet = [...settings.default_document_set];
@@ -111,6 +119,17 @@
     }
   }
 
+  async function saveAvailability(): Promise<void> {
+    await api.updateSettings({
+      availability_check_enabled: String(checkEnabled),
+      availability_check_hours: checkHours,
+      availability_immediate_rules: immediateRules.join(','),
+      offline_texts: offlineTexts,
+    });
+    await reloadSettings();
+    toast.success(tr('ui.saved'));
+  }
+
   async function saveDocuments(): Promise<void> {
     await api.updateSettings({ default_document_set: documentSet.join(',') });
     await reloadSettings();
@@ -141,6 +160,7 @@
       { id: 'documents', label: tr('ui.settings.tab.documents') },
       { id: 'experience', label: tr('ui.settings.tab.experience') },
       { id: 'prompts', label: tr('ui.settings.tab.prompts') },
+      { id: 'availability', label: tr('ui.settings.tab.availability') },
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
       { id: 'statuses', label: tr('ui.settings.tab.statuses') },
@@ -216,6 +236,27 @@
       <Button variant="primary" ui="settings.prompts.save" onclick={savePrompts}>{tr('ui.save')}</Button>
       <Button variant="ghost" ui="settings.prompts.reset" onclick={resetPrompts}>{tr('ui.settings.promptsReset')}</Button>
     </div>
+  </Card>
+  {:else if tab === 'availability'}
+  <Card ui="settings.availability">
+    <h2>{tr('ui.settings.availability')}</h2>
+    <p class="muted small">{tr('ui.settings.availabilityHint')}</p>
+    <label class="check"><input type="checkbox" bind:checked={checkEnabled} />{tr('ui.settings.availabilityEnabled')}</label>
+    <Field label={tr('ui.settings.availabilityHours')} for="set-check-hours">
+      <input id="set-check-hours" class="input" inputmode="numeric" bind:value={checkHours} />
+    </Field>
+    <p class="muted small">{tr('ui.settings.availabilityHoursHint', { zone: app.timeZone })}</p>
+    <fieldset class="checks">
+      <legend>{tr('ui.settings.availabilityRules')}</legend>
+      {#each OFFLINE_RULES as rule (rule)}
+        <label class="check"><input type="checkbox" value={rule} bind:group={immediateRules} />{tr(`ui.availability.rule.${rule}`)}</label>
+      {/each}
+    </fieldset>
+    <p class="muted small">{tr('ui.settings.availabilityRulesHint')}</p>
+    <Field label={tr('ui.settings.offlineTexts')} for="set-offline-texts">
+      <textarea id="set-offline-texts" class="input" rows="5" bind:value={offlineTexts}></textarea>
+    </Field>
+    <div><Button variant="primary" ui="settings.availability.save" onclick={saveAvailability}>{tr('ui.save')}</Button></div>
   </Card>
   {:else if tab === 'profile'}
   <Card ui="settings.profile">

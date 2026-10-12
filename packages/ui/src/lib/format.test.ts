@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { formatDate, formatSalary, plusDays } from './format';
 import { setLocale } from './i18n.svelte';
+import { app } from '../state/app.svelte';
 
 describe('formatDate', () => {
   it('formats a plain date without shifting the day', () => {
@@ -46,5 +47,16 @@ describe('formatVersion', () => {
     expect(formatVersion('0.5.0')).toBe('v0.5.0');
     expect(formatVersion('dev')).toBe('dev');
     expect(formatVersion('')).toBe('');
+  });
+});
+
+describe('formatDate in the time zone of the script', () => {
+  it('shows a date-time in the zone the backend gave, and falls back to the browser zone for a bad name', () => {
+    setLocale('en');
+    app.timeZone = 'Asia/Tokyo';
+    expect(formatDate('2026-10-12T18:00:00.000Z')).toMatch(/Oct 13, 2026.*03:00/);
+    app.timeZone = 'Not/AZone';
+    expect(formatDate('2026-10-12T18:00:00.000Z')).toMatch(/Oct 1[23], 2026/);
+    app.timeZone = '';
   });
 });

@@ -1,5 +1,5 @@
-import { NO_LOCK, SHEETS, type FetchResult, type SheetName } from '@jobhunters/core';
-import { FakeDrive, FakeGrid, FakePageFetcher } from '@jobhunters/core/testing';
+import { NO_LOCK, SHEETS, type SheetName } from '@jobhunters/core';
+import { FakeDrive, FakeGrid, FakePageFetcher, type FakePage } from '@jobhunters/core/testing';
 import { createApi, type ApiResult } from './api';
 import { buildContainer } from './container';
 import { createHandlers } from './handlers';
@@ -45,7 +45,7 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string }
   };
   const drive = new FakeDrive();
   const root = drive.ensureFolder(null, 'JobHunters');
-  const pages: Record<string, FetchResult> = { [DEMO_URL]: { status: 200, html: DEMO_PAGE } };
+  const pages: Record<string, FakePage> = { [DEMO_URL]: { status: 200, html: DEMO_PAGE } };
   let counter = 0;
   const container = buildContainer({
     grid,

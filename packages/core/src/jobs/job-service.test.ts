@@ -5,7 +5,7 @@ import { FakeDrive } from '../testing/fake-drive';
 import { FakePageFetcher } from '../testing/fake-fetcher';
 import { sequentialIds } from '../testing/fixtures';
 import type { Company, Job } from '../types';
-import type { FetchResult } from './fetcher';
+import type { FakePage } from '../testing/fake-fetcher';
 import { companyKey, JobService } from './job-service';
 
 const NOW = '2026-10-10T08:00:00.000Z';
@@ -19,7 +19,7 @@ class BrokenDrive extends FakeDrive {
   }
 }
 
-function setup(pages: Record<string, FetchResult> = {}, drive: FakeDrive = new FakeDrive(), companies: Company[] = []) {
+function setup(pages: Record<string, FakePage> = {}, drive: FakeDrive = new FakeDrive(), companies: Company[] = []) {
   const jobs = new InMemoryRepository<Job>();
   const companyRepo = new InMemoryRepository<Company>(companies);
   const root = drive.ensureFolder(null, 'JobHunters');
@@ -38,7 +38,7 @@ function setup(pages: Record<string, FetchResult> = {}, drive: FakeDrive = new F
   return { service, jobs, companies: companyRepo, drive, fetcher, errors };
 }
 
-const ok = (html = AD): FetchResult => ({ status: 200, html });
+const ok = (html = AD): FakePage => ({ status: 200, html });
 
 describe('save from a downloaded page', () => {
   it('creates the job and company and stores the page snapshot in Drive', () => {

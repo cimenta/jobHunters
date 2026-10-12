@@ -14,7 +14,9 @@ export const SETTING_KEYS = [
   'default_document_language',
   'reminder_time',
   'reminder_email',
-  'availability_check_days',
+  'availability_check_enabled',
+  'availability_check_hours',
+  'availability_immediate_rules',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -38,7 +40,12 @@ export interface Settings {
   /** HH:MM, local time of the script time zone. */
   reminder_time: string;
   reminder_email: string;
-  availability_check_days: number;
+  /** Whether the scheduled availability check runs. */
+  availability_check_enabled: boolean;
+  /** Hours of the day (0-23, script time zone) at which the check runs. Stored comma-separated. */
+  availability_check_hours: number[];
+  /** Offline rules that mark a job offline at once; the others need two confirmations. Stored comma-separated. */
+  availability_immediate_rules: string[];
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -65,7 +72,9 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   default_document_language: 'en',
   reminder_time: '08:00',
   reminder_email: '',
-  availability_check_days: '1',
+  availability_check_enabled: 'false',
+  availability_check_hours: '18',
+  availability_immediate_rules: 'offline_text',
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -76,6 +85,9 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ai_prompt_answer_question: defaultPrompt('answer_question'),
   ai_prompt_match_job: defaultPrompt('match_job'),
 };
+
+/** Codes of the availability rules that can decide a job is offline. */
+export const OFFLINE_RULES = ['http_gone', 'redirect_elsewhere', 'valid_until_past', 'offline_text'] as const;
 
 const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'];
 
@@ -92,9 +104,15 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   default_document_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
   reminder_time: (raw) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(raw.trim()) ? raw.trim() : undefined),
   reminder_email: (raw) => (raw.trim() === '' || /^[^@\s]+@[^@\s]+$/.test(raw.trim()) ? raw.trim() : undefined),
-  availability_check_days: (raw) => {
-    const n = Number(raw.trim());
-    return Number.isInteger(n) && n >= 1 && n <= 30 ? n : undefined;
+  availability_check_enabled: (raw) => (['true', 'false'].includes(raw.trim().toLowerCase()) ? raw.trim().toLowerCase() === 'true' : undefined),
+  availability_check_hours: (raw) => {
+    const hours = items(raw, /,/).map((part) => (/^\d{1,2}$/.test(part) ? Number(part) : NaN));
+    const valid = hours.length > 0 && hours.every((h) => h >= 0 && h <= 23) && new Set(hours).size === hours.length;
+    return valid ? [...hours].sort((a, b) => a - b) : undefined;
+  },
+  availability_immediate_rules: (raw) => {
+    const parts = items(raw, /,/);
+    return parts.every((part) => (OFFLINE_RULES as readonly string[]).includes(part)) ? parts : undefined;
   },
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),

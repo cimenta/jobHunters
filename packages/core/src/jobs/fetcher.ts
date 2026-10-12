@@ -1,6 +1,8 @@
 export interface FetchResult {
-  /** HTTP status; 0 when the request itself failed. */
+  /** HTTP status of the last answer; 0 when the request itself failed. */
   status: number;
+  /** The address the download ended at, after following redirects. The requested address when there was none. */
+  finalUrl: string;
   /** The page body for a 200 answer, otherwise empty. */
   html: string;
 }

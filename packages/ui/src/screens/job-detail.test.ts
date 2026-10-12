@@ -112,3 +112,17 @@ describe('JobDetail', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Job ghost was not found.');
   });
 });
+
+describe('JobDetail availability', () => {
+  it('checks the availability on demand and explains the result', async () => {
+    useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Availability' }));
+    await waitFor(() => expect(toasts.some((t) => /may be gone/.test(t.text))).toBe(true));
+    expect(await screen.findByText(/suspected: page not found \(answer 404\)/)).toBeInTheDocument();
+    expect(screen.getByText(/^Checked /)).toBeInTheDocument();
+  });
+});

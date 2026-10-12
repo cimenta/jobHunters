@@ -1,10 +1,10 @@
-import { NO_LOCK, SHEETS, type FetchResult, type SheetName } from '@jobhunters/core';
-import { FakeDrive, FakeGrid, FakePageFetcher } from '@jobhunters/core/testing';
+import { NO_LOCK, SHEETS, type SheetName } from '@jobhunters/core';
+import { FakeDrive, FakeGrid, FakePageFetcher, type FakePage } from '@jobhunters/core/testing';
 import { buildContainer } from './container';
 
 export const NOW = '2026-10-10T08:00:00.000Z';
 
-export function makeTestContainer(pages: Record<string, FetchResult> = {}) {
+export function makeTestContainer(pages: Record<string, FakePage> = {}) {
   const grids = new Map<SheetName, FakeGrid>();
   const grid = (sheet: SheetName): FakeGrid => {
     let found = grids.get(sheet);

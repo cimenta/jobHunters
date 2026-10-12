@@ -3,12 +3,15 @@ import {
   ApplicationFactory,
   ApplicationRemover,
   ApplicationService,
+  AvailabilityService,
   CatalogService,
   CommunicationService,
   DocumentService,
+  InMemoryKeyValueStore,
   JobService,
   QuestionService,
   ReminderService,
+  Scheduler,
   TemplateService,
   SettingsService,
   SheetAppendLog,
@@ -24,6 +27,7 @@ import {
   type DriveGateway,
   type FolderRef,
   type Job,
+  type KeyValueStore,
   type Lock,
   type LogEntry,
   type PageFetcher,
@@ -36,6 +40,8 @@ import {
 } from '@jobhunters/core';
 
 export const LOG_MAX_ROWS = 1000;
+/** Time one scheduled availability run may take; Apps Script stops a run after 6 minutes. */
+export const AVAILABILITY_BUDGET_MS = 5 * 60 * 1000;
 
 export interface ContainerDeps {
   grid: (sheet: SheetName) => SheetGrid;
@@ -47,6 +53,12 @@ export interface ContainerDeps {
   fetcher: PageFetcher;
   drive: DriveGateway;
   rootFolder: () => FolderRef;
+  /** Time zone of the script; the GUI shows every time in it. */
+  timeZone?: () => string;
+  /** Milliseconds, for time budgets. */
+  clock?: () => number;
+  /** Where the scheduler remembers when each task last ran. */
+  schedulerState?: KeyValueStore;
 }
 
 export type Container = ReturnType<typeof buildContainer>;
@@ -123,9 +135,29 @@ export function buildContainer(deps: ContainerDeps) {
     language: () => settings.get().settings.ui_language,
     prompt: (type) => settings.get().settings[`ai_prompt_${type}`],
   });
+  const availabilityService = new AvailabilityService({
+    jobs, applications, fetcher: deps.fetcher, now: deps.now, clock: deps.clock ?? Date.now, log,
+    settings: () => {
+      const s = settings.get().settings;
+      return { offlineTexts: s.offline_texts, immediateRules: s.availability_immediate_rules, statusStyles: s.status_styles };
+    },
+  });
+  const scheduler = new Scheduler({
+    lastRun: deps.schedulerState ?? new InMemoryKeyValueStore(),
+    log,
+    tasks: [
+      {
+        id: 'availability',
+        enabled: () => settings.get().settings.availability_check_enabled,
+        hours: () => settings.get().settings.availability_check_hours,
+        run: () => void availabilityService.checkDue(AVAILABILITY_BUDGET_MS),
+      },
+    ],
+  });
 
   return {
     appVersion: deps.appVersion,
+    timeZone: deps.timeZone ?? (() => 'UTC'),
     now: deps.now,
     history,
     lock,
@@ -150,6 +182,8 @@ export function buildContainer(deps: ContainerDeps) {
     reminderService,
     catalogService,
     aiTaskService,
+    availabilityService,
+    scheduler,
     log,
     logEntries: (): LogEntry[] => logSheet.list(),
     /** Reads every entity sheet and returns what is wrong with rows edited outside the app. */

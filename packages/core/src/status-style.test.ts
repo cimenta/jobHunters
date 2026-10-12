@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { APPLICATION_STATUSES } from './status';
 import {
-  DEFAULT_STATUS_COLORS, parseStatusStyles, readableTextColor, resolveStatusStyle, serializeStatusStyles, STATUS_TEXT_MAX,
+  DEFAULT_STATUS_CHECK, DEFAULT_STATUS_COLORS, parseStatusStyles, readableTextColor, resolveStatusStyle, serializeStatusStyles, STATUS_TEXT_MAX, statusChecksAvailability,
   UNKNOWN_STATUS_COLOR,
 } from './status-style';
 
@@ -85,5 +85,24 @@ describe('resolveStatusStyle', () => {
   });
   it('has a default colour for every status', () => {
     expect(Object.keys(DEFAULT_STATUS_COLORS).sort()).toEqual([...APPLICATION_STATUSES].sort());
+  });
+});
+
+describe('statusChecksAvailability', () => {
+  it('uses the defaults for open statuses and the stored flag when there is one', () => {
+    expect(statusChecksAvailability({}, 'sent')).toBe(true);
+    expect(statusChecksAvailability({}, 'offer')).toBe(false);
+    expect(statusChecksAvailability({ sent: { check: false }, offer: { check: true } }, 'sent')).toBe(false);
+    expect(statusChecksAvailability({ offer: { check: true } }, 'offer')).toBe(true);
+    expect(statusChecksAvailability({}, 'unknown')).toBe(false);
+  });
+
+  it('parses the flag and rejects a non-boolean', () => {
+    expect(parseStatusStyles('{"sent":{"check":false}}')).toEqual({ sent: { check: false } });
+    expect(parseStatusStyles('{"sent":{"check":"no"}}')).toBeUndefined();
+  });
+
+  it('has a default for every status', () => {
+    expect(Object.keys(DEFAULT_STATUS_CHECK).sort()).toEqual([...APPLICATION_STATUSES].sort());
   });
 });

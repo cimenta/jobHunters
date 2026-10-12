@@ -11,7 +11,7 @@
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, formatSalary } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
-  import { availabilityLabel } from '../lib/labels';
+  import { availabilityLabel, availabilityReasonLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { navigate } from '../lib/router.svelte';
@@ -42,6 +42,16 @@
     invalidate();
   }
 
+  async function checkAvailability(): Promise<void> {
+    const { job, verdict } = await api.checkJobAvailability(id);
+    const reason = availabilityReasonLabel(job.availability_reason);
+    if (verdict.availability === 'online') toast.success(tr('ui.job.checkResult.online'));
+    else if (job.availability === 'offline') toast.warning(tr('ui.job.checkResult.offline', { reason }));
+    else if (verdict.availability === 'offline') toast.warning(tr('ui.job.checkResult.suspected', { reason }));
+    else toast.warning(tr('ui.job.checkResult.unknown', { reason }));
+    invalidate();
+  }
+
   const salary = $derived(detail.data ? formatSalary(detail.data.job) : '');
 </script>
 
@@ -66,12 +76,14 @@
         <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
         {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
         {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
+        {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
         {#if job.flags.includes('snapshot_missing')}<span class="warn small">{tr('ui.job.snapshotMissing')}</span>{/if}
       </div>
       <div class="row wrap">
         {#if job.url !== ''}
           <a href={job.url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
         {/if}
+        <Button ui="job-detail.check-availability" onclick={checkAvailability}>{tr('ui.job.checkAvailability')}</Button>
         {#if job.folder_url !== ''}
           <a href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>
         {/if}
