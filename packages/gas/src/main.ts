@@ -8,7 +8,7 @@ import { createApi, toFailure, type ApiResult } from './api';
 import { buildContainer, type Container } from './container';
 import { createHandlers } from './handlers';
 import { getRootFolderId, getSpreadsheetId } from './props';
-import { runSetup } from './setup';
+import { runSetup, runSetupColumnsTest } from './setup';
 import { runSmokeTest } from './smoke';
 
 /** Defined in Version.gs, which Apps Script loads into the same global scope. */
@@ -86,6 +86,13 @@ export function smokeTest(): string {
     log: (line) => Logger.log(line),
   });
   return result.ok ? 'OK' : `FAILED: ${result.failed.join(', ')}`;
+}
+
+/** Manual check of the column migration of setup(); run it from the editor and read the result. Leaves no data behind. */
+export function testSetupColumns(): string {
+  const result = runSetupColumnsTest(getSpreadsheetId());
+  Logger.log(result);
+  return result;
 }
 
 /** Fired by the hourly time trigger: starts the scheduled tasks whose hour it is. */

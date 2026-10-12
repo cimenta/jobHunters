@@ -72,3 +72,25 @@ export function runSetup(): { spreadsheetUrl: string; rootFolderUrl: string } {
   ensureHourlyTrigger();
   return { spreadsheetUrl: spreadsheet.getUrl(), rootFolderUrl: root.getUrl() };
 }
+
+/**
+ * Manual check of the column migration: builds a scratch sheet that lacks two columns, runs the same code
+ * setup() uses on an existing sheet, checks the result and deletes the sheet. Touches no real data.
+ */
+export function runSetupColumnsTest(spreadsheetId: string): string {
+  const spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+  const name = 'ZZ_SetupTest';
+  const old = spreadsheet.getSheetByName(name);
+  if (old !== null) spreadsheet.deleteSheet(old);
+  const sheet = spreadsheet.insertSheet(name);
+  try {
+    sheet.getRange(1, 1, 2, 3).setValues([['id', 'title', 'notes'], ['x', 'keep', 'me']]);
+    applySheet(spreadsheet, { name, headers: ['id', 'title', 'notes', 'status', 'match_percent'], textColumns: [], checkboxColumns: [], dropdowns: [], seedRows: [] });
+    applySheet(spreadsheet, { name, headers: ['id', 'title', 'notes', 'status', 'match_percent'], textColumns: [], checkboxColumns: [], dropdowns: [], seedRows: [] });
+    const header = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0]!.join(',');
+    const row = sheet.getRange(2, 1, 1, 3).getValues()[0]!.join(',');
+    return header === 'id,title,notes,status,match_percent' && row === 'x,keep,me' ? 'OK' : `FAILED: header=${header} row=${row}`;
+  } finally {
+    spreadsheet.deleteSheet(sheet);
+  }
+}
