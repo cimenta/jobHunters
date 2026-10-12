@@ -8,6 +8,7 @@ import {
   CommunicationService,
   DocumentService,
   InMemoryKeyValueStore,
+  JobImportService,
   JobService,
   JobStatusService,
   QuestionService,
@@ -138,6 +139,7 @@ export function buildContainer(deps: ContainerDeps) {
     language: () => settings.get().settings.ui_language,
     prompt: (type) => settings.get().settings[`ai_prompt_${type}`],
   });
+  const jobImportService = new JobImportService({ jobService, aiTasks: aiTaskService, jobs, tasks, companies, applications });
   const availabilityService = new AvailabilityService({
     jobs, applications, fetcher: deps.fetcher, now: deps.now, clock: deps.clock ?? Date.now, log,
     settings: () => {
@@ -186,6 +188,8 @@ export function buildContainer(deps: ContainerDeps) {
     catalogService,
     jobStatusService,
     aiTaskService,
+    jobImportService,
+    tasks,
     availabilityService,
     scheduler,
     log,

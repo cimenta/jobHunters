@@ -9,7 +9,8 @@
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
-  import { formatDate, formatSalary } from '../lib/format';
+  import ConfirmDialog from '../components/ConfirmDialog.svelte';
+  import { formatDate, formatSalary, shorten } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
   import { availabilityLabel, availabilityReasonLabel } from '../lib/labels';
@@ -27,6 +28,7 @@
   let notes = $state('');
   let gig = $state(false);
   let creating = $state(false);
+  let deleting = $state(false);
   let tab = $state('applications');
 
   $effect(() => {
@@ -63,6 +65,14 @@
     invalidate();
   }
 
+  async function remove(): Promise<void> {
+    const job = detail.data?.job;
+    await api.deleteJob(id);
+    toast.success(tr('ui.job.deleted', { title: shorten(job?.title ?? '', 60) }));
+    invalidate();
+    navigate(paths.jobs);
+  }
+
   const salary = $derived(detail.data ? formatSalary(detail.data.job) : '');
 </script>
 
@@ -81,7 +91,9 @@
     <Card ui="job-detail.summary">
       <div class="page-title">
         <h1>{job.title}</h1>
-        <Button variant="primary" ui="job-detail.create-application" onclick={() => (creating = true)}><Icon name="plus" size={18} />{tr('ui.job.createApplication')}</Button>
+        {#if job.status !== 'awaiting'}
+          <Button variant="primary" ui="job-detail.create-application" onclick={() => (creating = true)}><Icon name="plus" size={18} />{tr('ui.job.createApplication')}</Button>
+        {/if}
       </div>
       <p class="muted">{[detail.data.company?.name ?? '', job.location, salary].filter((part) => part !== '').join(' · ')}</p>
       <div class="row wrap">
@@ -97,15 +109,25 @@
         {#if job.url !== ''}
           <a href={job.url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
         {/if}
+        {#if job.status !== 'awaiting'}
         <select class="input status-select" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
           {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
         </select>
         <Button ui="job-detail.check-availability" onclick={checkAvailability}>{tr('ui.job.checkAvailability')}</Button>
+        {/if}
         {#if job.folder_url !== ''}
           <a href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>
         {/if}
       </div>
     </Card>
+
+    {#if job.status === 'awaiting'}
+      <Card ui="job.awaiting">
+        <p>{tr('ui.job.awaitingNotice')}</p>
+        <div><Button variant="danger" ui="job-detail.delete" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button></div>
+      </Card>
+      <ConfirmDialog open={deleting} text={tr('ui.job.deleteConfirm', { title: job.title })} onconfirm={remove} onclose={() => (deleting = false)} />
+    {/if}
 
     <Card ui="job-detail.tabs">
       <Tabs
@@ -113,7 +135,7 @@
           { id: 'applications', label: tr('ui.job.tab.applications'), count: detail.data.applications.length },
           { id: 'notes', label: tr('ui.job.tab.notes') },
           { id: 'description', label: tr('ui.job.tab.description') },
-          { id: 'match', label: tr('ui.job.tab.match') },
+          ...(job.status === 'awaiting' ? [] : [{ id: 'match', label: tr('ui.job.tab.match') }]),
         ]}
         bind:active={tab}
         label={tr('ui.job.tabs')}
@@ -146,7 +168,7 @@
           <div data-ui="job-detail.description">
             <p class="description">{job.description === '' ? tr('ui.job.noDescription') : job.description}</p>
           </div>
-        {:else}
+        {:else if job.status !== 'awaiting'}
           <MatchTab jobId={job.id} jobTitle={job.title} match={detail.data.match} />
         {/if}
       </div>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  jobStatusChecksAvailability, jobStatusOf, matchColor, parseJobStatusStyles, resolveJobStatus, serializeJobStatusStyles,
+  isBuiltinJobStatus, jobStatusChecksAvailability, jobStatusOf, matchColor, parseJobStatusStyles, resolveJobStatus, serializeJobStatusStyles,
 } from './job-status';
 
 const custom = '{"s_abc123":{"text":{"en":"Maybe","cs":"Možná"},"color":"#AA00BB"}}';
@@ -8,7 +8,7 @@ const custom = '{"s_abc123":{"text":{"en":"Maybe","cs":"Možná"},"color":"#AA00
 describe('parseJobStatusStyles', () => {
   it('always holds the built-in statuses with their defaults', () => {
     for (const raw of ['', '{}']) {
-      expect(parseJobStatusStyles(raw)).toEqual({ new: { color: '#2563eb', check: true }, no: { color: '#6b7280', check: false } });
+      expect(parseJobStatusStyles(raw)).toEqual({ new: { color: '#2563eb', check: true }, no: { color: '#6b7280', check: false }, awaiting: { color: '#d97706', check: false } });
     }
   });
 
@@ -56,5 +56,15 @@ describe('job status helpers', () => {
     expect(resolveJobStatus(styles, 'new', null, 'en')).toMatchObject({ text: 'New', color: '#2563eb' });
     expect(resolveJobStatus(styles, 'no', 90, 'cs')).toMatchObject({ text: 'Ne', color: '#6b7280' });
     expect(resolveJobStatus(styles, 's_abc123', 90, 'cs')).toMatchObject({ text: 'Možná', color: '#aa00bb' });
+  });
+});
+
+describe('awaiting status', () => {
+  it('is built in, not checked for availability and named in both languages', () => {
+    const styles = parseJobStatusStyles('{}')!;
+    expect(styles.awaiting).toMatchObject({ color: '#d97706', check: false });
+    expect(isBuiltinJobStatus('awaiting')).toBe(true);
+    expect(resolveJobStatus(styles, 'awaiting', null, 'en').text).toBe('Awaiting AI');
+    expect(resolveJobStatus(styles, 'awaiting', null, 'cs').text).toBe('Čeká na AI');
   });
 });

@@ -59,6 +59,8 @@ export class ApplicationFactory {
     const job = jobs.get(input.jobId);
     if (!job) throw new NotFoundError('job_not_found', `Job ${input.jobId} not found`, { id: input.jobId });
 
+    if (job.status === 'awaiting') throw new ValidationError('job_awaiting', `Job ${job.id} is waiting for the AI`, { id: job.id });
+
     const settings = this.deps.settings();
     const language = input.language ?? settings.default_document_language;
     if (!isLocale(language)) throw new ValidationError('language_invalid', `Unsupported language ${language}`, { language });

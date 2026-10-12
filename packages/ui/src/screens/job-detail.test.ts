@@ -142,3 +142,44 @@ describe('JobDetail status', () => {
     expect(screen.getAllByText('No').length).toBeGreaterThan(0);
   });
 });
+
+describe('JobDetail awaiting the AI', () => {
+  async function awaiting() {
+    await api.importJob('https://blocked.example/job/1');
+    return (await api.listJobs()).find((job) => job.status === 'awaiting')!;
+  }
+
+  it('explains the wait, offers no matching or application and deletes the job after confirmation', async () => {
+    useDevBackend();
+    const job = await awaiting();
+    render(JobDetail, { id: job.id });
+    expect(await screen.findByText('This job waits for the AI. Tell Claude: run the pending tasks.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Create application' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Match' })).toBeNull();
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete job' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Are you sure?' });
+    expect(within(dialog).getByText(/waiting for the AI and has no data yet/)).toBeInTheDocument();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(async () => expect((await api.listJobs()).some((j) => j.id === job.id)).toBe(false));
+    expect(toasts.some((t) => t.text.startsWith('Job "') && t.text.endsWith('" deleted'))).toBe(true);
+    await waitFor(() => expect(router.current.name).toBe('jobs'));
+  });
+
+  it('offers no availability check and no status picker', async () => {
+    useDevBackend();
+    const job = await awaiting();
+    render(JobDetail, { id: job.id });
+    await screen.findByText('This job waits for the AI. Tell Claude: run the pending tasks.');
+    expect(screen.queryByRole('button', { name: 'Availability' })).toBeNull();
+    expect(screen.queryByLabelText('Status')).toBeNull();
+  });
+
+  it('does not offer deleting for a normal job', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(screen.queryByRole('button', { name: 'Delete job' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Create application' })).toBeInTheDocument();
+  });
+});

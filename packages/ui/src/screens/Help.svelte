@@ -45,6 +45,7 @@
       <li>{tr('ui.help.dashboard.i1')}</li>
       <li>{tr('ui.help.dashboard.i2')}</li>
       <li>{tr('ui.help.dashboard.i3')}</li>
+      <li>{tr('ui.help.dashboard.i4')}</li>
     </ul>
     <p><a data-ui="help.open.dashboard" href={paths.dashboard}>{tr('ui.help.open', { name: tr('ui.help.dashboard.title') })}</a></p>
   </Card>
@@ -60,6 +61,9 @@
       <li>{tr('ui.help.jobs.i5')}</li>
       <li>{tr('ui.help.jobs.i6')}</li>
       <li>{tr('ui.help.jobs.i7')}</li>
+      <li>{tr('ui.help.jobs.i8')}</li>
+      <li>{tr('ui.help.jobs.i9')}</li>
+      <li>{tr('ui.help.jobs.i10')}</li>
     </ul>
     <p><a data-ui="help.open.jobs" href={paths.jobs}>{tr('ui.help.open', { name: tr('ui.help.jobs.title') })}</a></p>
   </Card>
@@ -92,6 +96,7 @@
     <ul>
       <li>{tr('ui.help.tasks.i1')}</li>
       <li>{tr('ui.help.tasks.i2')}</li>
+      <li>{tr('ui.help.tasks.i3')}</li>
     </ul>
     <p><a data-ui="help.open.tasks" href={paths.tasks}>{tr('ui.help.open', { name: tr('ui.help.tasks.title') })}</a></p>
   </Card>

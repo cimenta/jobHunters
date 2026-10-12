@@ -2,6 +2,7 @@
   import type { AiTaskRow } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
+  import ConfirmDialog from '../components/ConfirmDialog.svelte';
   import Dialog from '../components/Dialog.svelte';
   import EmptyState from '../components/EmptyState.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
@@ -9,7 +10,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import { formatDate } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
-  import { documentTypeLabel } from '../lib/labels';
+  import { aiTaskTypeLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { invalidate } from '../state/invalidate.svelte';
@@ -21,21 +22,6 @@
   /** Newest first; the backend sorts too, but the table must not depend on that. */
   const rows = $derived([...(tasks.data ?? [])].sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0)));
   const selected = $derived<AiTaskRow | undefined>(rows.find((task) => task.id === openId));
-
-  function typeLabel(type: string): string {
-    switch (type) {
-      case 'match_job':
-        return tr('ui.tasks.type.match_job');
-      case 'answer_question':
-        return tr('ui.tasks.type.answer_question');
-      case 'resume_tailor':
-        return documentTypeLabel('resume');
-      case 'cover_letter':
-        return documentTypeLabel('cover_letter');
-      default:
-        return tr('ui.tasks.type.other');
-    }
-  }
 
   function statusLabel(status: string): string {
     switch (status) {
@@ -54,12 +40,27 @@
     }
   }
 
+  let confirming = $state<string | undefined>();
+
+  /** An import task whose job still waits for the AI takes the job with it, so ask first. */
+  async function askRemove(id: string): Promise<void> {
+    const task = rows.find((row) => row.id === id);
+    if (task?.type === 'import_job' && task.job_id !== '') {
+      const detail = await api.getJob(task.job_id).catch(() => undefined);
+      if (detail?.job.status === 'awaiting') {
+        confirming = id;
+        return;
+      }
+    }
+    await remove(id);
+  }
+
   async function remove(id: string): Promise<void> {
     const task = rows.find((row) => row.id === id);
     const what = task ? [task.company_name, task.job_title].filter((part) => part !== '').join(' – ') : '';
     await api.removeAiTask(id);
     openId = undefined;
-    toast.success(tr('ui.tasks.removed', { type: task ? typeLabel(task.type) : '', what }));
+    toast.success(tr('ui.tasks.removed', { type: task ? aiTaskTypeLabel(task.type) : '', what }));
     invalidate();
   }
 </script>
@@ -95,7 +96,7 @@
           {#each rows as task (task.id)}
             <tr data-ui="task.{task.id}">
               <td class="nowrap">{formatDate(task.created_at)}</td>
-              <td>{typeLabel(task.type)}</td>
+              <td>{aiTaskTypeLabel(task.type)}</td>
               <td class="job">{task.company_name}</td>
               <td class="job">{task.job_title}</td>
               <td><span class="badge" data-status={task.status}>{statusLabel(task.status)}</span></td>
@@ -109,7 +110,7 @@
   {/if}
 </div>
 
-<Dialog open={selected !== undefined} title={selected ? typeLabel(selected.type) : ''} onclose={() => (openId = undefined)} ui="task-dialog">
+<Dialog open={selected !== undefined} title={selected ? aiTaskTypeLabel(selected.type) : ''} onclose={() => (openId = undefined)} ui="task-dialog">
   {#if selected}
     <div class="stack">
       <div class="row wrap">
@@ -130,9 +131,16 @@
     </div>
   {/if}
   {#snippet footer()}
-    {#if selected}<Button variant="danger" ui="task-dialog.remove" onclick={() => selected && remove(selected.id)}><Icon name="trash" size={18} />{tr('ui.tasks.remove')}</Button>{/if}
+    {#if selected}<Button variant="danger" ui="task-dialog.remove" onclick={() => selected && askRemove(selected.id)}><Icon name="trash" size={18} />{tr('ui.tasks.remove')}</Button>{/if}
   {/snippet}
 </Dialog>
+
+<ConfirmDialog
+  open={confirming !== undefined}
+  text={tr('ui.tasks.removeImportConfirm', { title: rows.find((row) => row.id === confirming)?.job_title ?? '' })}
+  onconfirm={() => confirming && remove(confirming)}
+  onclose={() => (confirming = undefined)}
+/>
 
 <style>
   .scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); }

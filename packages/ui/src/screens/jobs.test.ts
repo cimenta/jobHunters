@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { api } from '../api';
 import { router } from '../lib/router.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
@@ -122,5 +123,19 @@ describe('JobsList status', () => {
     await waitFor(() => expect(screen.getAllByRole('listitem').length).toBe(1));
     expect(all).toBeGreaterThan(1);
     expect(screen.getByText(jobs[0]!.title)).toBeInTheDocument();
+  });
+});
+
+describe('JobsList awaiting', () => {
+  it('shows the awaiting job with its badge and offers the status in the filter', async () => {
+    useDevBackend();
+    await api.importJob('https://blocked.example/job/1');
+    render(JobsList);
+    const awaiting = (await api.listJobs()).find((job) => job.status === 'awaiting')!;
+    const row = (await screen.findByText(awaiting.title)).closest('a')!;
+    expect(within(row).getByText('Awaiting AI')).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'awaiting' } });
+    expect(screen.queryByText('Android Developer')).toBeNull();
+    expect(screen.getByText(awaiting.title)).toBeInTheDocument();
   });
 });

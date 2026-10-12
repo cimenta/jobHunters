@@ -4,7 +4,7 @@ import { DEFAULT_JOB_STATUS_STYLES, type JobStatusStyles } from './job-status';
 import { parseUrl } from './jobs/url';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
-import type { Application, Company, Job, Reminder } from './types';
+import type { AiTask, Application, Company, Job, Reminder } from './types';
 
 export type JobRow = Job & { company_name: string; application_count: number };
 export type CompanyRow = Company & { job_count: number; application_count: number };
@@ -66,6 +66,8 @@ export interface DashboardReminder {
 export interface Dashboard {
   reminders: { overdue: DashboardReminder[]; today: DashboardReminder[]; soon: DashboardReminder[] };
   statusCounts: Record<ApplicationStatus, number>;
+  /** AI tasks still waiting for the AI (pending or in progress), in total and per task type. */
+  aiTasksWaiting: { total: number; byType: Record<string, number> };
 }
 
 export function buildDashboard(input: {
@@ -73,6 +75,7 @@ export function buildDashboard(input: {
   applications: readonly Application[];
   jobs: readonly Job[];
   companies: readonly Company[];
+  tasks: readonly AiTask[];
   /** YYYY-MM-DD. */
   today: string;
 }): Dashboard {
@@ -94,9 +97,18 @@ export function buildDashboard(input: {
   for (const application of input.applications) {
     if ((APPLICATION_STATUSES as readonly string[]).includes(application.status)) statusCounts[application.status as ApplicationStatus]++;
   }
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const task of input.tasks) {
+    if (task.status !== 'pending' && task.status !== 'in_progress') continue;
+    counts.set(task.type, (counts.get(task.type) ?? 0) + 1);
+    total++;
+  }
+  const byType = Object.fromEntries(counts) as Record<string, number>;
   return {
     reminders: { overdue: buckets.overdue.map(describe), today: buckets.today.map(describe), soon: buckets.soon.map(describe) },
     statusCounts,
+    aiTasksWaiting: { total, byType },
   };
 }
 
@@ -117,7 +129,7 @@ export class CatalogService {
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
     if (patch.status !== undefined) {
       const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
-      if (!Object.prototype.hasOwnProperty.call(known, patch.status)) {
+      if (patch.status === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, patch.status)) {
         throw new ValidationError('job_status_invalid', `Unknown job status ${patch.status}`, { status: patch.status });
       }
       change.status = patch.status;

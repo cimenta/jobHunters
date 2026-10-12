@@ -91,6 +91,35 @@ export class JobService {
     if (duplicate) return { status: 'duplicate', job: duplicate, company: companies.get(duplicate.company_id), warnings: [], missing: [] };
 
     const acquired = this.acquire(url, input);
+    return this.persist(url, acquired, input);
+  }
+
+  /** Like `save`, but downloads once and writes nothing unless the page gave a title and a description. */
+  saveIfReadable(input: JobInput): SaveResult | { status: 'unreadable'; fetchStatus: number } {
+    const { companies } = this.deps;
+    const url = normalizeJobUrl(input.url);
+    const duplicate = this.findDuplicate(url);
+    if (duplicate) return { status: 'duplicate', job: duplicate, company: companies.get(duplicate.company_id), warnings: [], missing: [] };
+    const acquired = this.acquire(url, input);
+    const { missing } = acquired.parsed;
+    if (!acquired.fetched || missing.includes('title') || missing.includes('description')) return { status: 'unreadable', fetchStatus: acquired.fetchStatus };
+    return this.persist(url, acquired, input);
+  }
+
+  /** A job that only waits for the AI to read the ad: the title comes from the address. */
+  createPlaceholder(rawUrl: string): Job {
+    const url = normalizeJobUrl(rawUrl);
+    return this.deps.jobs.insert({
+      id: this.deps.newId(), company_id: '', title: titleFromUrl(url), url, source: parseUrl(url)?.host.replace(/^www\./, '') ?? '',
+      parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
+      salary_currency: '', salary_period: '', employment_type: '', remote: '', posted_at: '', valid_until: '', description: '', language: '',
+      availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
+      status: 'awaiting', match_percent: null,
+    });
+  }
+
+  private persist(url: string, acquired: Acquired, input: JobInput): SaveResult {
+    const { jobs, newId, now } = this.deps;
     const fields = { ...acquired.parsed, ...definedOnly(input.overrides) } as ParsedJob & { notes?: string };
     const warnings: AppWarning[] = [];
     if (!acquired.fetched && acquired.content === undefined) {

@@ -15,7 +15,8 @@ export function jobStatus(job: { status: string; match_percent: number | null })
 }
 
 /** The statuses an ad may be put in, with their names in the current language. */
-export function jobStatusOptions(): { code: string; text: string }[] {
+export function jobStatusOptions(includeAwaiting = false): { code: string; text: string }[] {
   const styles = jobStyles();
-  return Object.keys(styles).map((code) => ({ code, text: resolveJobStatus(styles, code, null, ui.locale).text }));
+  // "awaiting" is set by the app for ads handed to the AI; nobody picks it by hand.
+  return Object.keys(styles).filter((code) => includeAwaiting || code !== 'awaiting').map((code) => ({ code, text: resolveJobStatus(styles, code, null, ui.locale).text }));
 }

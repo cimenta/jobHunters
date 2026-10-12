@@ -200,3 +200,45 @@ describe('companyKey', () => {
     expect(companyKey('  ')).toBe('');
   });
 });
+
+describe('saveIfReadable and createPlaceholder', () => {
+  it('saves a readable page with one download', () => {
+    const { service, fetcher, jobs } = setup({ [URL1]: { status: 200, html: AD } });
+    const result = service.saveIfReadable({ url: URL1 });
+    expect(result.status).toBe('created');
+    expect(jobs.list()).toHaveLength(1);
+    expect(fetcher.calls).toHaveLength(1);
+  });
+
+  it('does not save a page that is not readable and writes nothing', () => {
+    for (const page of [{ status: 429, html: '' }, { status: 403, html: '' }, { status: 200, html: '<html><title>Sign Up | LinkedIn</title><body>Log in</body></html>' }]) {
+      const { service, jobs } = setup({ [URL1]: page });
+      expect(service.saveIfReadable({ url: URL1 })).toMatchObject({ status: 'unreadable', fetchStatus: page.status });
+      expect(jobs.list()).toHaveLength(0);
+    }
+  });
+
+  it('reports status 0 when the download fails', () => {
+    const { service, jobs, fetcher } = setup();
+    fetcher.fetch = () => {
+      throw new Error('network down');
+    };
+    expect(service.saveIfReadable({ url: URL1 })).toEqual({ status: 'unreadable', fetchStatus: 0 });
+    expect(jobs.list()).toHaveLength(0);
+  });
+
+  it('reports a duplicate without downloading', () => {
+    const { service, fetcher } = setup({ [URL1]: { status: 200, html: AD } });
+    service.save({ url: URL1 });
+    const before = fetcher.calls.length;
+    expect(service.saveIfReadable({ url: URL1 }).status).toBe('duplicate');
+    expect(fetcher.calls.length).toBe(before);
+  });
+
+  it('creates an awaiting placeholder with the title from the address', () => {
+    const { service, jobs } = setup();
+    const job = service.createPlaceholder(URL1);
+    expect(job).toMatchObject({ status: 'awaiting', url: URL1, availability: 'unknown', company_id: '' });
+    expect(jobs.get(job.id)).toBeDefined();
+  });
+});

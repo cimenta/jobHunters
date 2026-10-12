@@ -33,6 +33,7 @@ export const SETTING_KEYS = [
   'ai_prompt_other',
   'ai_prompt_answer_question',
   'ai_prompt_match_job',
+  'ai_prompt_import_job',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -75,6 +76,7 @@ export interface Settings {
   ai_prompt_other: string;
   ai_prompt_answer_question: string;
   ai_prompt_match_job: string;
+  ai_prompt_import_job: string;
 }
 
 const defaultPrompt = (type: PromptType): string => DEFAULT_PROMPTS.find((p) => p.type === type)?.instruction ?? '';
@@ -103,6 +105,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ai_prompt_other: defaultPrompt('other'),
   ai_prompt_answer_question: defaultPrompt('answer_question'),
   ai_prompt_match_job: defaultPrompt('match_job'),
+  ai_prompt_import_job: defaultPrompt('import_job'),
 };
 
 /** Codes of the availability rules that can decide a job is offline. */
@@ -149,6 +152,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   ai_prompt_other: parsePrompt,
   ai_prompt_answer_question: parsePrompt,
   ai_prompt_match_job: parsePrompt,
+  ai_prompt_import_job: parsePrompt,
 };
 
 function isSettingKey(key: string): key is SettingKey {

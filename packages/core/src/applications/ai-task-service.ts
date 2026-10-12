@@ -49,8 +49,13 @@ export class AiTaskService {
 
   /** Deletes a task whatever its state, e.g. one the AI left in progress. */
   remove(id: string): void {
-    if (!this.deps.tasks.get(id)) throw new NotFoundError('task_not_found', `Task ${id} not found`, { id });
+    const task = this.deps.tasks.get(id);
+    if (!task) throw new NotFoundError('task_not_found', `Task ${id} not found`, { id });
     this.deps.tasks.remove(id);
+    if (task.type === 'import_job') {
+      const job = this.deps.jobs.get(task.job_id);
+      if (job && job.status === 'awaiting') this.deps.jobs.remove(job.id);
+    }
   }
 
   /** The newest task that writes the given document. */
@@ -136,7 +141,9 @@ export class AiTaskService {
   /** Queues a match evaluation; an already waiting or running one is returned instead of a duplicate. */
   requestMatch(jobId: string): AiTask {
     const { tasks, jobs, newId, now, experience, language } = this.deps;
-    if (!jobs.get(jobId)) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    const job = jobs.get(jobId);
+    if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    if (job.status === 'awaiting') throw new ValidationError('job_awaiting', `Job ${jobId} is waiting for the AI`, { id: jobId });
     if (experience().trim() === '') throw new ValidationError('match_experience_required', 'The experience setting is empty', {});
     const current = this.matchFor(jobId);
     if (current && ACTIVE.includes(current.status)) return current;
@@ -145,6 +152,21 @@ export class AiTaskService {
     return tasks.insert({
       id, created_at: now(), application_id: '', job_id: jobId, type: 'match_job', target_type: 'job', target_id: jobId,
       instructions: renderPrompt(this.deps.prompt('match_job'), { task_id: id, job_id: jobId, language: name }),
+      status: 'pending', ai_note: '', completed_at: '',
+    });
+  }
+
+  /** Queues the AI to read an ad the app could not download; needs no experience. */
+  requestImport(jobId: string): AiTask {
+    const { tasks, jobs, newId, now, language } = this.deps;
+    const job = jobs.get(jobId);
+    if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    const current = tasks.list().filter((t) => t.type === 'import_job' && t.job_id === jobId && ACTIVE.includes(t.status)).at(0);
+    if (current) return current;
+    const id = newId();
+    return tasks.insert({
+      id, created_at: now(), application_id: '', job_id: jobId, type: 'import_job', target_type: 'job', target_id: jobId,
+      instructions: renderPrompt(this.deps.prompt('import_job'), { task_id: id, job_id: jobId, url: job.url, language: LANGUAGE_NAMES[language()] ?? 'English' }),
       status: 'pending', ai_note: '', completed_at: '',
     });
   }

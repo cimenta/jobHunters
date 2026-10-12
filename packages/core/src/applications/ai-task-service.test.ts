@@ -8,9 +8,10 @@ import { AiTaskService } from './ai-task-service';
 
 function setup(experience = 'Ten years of TypeScript', templates: Partial<Record<PromptType, string>> = {}) {
   const tasks = new InMemoryRepository<AiTask>();
+  const jobs = new InMemoryRepository<Job>([makeJob({ id: 'j1', company_id: 'c1' })]);
   const service = new AiTaskService({
     tasks,
-    jobs: new InMemoryRepository<Job>([makeJob({ id: 'j1', company_id: 'c1' })]),
+    jobs,
     companies: new InMemoryRepository<Company>([{ id: 'c1', name: 'Example s.r.o.', website: '', notes: '' }]),
     applications: new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', language: 'cs' })]),
     questions: new InMemoryRepository<Question>([
@@ -28,7 +29,7 @@ function setup(experience = 'Ten years of TypeScript', templates: Partial<Record
     language: () => 'cs',
     prompt: (type) => templates[type] ?? DEFAULT_PROMPTS.find((p) => p.type === type)!.instruction,
   });
-  return { tasks, service };
+  return { tasks, jobs, service };
 }
 
 describe('AiTaskService prompts', () => {
@@ -150,5 +151,48 @@ describe('AiTaskService', () => {
     tasks.update(again.id, { status: 'in_progress' });
     expect(errorOf(() => service.cancel(again.id))).toMatchObject({ code: 'task_not_cancellable' });
     expect(errorOf(() => service.cancel('zz'))).toMatchObject({ code: 'task_not_found' });
+  });
+});
+
+describe('AiTaskService import', () => {
+  it('refuses to match an awaiting job but still queues its import', () => {
+    const { service, jobs } = setup();
+    jobs.update('j1', { status: 'awaiting' });
+    expect(errorOf(() => service.requestMatch('j1')).code).toBe('job_awaiting');
+    expect(service.requestImport('j1').type).toBe('import_job');
+  });
+
+  it('queues an import task with the url and task id in the instructions, even without experience', () => {
+    const { service } = setup('');
+    const task = service.requestImport('j1');
+    expect(task).toMatchObject({ type: 'import_job', target_type: 'job', target_id: 'j1', job_id: 'j1', application_id: '', status: 'pending' });
+    expect(task.instructions).toContain('https://example.com/job/1');
+    expect(task.instructions).toContain(task.id);
+    expect(task.instructions).not.toContain('{{');
+  });
+
+  it('returns the active import task instead of a second one', () => {
+    const { service, tasks } = setup();
+    const first = service.requestImport('j1');
+    expect(service.requestImport('j1').id).toBe(first.id);
+    expect(tasks.list()).toHaveLength(1);
+  });
+
+  it('rejects an unknown job', () => {
+    const { service } = setup();
+    expect(errorOf(() => service.requestImport('nope')).code).toBe('job_not_found');
+  });
+
+  it('removing an import task deletes its awaiting job but not a job in another status', () => {
+    const { service, jobs } = setup();
+    jobs.update('j1', { status: 'awaiting' });
+    const task = service.requestImport('j1');
+    service.remove(task.id);
+    expect(jobs.get('j1')).toBeUndefined();
+
+    const other = setup();
+    const t = other.service.requestImport('j1');
+    other.service.remove(t.id);
+    expect(other.jobs.get('j1')).toBeDefined();
   });
 });

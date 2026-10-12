@@ -42,7 +42,7 @@
 
   let tab = $state('general');
   let experience = $state('');
-  let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '' });
+  let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '', import_job: '' });
   let checkEnabled = $state(false);
   let checkHours = $state('18');
   let immediateRules = $state<string[]>([]);
@@ -126,6 +126,8 @@
         return tr('ui.settings.promptAnswer');
       case 'match_job':
         return tr('ui.settings.promptMatch');
+      case 'import_job':
+        return tr('ui.settings.promptImport');
     }
   }
 

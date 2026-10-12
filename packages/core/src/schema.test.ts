@@ -49,3 +49,9 @@ describe('sheet schema', () => {
     }
   });
 });
+
+describe('Tasks.type', () => {
+  it('allows import_job', () => {
+    expect(ALLOWED_VALUES['Tasks.type']).toContain('import_job');
+  });
+});

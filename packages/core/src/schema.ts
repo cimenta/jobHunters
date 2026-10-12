@@ -96,7 +96,7 @@ export const ALLOWED_VALUES: Readonly<Record<string, readonly string[]>> = {
   'Communications.channel': ['email', 'phone', 'linkedin', 'in_person', 'portal', 'other'],
   'Reminders.status': ['open', 'done', 'dismissed'],
   'Reminders.source': ['manual', 'waiting'],
-  'Tasks.type': ['cover_letter', 'resume_tailor', 'answer_question', 'rewrite', 'summarize_job', 'extract_job', 'match_job', 'other'],
+  'Tasks.type': ['cover_letter', 'resume_tailor', 'answer_question', 'rewrite', 'summarize_job', 'extract_job', 'match_job', 'import_job', 'other'],
   'Tasks.target_type': ['document', 'question', 'job'],
   'Tasks.status': ['pending', 'in_progress', 'done', 'needs_input', 'failed'],
   'Templates.type': ['resume', 'cover_letter', 'other'],

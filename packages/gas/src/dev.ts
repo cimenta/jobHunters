@@ -1,4 +1,4 @@
-import { NO_LOCK, SHEETS, type SheetName } from '@jobhunters/core';
+import { NO_LOCK, SHEETS, type FetchResult, type SheetName } from '@jobhunters/core';
 import { FakeDrive, FakeGrid, FakePageFetcher, type FakePage } from '@jobhunters/core/testing';
 import { createApi, type ApiResult } from './api';
 import { buildContainer } from './container';
@@ -17,6 +17,20 @@ const DEMO_PAGE =
     jobLocation: { address: { addressLocality: 'Brno' } },
   }) +
   '</script></head><body></body></html>';
+
+/**
+ * Fake fetcher of the dev backend. Any address containing `blocked.example` answers HTTP 429 (an unreadable ad),
+ * so UI tests can exercise the "queued for AI import" path; everything else comes from the page map.
+ */
+class BlockingFetcher extends FakePageFetcher {
+  override fetch(url: string): FetchResult {
+    if (url.includes('blocked.example')) {
+      this.calls.push(url);
+      return { status: 429, html: '', finalUrl: url };
+    }
+    return super.fetch(url);
+  }
+}
 
 const TEMPLATE_TEXT = 'Dear {{company}}, I am {{name}}, applying for {{position}} on {{date}}. {{body}}';
 
@@ -53,7 +67,7 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string }
     newId: () => `id${++counter}`,
     now,
     appVersion: 'dev',
-    fetcher: new FakePageFetcher(pages),
+    fetcher: new BlockingFetcher(pages),
     drive,
     rootFolder: () => root,
   });

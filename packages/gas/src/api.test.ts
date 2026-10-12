@@ -361,3 +361,48 @@ describe('deleteApplication api', () => {
     expect(api('deleteApplication', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'application_not_found' } });
   });
 });
+
+describe('job import api', () => {
+  const BLOCKED = 'https://blocked.example/jobs/9';
+  const pages = (): Record<string, FakePage> => ({ [CLEAN_URL]: { status: 200, html: AD }, [BLOCKED]: { status: 429, html: '' } });
+
+  it('importJob saves a readable link and queues an unreadable one', () => {
+    const { api } = setup(pages());
+    expect(api('importJob', { url: CLEAN_URL })).toMatchObject({ ok: true, data: { status: 'saved' } });
+    expect((api('listJobs') as { data: unknown[] }).data).toHaveLength(1);
+    expect(api('importJob', { url: BLOCKED })).toMatchObject({
+      ok: true,
+      data: { status: 'queued', job: { status: 'awaiting' }, task: { type: 'import_job' } },
+    });
+    const tasks = (api('listAiTasks') as { data: { type: string; status: string }[] }).data;
+    expect(tasks.filter((t) => t.type === 'import_job' && t.status === 'pending')).toHaveLength(1);
+  });
+
+  it('importJob rejects a non-link', () => {
+    const { api } = setup(pages());
+    expect(api('importJob', { url: 'not a link' })).toMatchObject({ ok: true, data: { status: 'invalid' } });
+    expect(api('importJob', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('deleteJob deletes an awaiting job, refuses a normal one', () => {
+    const { api, container } = setup(pages());
+    const saved = api('importJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
+    const queued = api('importJob', { url: BLOCKED }) as { data: { job: { id: string } } };
+    expect(api('deleteJob', { id: saved.data.job.id })).toMatchObject({ ok: false, error: { code: 'job_not_deletable' } });
+    expect(api('deleteJob', { id: queued.data.job.id })).toEqual({ ok: true, data: null });
+    expect(container.jobs.list().map((j) => j.id)).toEqual([saved.data.job.id]);
+  });
+
+  it('removeAiTask of an import task removes the awaiting job', () => {
+    const { api, container } = setup(pages());
+    const queued = api('importJob', { url: BLOCKED }) as { data: { task: { id: string } } };
+    expect(api('removeAiTask', { id: queued.data.task.id })).toMatchObject({ ok: true });
+    expect(container.jobs.list()).toEqual([]);
+  });
+
+  it('getDashboard counts waiting AI tasks', () => {
+    const { api } = setup(pages());
+    api('importJob', { url: BLOCKED });
+    expect(api('getDashboard')).toMatchObject({ ok: true, data: { aiTasksWaiting: { total: 1, byType: { import_job: 1 } } } });
+  });
+});

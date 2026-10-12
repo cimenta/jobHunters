@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryKeyValueStore } from './key-value';
 import type { Lock } from './lock';
 import { errorOf } from './testing/errors';
-import { parseSettings, SettingsService } from './settings';
+import { parseSettings, SETTINGS_DEFAULTS, SettingsService } from './settings';
 
 describe('parseSettings', () => {
   it('returns the defaults for an empty sheet', () => {
@@ -143,5 +143,18 @@ describe('availability settings', () => {
     expect(parseSettings({ availability_check_enabled: 'yes' }).warnings).toHaveLength(1);
     expect(parseSettings({ availability_immediate_rules: 'offline_text,nonsense' }).warnings).toHaveLength(1);
     expect(parseSettings({ availability_immediate_rules: '' }).settings.availability_immediate_rules).toEqual([]);
+  });
+});
+
+describe('import_job prompt setting', () => {
+  it('defaults to a prompt with the placeholders and warns on an empty value', () => {
+    const { settings } = parseSettings({});
+    expect(settings.ai_prompt_import_job).toBe(SETTINGS_DEFAULTS.ai_prompt_import_job);
+    expect(settings.ai_prompt_import_job).toContain('{{job_id}}');
+    expect(settings.ai_prompt_import_job).toContain('{{task_id}}');
+    expect(settings.ai_prompt_import_job).toContain('{{url}}');
+    const empty = parseSettings({ ai_prompt_import_job: '  ' });
+    expect(empty.settings.ai_prompt_import_job).toBe(SETTINGS_DEFAULTS.ai_prompt_import_job);
+    expect(empty.warnings).toMatchObject([{ code: 'setting_invalid', params: { key: 'ai_prompt_import_job' } }]);
   });
 });

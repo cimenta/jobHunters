@@ -139,3 +139,20 @@ describe('AvailabilityService.checkDue', () => {
     expect(logs).toContain('availability|new|boom');
   });
 });
+
+describe('awaiting jobs', () => {
+  const awaiting = makeJob({ id: 'jw', url: 'https://blocked.example/job/9', status: 'awaiting', availability: 'unknown' });
+
+  it('refuses an immediate check of an awaiting job and does not download', () => {
+    const { service, fetcher } = setup([awaiting]);
+    expect(errorOf(() => service.check('jw')).code).toBe('job_awaiting');
+    expect(fetcher.calls).toEqual([]);
+  });
+
+  it('never selects an awaiting job, even when its status style says check', () => {
+    const styles = parseJobStatusStyles('{"awaiting":{"check":true}}')!;
+    expect(styles.awaiting!.check).toBe(true);
+    const { service } = setup([awaiting, makeJob({ id: 'j1', url: URL1 })], {}, [], { jobStatusStyles: styles });
+    expect(service.eligibleJobs().map((job) => job.id)).toEqual(['j1']);
+  });
+});

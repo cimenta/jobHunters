@@ -9,3 +9,4 @@ export * from './linkedin';
 export * from './startupjobs';
 export * from './fetcher';
 export * from './job-service';
+export * from './job-import-service';

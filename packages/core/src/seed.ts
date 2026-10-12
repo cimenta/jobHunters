@@ -12,7 +12,7 @@ export const INSTRUCTIONS_LINES: readonly string[] = [
   'If several companies, jobs or applications match a request, list the candidates and ask which one is meant.',
 ];
 
-export const PROMPT_TYPES = ['resume_tailor', 'cover_letter', 'other', 'answer_question', 'match_job'] as const;
+export const PROMPT_TYPES = ['resume_tailor', 'cover_letter', 'other', 'answer_question', 'match_job', 'import_job'] as const;
 export type PromptType = (typeof PROMPT_TYPES)[number];
 
 export interface PromptSeed {
@@ -249,10 +249,64 @@ const MATCH = [
   STATUSES,
 ].join('\n');
 
+const IMPORT_JOB = [
+  'TASK: read one job ad from the internet and fill in its row in the spreadsheet.',
+  '',
+  SPREADSHEET,
+  '',
+  'WHAT YOU GET',
+  '- Task: the sheet Tasks, the row with id {{task_id}}.',
+  '- Placeholder job: the sheet Jobs, the row with id {{job_id}}. Its column url is {{url}}. It currently has the status awaiting and only a title guessed from the link.',
+  '',
+  'HOW TO BEHAVE ON THE WEBSITE (very important)',
+  '- Behave like a careful person, not like a program. Open ONLY the one address {{url}}. Read the page once, completely, the way a person reads it.',
+  '- Do not search the site, do not follow other links, do not open other jobs or company pages, do not repeat the request in quick succession.',
+  '- When you handle several tasks of this kind, handle them one at a time, in the order of the column created_at in the sheet Tasks, and wait at least 10 seconds between two pages of the same website.',
+  '- Never use scripts, bulk downloads or tools made to get around limits. Never log in to the website and never use the candidate\'s account for it.',
+  '- If the website shows ANY obstacle (an error such as 429 or 403, "too many requests", a login or sign-up wall, a CAPTCHA, a "verify that you are human" page, a blocked page), STOP immediately for this website. Do not try to get around it and do not try again. Set the task to needs_input and write into ai_note what you saw. Continue with tasks for other websites.',
+  '',
+  UNTRUSTED,
+  '',
+  'STEPS',
+  '1. Set the column status of the Tasks row {{task_id}} to in_progress.',
+  '2. Open {{url}} and read the ad.',
+  '3. If the page is not a job ad (a login wall, an error, an ad that no longer exists), follow IF YOU CANNOT FINISH and write what the page showed into ai_note.',
+  '4. Find the company: in the sheet Companies, compare the column name with the company named in the ad, ignoring case and legal forms such as s.r.o., a.s., Ltd, Inc. If a row matches, use its id. If none matches, add a new row at the end of the sheet Companies with a new unique id (a UUID), the column name = the company name as written in the ad, and empty website and notes.',
+  '5. Work out the values for the Jobs row (leave a cell EMPTY when the ad does not say; never guess):',
+  '   - title: the name of the position',
+  '   - location: city or region',
+  '   - remote: exactly one of yes, no, hybrid, or empty',
+  '   - employment_type: for example full-time, part-time, contract',
+  '   - salary_min, salary_max: whole numbers, only when the ad states a salary; salary_currency: for example CZK, EUR, USD; salary_period: month, hour, day, week or year',
+  '   - posted_at, valid_until: dates as YYYY-MM-DD',
+  '   - description: the full text of the ad, plain text, without menus or cookie banners',
+  '   - language: en or cs (the language the ad is written in)',
+  '6. Write RESULT.',
+  '',
+  'RULES',
+  '- Every value comes from the ad. Do not invent anything. Do not change any other row of Jobs, and only add the one Companies row from step 4 if needed.',
+  '- Write the language of the ad as it is; do not translate the description.',
+  '- If the ad is clearly the same position as another row of the sheet Jobs (same url ignoring tracking parameters), do not fill this row: use IF YOU CANNOT FINISH with needs_input and name the other row id in ai_note.',
+  '',
+  'RESULT (exactly these writes, in this order)',
+  '1. The sheet Jobs, the row with id {{job_id}}: the columns from step 5, company_id = the id from step 4, parser_id = ai, status = new.',
+  '2. The sheet Tasks, the row with id {{task_id}}: column ai_note = one short sentence naming the title and the company you found.',
+  '3. The same Tasks row: column status = done.',
+  '',
+  'CHECK BEFORE YOU FINISH',
+  '- Every value is stated in the ad; cells the ad does not state are empty.',
+  '- remote is yes, no, hybrid or empty; dates are YYYY-MM-DD; salary cells are whole numbers or empty.',
+  '- The Jobs row has status new and a company_id that exists in the sheet Companies.',
+  '- You opened only {{url}} and no other page, and you stopped at the first obstacle.',
+  '',
+  STATUSES,
+].join('\n');
+
 export const DEFAULT_PROMPTS: readonly PromptSeed[] = [
   { type: 'resume_tailor', language: '', instruction: RESUME },
   { type: 'cover_letter', language: '', instruction: COVER_LETTER },
   { type: 'other', language: '', instruction: OTHER },
   { type: 'answer_question', language: '', instruction: QUESTION },
   { type: 'match_job', language: '', instruction: MATCH },
+  { type: 'import_job', language: '', instruction: IMPORT_JOB },
 ];

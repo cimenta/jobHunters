@@ -2,6 +2,16 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.12.0] - 2026-10-12
+
+- Add several jobs at once: the new "Several links" tab of Add job takes up to 30 links, one per line. Each ad is saved by itself and a live list shows the result of every link.
+- AI import: a link the app cannot read (for example LinkedIn) becomes a job with the new status "Awaiting AI" and an `import_job` AI task. The AI reads it after you tell Claude to run the pending tasks. New editable prompt "Importing a job ad from a link" in Settings → AI prompts; it is there by default and "Reset all to default" restores it.
+- A job that is awaiting the AI can be deleted, also by removing its task.
+- Dashboard: new card "AI tasks waiting", by task type.
+- API: new methods `importJob` and `deleteJob`; `getDashboard` returns `aiTasksWaiting`.
+- No new sheet columns, so running `setup()` is not needed.
+- Help describes the new features.
+
 ## [0.11.3] - 2026-10-12
 
 - Notices are more informative: they name what was changed and, for a change, from what to what.

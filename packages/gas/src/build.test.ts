@@ -36,7 +36,7 @@ describe('build', () => {
   it('keeps the development backend and test helpers out of the UI page', () => {
     const page = readFileSync(dist('ui.html'), 'utf8');
     // String literals survive minification (function and class names do not).
-    for (const banned of ['example.com/jobs/demo-engineer', 'Eva Example', 'seed-overdue']) {
+    for (const banned of ['example.com/jobs/demo-engineer', 'Eva Example', 'seed-overdue', 'blocked.example']) {
       expect(page, banned).not.toContain(banned);
     }
   });

@@ -121,6 +121,19 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.aiTaskService.requestOpenQuestions(applicationId));
     },
 
+    importJob: (args) => {
+      const url = requireString(asRecord(args, 'importJob'), 'url', 'importJob');
+      return c.lock.run(() => c.jobImportService.importOne(url));
+    },
+
+    deleteJob: (args) => {
+      const id = requireString(asRecord(args, 'deleteJob'), 'id', 'deleteJob');
+      return c.lock.run(() => {
+        c.jobImportService.deleteAwaiting(id);
+        return null;
+      });
+    },
+
     listAiTasks: () => c.aiTaskService.list(),
 
     removeAiTask: (args) => {
@@ -179,6 +192,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
         applications: c.applications.list(),
         jobs: c.jobs.list(),
         companies: c.companies.list(),
+        tasks: c.tasks.list(),
         today: c.now().slice(0, 10),
       }),
 

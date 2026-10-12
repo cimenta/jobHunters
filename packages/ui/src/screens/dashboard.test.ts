@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { api } from '../api';
 import { router } from '../lib/router.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
@@ -53,5 +54,24 @@ describe('Dashboard', () => {
     expect(screen.getByText('You have no applications yet.')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Add a job' }));
     expect(router.current.name).toBe('job-new');
+  });
+});
+
+describe('Dashboard AI tasks', () => {
+  it('says nothing waits for the AI when there are no tasks', async () => {
+    useDevBackend();
+    render(Dashboard);
+    const card = (await screen.findByRole('heading', { name: 'AI tasks waiting' })).closest('[data-ui="dashboard.ai-tasks"]') as HTMLElement;
+    expect(within(card).getByText('Nothing is waiting for the AI')).toBeInTheDocument();
+  });
+
+  it('shows the total and a linked row per type', async () => {
+    useDevBackend();
+    await api.importJob('https://blocked.example/job/1');
+    render(Dashboard);
+    const card = (await screen.findByRole('heading', { name: 'AI tasks waiting' })).closest('[data-ui="dashboard.ai-tasks"]') as HTMLElement;
+    await waitFor(() => expect(within(card).getByRole('link', { name: 'Job import – 1' })).toHaveAttribute('href', '#/tasks'));
+    expect(within(card).getByText('Tell Claude: run the pending tasks.')).toBeInTheDocument();
+    expect(within(card).queryByText('Nothing is waiting for the AI')).toBeNull();
   });
 });

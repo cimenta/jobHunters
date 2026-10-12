@@ -63,7 +63,7 @@
       <Field label={tr('ui.jobs.status')} for="job-status-filter">
         <select id="job-status-filter" class="input" bind:value={status}>
           <option value="">{tr('ui.jobs.statusAll')}</option>
-          {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
+          {#each jobStatusOptions(true) as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
         </select>
       </Field>
       <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>

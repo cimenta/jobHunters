@@ -137,6 +137,19 @@ describe('Settings', () => {
     await waitFor(() => expect((letter as HTMLTextAreaElement).value).toMatch(/at most 250 words/));
   });
 
+  it('edits the prompt for importing a job ad and resets it with the others', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    const field = within(card).getByLabelText('Importing a job ad from a link') as HTMLTextAreaElement;
+    expect(field.value.length).toBeGreaterThan(20);
+    await fireEvent.input(field, { target: { value: 'Import {{url}} as job {{job_id}}.' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_import_job).toBe('Import {{url}} as job {{job_id}}.'));
+    await fireEvent.click(within(card).getByRole('button', { name: 'Reset all to default' }));
+    await waitFor(() => expect(field.value).not.toBe('Import {{url}} as job {{job_id}}.'));
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_import_job).not.toBe('Import {{url}} as job {{job_id}}.'));
+  });
+
   it('shows the version', async () => {
     await open('About');
     expect(screen.getByText('Version dev')).toBeInTheDocument();
@@ -198,7 +211,7 @@ describe('Settings ad statuses', () => {
     await fireEvent.input(within(card).getByLabelText('Name of a new status'), { target: { value: 'Maybe' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Add status' }));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
-    await waitFor(async () => expect(Object.keys((await api.getSettings()).settings.job_status_styles)).toHaveLength(3));
+    await waitFor(async () => expect(Object.keys((await api.getSettings()).settings.job_status_styles)).toHaveLength(4));
     const code = Object.keys((await api.getSettings()).settings.job_status_styles).find((key) => key.startsWith('s_'))!;
     const job = (await api.listJobs())[0]!;
     await api.updateJob(job.id, { status: code });

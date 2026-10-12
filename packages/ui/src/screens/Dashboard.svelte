@@ -12,6 +12,7 @@
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, shorten } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
+  import { AI_TASK_TYPES, aiTaskTypeLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { navigate } from '../lib/router.svelte';
@@ -33,6 +34,16 @@
   const counts = $derived(
     APPLICATION_STATUSES.map((status) => ({ status, count: dashboard.data?.statusCounts[status] ?? 0 })).filter((entry) => entry.count > 0),
   );
+
+  const aiTasks = $derived.by(() => {
+    const waiting = dashboard.data?.aiTasksWaiting ?? { total: 0, byType: {} };
+    const known = AI_TASK_TYPES.filter((type) => (waiting.byType[type] ?? 0) > 0).map((type) => ({ type, count: waiting.byType[type]! }));
+    const other = Object.entries(waiting.byType)
+      .filter(([type]) => !AI_TASK_TYPES.includes(type))
+      .reduce((sum, [, count]) => sum + count, 0);
+    const rows = other > 0 ? [...known.filter((row) => row.type !== 'other'), { type: 'other', count: (waiting.byType.other ?? 0) + other }] : known;
+    return { total: waiting.total, rows };
+  });
 
   async function complete(reminder: DashboardReminder): Promise<void> {
     await api.completeReminder(reminder.id);
@@ -92,6 +103,21 @@
       {/if}
     </Card>
 
+    <Card ui="dashboard.ai-tasks">
+      <h2>{tr('ui.dashboard.aiTasks')}</h2>
+      {#if aiTasks.total === 0}
+        <p class="muted">{tr('ui.dashboard.aiTasksNone')}</p>
+      {:else}
+        <p class="big"><strong>{aiTasks.total}</strong></p>
+        <ul class="plain">
+          {#each aiTasks.rows as row (row.type)}
+            <li><a href={paths.tasks} data-ui="dashboard.ai-tasks.{row.type}">{aiTaskTypeLabel(row.type)} – {row.count}</a></li>
+          {/each}
+        </ul>
+        <p class="muted small">{tr('ui.dashboard.aiTasksHint')}</p>
+      {/if}
+    </Card>
+
     <Card ui="dashboard.status-counts">
       <h2>{tr('ui.dashboard.applications')}</h2>
       {#if counts.length === 0}
@@ -119,6 +145,8 @@
   .reminder { align-items: flex-start; flex-wrap: wrap; }
   .reminder .grow { flex: 1 1 14rem; }
   .text { font-weight: 600; }
+  .big { font-size: var(--text-xl, 2rem); margin: 0; }
+  .plain { padding: 0; margin: 0; list-style: none; }
   .counts { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: 0; margin: 0; list-style: none; }
   .count-link { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: var(--radius-m); }
   .count-link:hover { border-color: var(--accent); }

@@ -1,4 +1,4 @@
-import { NotFoundError } from '../errors';
+import { NotFoundError, ValidationError } from '../errors';
 import type { PageFetcher } from '../jobs/fetcher';
 import type { JobParser } from '../jobs/parsed-job';
 import { PORTAL_PARSERS } from '../jobs/registry';
@@ -71,6 +71,7 @@ export class AvailabilityService {
     const { jobs, fetcher, settings, now, log } = this.deps;
     const job = jobs.get(jobId);
     if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    if (job.status === 'awaiting') throw new ValidationError('job_awaiting', `Job ${jobId} is waiting for the AI`, { id: jobId });
     const { offlineTexts, immediateRules } = settings();
     const parserFor = this.deps.parserFor ?? ((url: string) => PORTAL_PARSERS.find((p) => p.matches(url)));
     const checkedAt = now();
@@ -92,7 +93,7 @@ export class AvailabilityService {
     for (const application of applications.list()) byJob.set(application.job_id, [...(byJob.get(application.job_id) ?? []), application]);
     return jobs.list()
       .filter((job) => {
-        if (job.availability === 'offline') return false;
+        if (job.availability === 'offline' || job.status === 'awaiting') return false;
         const own = byJob.get(job.id) ?? [];
         if (own.length === 0) return jobStatusChecksAvailability(jobStatusStyles, job.status);
         return own.some((application) => statusChecksAvailability(statusStyles, application.status));

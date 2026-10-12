@@ -54,6 +54,13 @@ function setup(options: { drive?: FakeDrive; templates?: boolean; settings?: Rec
 const contentOf = (drive: FakeDrive, doc: ApplicationDocument) => drive.documents.get(fileIdFromUrl(doc.doc_url))!.content;
 
 describe('create', () => {
+  it('refuses a job that waits for the AI', () => {
+    const { factory, deps } = setup();
+    deps.jobs.update('j1', { status: 'awaiting' });
+    expect(errorOf(() => factory.create({ jobId: 'j1' })).code).toBe('job_awaiting');
+    expect(deps.applications.list()).toHaveLength(0);
+  });
+
   it('creates a draft with label, folder, history entry and filled documents', () => {
     const { factory, drive, deps } = setup();
     const { application, documents, warnings } = factory.create({ jobId: 'j1' });

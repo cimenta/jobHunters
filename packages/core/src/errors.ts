@@ -46,6 +46,8 @@ export const ERROR_CODES = [
   'match_experience_required',
   'task_not_found',
   'task_not_cancellable',
+  'job_not_deletable',
+  'job_awaiting',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

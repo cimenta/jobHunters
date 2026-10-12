@@ -3,7 +3,7 @@ import { applicationRows, buildDashboard, CatalogService, companyRows, jobRows }
 import { InMemoryRepository } from './repository';
 import { errorOf } from './testing/errors';
 import { makeApplication, makeCompany, makeJob, makeReminder } from './testing/fixtures';
-import type { Company, Job } from './types';
+import type { AiTask, Company, Job } from './types';
 
 const companies = [makeCompany({ id: 'c1', name: 'Example s.r.o.' }), makeCompany({ id: 'c2', name: 'Sample GmbH' })];
 const jobs = [
@@ -42,7 +42,7 @@ describe('buildDashboard', () => {
     makeReminder({ id: 'r5', application_id: 'a1', due_at: '2026-10-01', status: 'done' }),
     makeReminder({ id: 'r6', application_id: 'gone', due_at: '2026-10-11', text: 'Orphan reminder' }),
   ];
-  const dashboard = buildDashboard({ reminders, applications, jobs, companies, today: '2026-10-11' });
+  const dashboard = buildDashboard({ reminders, applications, jobs, companies, tasks: [], today: '2026-10-11' });
 
   it('groups open reminders and names their application, job and company', () => {
     expect(dashboard.reminders.overdue.map((r) => r.id)).toEqual(['r1']);
@@ -58,6 +58,19 @@ describe('buildDashboard', () => {
   });
   it('counts applications per known status and ignores unknown ones', () => {
     expect(dashboard.statusCounts).toEqual({ draft: 1, sent: 1, waiting: 0, interview: 0, offer: 0, rejected: 0, ghosted: 0, withdrawn: 0 });
+  });
+});
+
+describe('buildDashboard AI tasks', () => {
+  const task = (id: string, type: string, status: string): AiTask => ({ id, created_at: '', application_id: '', job_id: '', type, target_type: 'job', target_id: '', instructions: '', status, ai_note: '', completed_at: '' });
+  const base = { reminders: [], applications: [], jobs: [], companies: [], today: '2026-10-12' };
+  it('counts waiting AI tasks by type', () => {
+    const result = buildDashboard({ ...base,
+      tasks: [task('1', 'import_job', 'pending'), task('2', 'import_job', 'in_progress'), task('3', 'match_job', 'pending'), task('4', 'match_job', 'done'), task('5', 'cover_letter', 'needs_input'), task('6', 'weird', 'pending')] });
+    expect(result.aiTasksWaiting).toEqual({ total: 4, byType: { import_job: 2, match_job: 1, weird: 1 } });
+  });
+  it('has an empty count without tasks', () => {
+    expect(buildDashboard({ ...base, tasks: [] }).aiTasksWaiting).toEqual({ total: 0, byType: {} });
   });
 });
 
@@ -82,5 +95,23 @@ describe('CatalogService', () => {
     expect(errorOf(() => service.updateCompany('c1', { name: '  ' }))).toMatchObject({ code: 'company_name_required' });
     expect(errorOf(() => service.updateCompany('c1', { website: 'javascript:alert(1)' }))).toMatchObject({ code: 'company_website_invalid' });
     expect(errorOf(() => service.updateCompany('ghost', {}))).toMatchObject({ code: 'company_not_found' });
+  });
+});
+
+describe('awaiting status and byType', () => {
+  it('refuses to set a job to awaiting by hand', () => {
+    const jobRepo = new InMemoryRepository<Job>([makeJob({ id: 'j1' })]);
+    const service = new CatalogService({ jobs: jobRepo, companies: new InMemoryRepository<Company>() });
+    expect(errorOf(() => service.updateJob('j1', { status: 'awaiting' })).code).toBe('job_status_invalid');
+    expect(jobRepo.get('j1')!.status).toBe('new');
+  });
+
+  it('counts a task type called __proto__ in byType too', () => {
+    const task = (id: string, type: string) => ({ id, type, status: 'pending' }) as never;
+    const result = buildDashboard({ reminders: [], applications: [], jobs: [], companies: [], tasks: [task('t1', '__proto__'), task('t2', 'match_job')], today: '2026-10-11' });
+    const counts = Object.values(result.aiTasksWaiting.byType).reduce((a, b) => a + b, 0);
+    expect(result.aiTasksWaiting.total).toBe(2);
+    expect(counts).toBe(2);
+    expect(Object.getOwnPropertyDescriptor(result.aiTasksWaiting.byType, '__proto__')?.value).toBe(1);
   });
 });

@@ -66,3 +66,22 @@ export function channelLabel(value: string): string {
       return value;
   }
 }
+
+export const AI_TASK_TYPES = ['import_job', 'match_job', 'resume_tailor', 'cover_letter', 'other', 'answer_question'];
+
+export function aiTaskTypeLabel(type: string): string {
+  switch (type) {
+    case 'import_job':
+      return tr('ui.tasks.type.import_job');
+    case 'match_job':
+      return tr('ui.tasks.type.match_job');
+    case 'answer_question':
+      return tr('ui.tasks.type.answer_question');
+    case 'resume_tailor':
+      return documentTypeLabel('resume');
+    case 'cover_letter':
+      return documentTypeLabel('cover_letter');
+    default:
+      return tr('ui.tasks.type.other');
+  }
+}
