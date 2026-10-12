@@ -6,6 +6,8 @@ export interface JobFilters {
   text: string;
   availability: '' | 'online' | 'offline' | 'unknown';
   gig: boolean;
+  /** Code of a job status; empty = any. */
+  status?: string;
 }
 
 export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow[] {
@@ -13,6 +15,7 @@ export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow
   return rows.filter((row) => {
     if (filters.availability !== '' && row.availability !== filters.availability) return false;
     if (filters.gig && !row.is_gig) return false;
+    if (filters.status !== undefined && filters.status !== '' && (row.status === '' ? 'new' : row.status) !== filters.status) return false;
     return needle === '' || normalise(`${row.title} ${row.company_name} ${row.location}`).includes(needle);
   });
 }

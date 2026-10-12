@@ -14,6 +14,7 @@
   import { ids, setIdsVisible } from '../state/ids.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
+  import JobStatusStylesEditor from './JobStatusStylesEditor.svelte';
   import StatusStylesEditor from './StatusStylesEditor.svelte';
 
   const PROFILE_KEYS = ['name', 'email', 'phone', 'address', 'links'] as const;
@@ -164,6 +165,7 @@
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
       { id: 'statuses', label: tr('ui.settings.tab.statuses') },
+      { id: 'jobstatuses', label: tr('ui.settings.tab.jobStatuses') },
       { id: 'about', label: tr('ui.settings.tab.about') },
     ]}
     bind:active={tab}
@@ -321,6 +323,13 @@
     <h2>{tr('ui.settings.statusLabels')}</h2>
     <p class="muted small">{tr('ui.settings.statusLabelsHint')}</p>
     <StatusStylesEditor />
+  </Card>
+
+  {:else if tab === 'jobstatuses'}
+  <Card ui="settings.job-statuses">
+    <h2>{tr('ui.settings.jobStatuses')}</h2>
+    <p class="muted small">{tr('ui.settings.jobStatusesHint')}</p>
+    <JobStatusStylesEditor />
   </Card>
 
   {:else}

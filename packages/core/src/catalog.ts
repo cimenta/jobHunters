@@ -1,5 +1,6 @@
 import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
+import { DEFAULT_JOB_STATUS_STYLES, type JobStatusStyles } from './job-status';
 import { parseUrl } from './jobs/url';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
@@ -102,16 +103,25 @@ export function buildDashboard(input: {
 export interface CatalogServiceDeps {
   jobs: Repository<Job>;
   companies: Repository<Company>;
+  /** The statuses an ad may have; the built-in ones when not given. */
+  jobStatuses?: () => JobStatusStyles;
 }
 
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
+    if (patch.status !== undefined) {
+      const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
+      if (!Object.prototype.hasOwnProperty.call(known, patch.status)) {
+        throw new ValidationError('job_status_invalid', `Unknown job status ${patch.status}`, { status: patch.status });
+      }
+      change.status = patch.status;
+    }
     return this.deps.jobs.update(id, change);
   }
 

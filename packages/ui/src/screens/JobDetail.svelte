@@ -11,6 +11,7 @@
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, formatSalary } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
+  import { jobStatus, jobStatusOptions } from '../lib/job-status';
   import { availabilityLabel, availabilityReasonLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -42,6 +43,12 @@
     invalidate();
   }
 
+  async function changeStatus(status: string): Promise<void> {
+    await api.updateJob(id, { status });
+    toast.success(tr('ui.saved'));
+    invalidate();
+  }
+
   async function checkAvailability(): Promise<void> {
     const { job, verdict } = await api.checkJobAvailability(id);
     const reason = availabilityReasonLabel(job.availability_reason);
@@ -66,6 +73,7 @@
     <ErrorBlock error={detail.error} onretry={invalidate} />
   {:else if detail.data}
     {@const job = detail.data.job}
+    {@const current = jobStatus(job)}
     <Card ui="job-detail.summary">
       <div class="page-title">
         <h1>{job.title}</h1>
@@ -74,7 +82,9 @@
       <p class="muted">{[detail.data.company?.name ?? '', job.location, salary].filter((part) => part !== '').join(' · ')}</p>
       <div class="row wrap">
         <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
+        <Badge text={current.text} color={current.color} textColor={current.textColor} />
         {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
+        {#if job.match_percent !== null && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
         {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
         {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
         {#if job.flags.includes('snapshot_missing')}<span class="warn small">{tr('ui.job.snapshotMissing')}</span>{/if}
@@ -83,6 +93,9 @@
         {#if job.url !== ''}
           <a href={job.url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
         {/if}
+        <select class="input status-select" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
+          {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
+        </select>
         <Button ui="job-detail.check-availability" onclick={checkAvailability}>{tr('ui.job.checkAvailability')}</Button>
         {#if job.folder_url !== ''}
           <a href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>

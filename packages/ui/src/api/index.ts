@@ -1,4 +1,4 @@
-import type { AiTask, AiTaskRow, RemoveResult, Settings } from '@jobhunters/core';
+import type { AiTask, AiTaskRow, JobStatusStyles, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
@@ -32,8 +32,9 @@ export const api = {
 
   listJobs: () => call<JobRow[]>('listJobs'),
   getJob: (id: string) => call<JobDetail>('getJob', { id }),
+  saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
-  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean }) => call<Job>('updateJob', { id, ...patch }),
+  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
   requestQuestionAi: (questionId: string, notes: string) => call<AiTask>('requestQuestionAi', { questionId, notes }),

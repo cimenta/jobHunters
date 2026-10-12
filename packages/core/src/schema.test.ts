@@ -25,7 +25,7 @@ describe('sheet schema', () => {
       'id', 'company_id', 'title', 'url', 'source', 'parser_id', 'parsed_at', 'contact_id', 'found_at',
       'is_gig', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
       'employment_type', 'remote', 'posted_at', 'valid_until', 'description', 'language', 'availability',
-      'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes',
+      'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes', 'status', 'match_percent',
     ]);
   });
 

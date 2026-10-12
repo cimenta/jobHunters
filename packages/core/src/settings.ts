@@ -4,6 +4,7 @@ import type { KeyValueStore } from './key-value';
 import { NO_LOCK, type Lock } from './lock';
 import type { AppWarning } from './row-codec';
 import { DEFAULT_PROMPTS, type PromptType } from './seed';
+import { parseJobStatusStyles, type JobStatusStyles } from './job-status';
 import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
 
@@ -21,6 +22,7 @@ export const SETTING_KEYS = [
   'pdf_service_order',
   'default_document_set',
   'status_styles',
+  'job_status_styles',
   'ai_prompt_resume_tailor',
   'ai_prompt_cover_letter',
   'ai_prompt_other',
@@ -54,6 +56,8 @@ export interface Settings {
   default_document_set: string[];
   /** Custom status labels as JSON, see status-style.ts. */
   status_styles: StatusStyles;
+  /** Statuses of ads as JSON, see job-status.ts. */
+  job_status_styles: JobStatusStyles;
   /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
   ai_prompt_resume_tailor: string;
   ai_prompt_cover_letter: string;
@@ -79,6 +83,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
   status_styles: '{}',
+  job_status_styles: '{}',
   ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
   ai_prompt_cover_letter: defaultPrompt('cover_letter'),
   ai_prompt_other: defaultPrompt('other'),
@@ -121,6 +126,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
     return parts.every((part) => DOCUMENT_TYPES.includes(part)) ? parts : undefined;
   },
   status_styles: (raw) => parseStatusStyles(raw),
+  job_status_styles: (raw) => parseJobStatusStyles(raw),
   ai_prompt_resume_tailor: parsePrompt,
   ai_prompt_cover_letter: parsePrompt,
   ai_prompt_other: parsePrompt,

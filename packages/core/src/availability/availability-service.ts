@@ -3,6 +3,7 @@ import type { PageFetcher } from '../jobs/fetcher';
 import type { JobParser } from '../jobs/parsed-job';
 import { PORTAL_PARSERS } from '../jobs/registry';
 import type { Repository } from '../repository';
+import { jobStatusChecksAvailability, type JobStatusStyles } from '../job-status';
 import { statusChecksAvailability, type StatusStyles } from '../status-style';
 import type { Application, Job } from '../types';
 import { evaluateAvailability, type Verdict } from './rules';
@@ -12,6 +13,7 @@ export interface AvailabilitySettings {
   /** Offline rules that decide at once. */
   immediateRules: readonly string[];
   statusStyles: StatusStyles;
+  jobStatusStyles: JobStatusStyles;
 }
 
 export interface AvailabilityServiceDeps {
@@ -85,14 +87,15 @@ export class AvailabilityService {
   /** Jobs the scheduled check looks at, the longest unchecked first. */
   eligibleJobs(): Job[] {
     const { jobs, applications, settings } = this.deps;
-    const { statusStyles } = settings();
+    const { statusStyles, jobStatusStyles } = settings();
     const byJob = new Map<string, Application[]>();
     for (const application of applications.list()) byJob.set(application.job_id, [...(byJob.get(application.job_id) ?? []), application]);
     return jobs.list()
       .filter((job) => {
         if (job.availability === 'offline') return false;
         const own = byJob.get(job.id) ?? [];
-        return own.length === 0 || own.some((application) => statusChecksAvailability(statusStyles, application.status));
+        if (own.length === 0) return jobStatusChecksAvailability(jobStatusStyles, job.status);
+        return own.some((application) => statusChecksAvailability(statusStyles, application.status));
       })
       .sort((a, b) => (a.last_checked_at < b.last_checked_at ? -1 : a.last_checked_at > b.last_checked_at ? 1 : 0));
   }

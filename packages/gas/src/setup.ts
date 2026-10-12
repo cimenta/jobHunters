@@ -32,6 +32,14 @@ function applySheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan:
   // Text format first, so headers and seed values are stored as typed and later "=..." text is never evaluated.
   for (const column of plan.textColumns) sheet.getRange(1, column, rows, 1).setNumberFormat('@');
 
+  if (!isNew) {
+    // A sheet from an older version gets the columns added since, at the end; data is never touched.
+    const width = Math.max(sheet.getLastColumn(), 1);
+    const have = sheet.getRange(1, 1, 1, width).getValues()[0] as string[];
+    const missing = plan.headers.filter((header) => !have.includes(header));
+    if (missing.length > 0) sheet.getRange(1, width + 1, 1, missing.length).setValues([[...missing]]).setFontWeight('bold');
+  }
+
   if (isNew) {
     sheet.getRange(1, 1, 1, plan.headers.length).setValues([[...plan.headers]]).setFontWeight('bold');
     sheet.setFrozenRows(1);

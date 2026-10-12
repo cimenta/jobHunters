@@ -109,3 +109,18 @@ describe('AddJob', () => {
     expect(router.current.name).not.toBe('job');
   });
 });
+
+describe('JobsList status', () => {
+  it('shows the status of every ad and filters by it', async () => {
+    const backend = useDevBackend();
+    const jobs = backend.container.jobs.list();
+    backend.container.jobs.update(jobs[0]!.id, { status: 'no' });
+    render(JobsList);
+    await screen.findByText(jobs[0]!.title);
+    const all = screen.getAllByRole('listitem').length;
+    await fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'no' } });
+    await waitFor(() => expect(screen.getAllByRole('listitem').length).toBe(1));
+    expect(all).toBeGreaterThan(1);
+    expect(screen.getByText(jobs[0]!.title)).toBeInTheDocument();
+  });
+});

@@ -126,3 +126,19 @@ describe('JobDetail availability', () => {
     expect(screen.getByText(/^Checked /)).toBeInTheDocument();
   });
 });
+
+describe('JobDetail status', () => {
+  it('changes the status of the ad and shows the match of a new ad in percent', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { match_percent: 78 });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(await screen.findByText('Match 78 %')).toBeInTheDocument();
+    await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('no'));
+    expect(await screen.findByText('Match 78 %', { selector: 'span.muted' })).toBeInTheDocument();
+    expect(screen.getAllByText('No').length).toBeGreaterThan(0);
+  });
+});

@@ -49,7 +49,7 @@ export function makeJob(overrides: Partial<Job> = {}): Job {
     parser_id: 'generic', parsed_at: '', contact_id: '', found_at: '2026-10-10T08:00:00.000Z', is_gig: false,
     location: 'Praha', salary_min: null, salary_max: null, salary_currency: '', salary_period: '', employment_type: '',
     remote: '', posted_at: '', valid_until: '', description: '', language: 'en', availability: 'online',
-    availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
+    availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '', status: 'new', match_percent: null,
     ...overrides,
   };
 }

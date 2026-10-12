@@ -144,7 +144,13 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const id = requireString(input, 'id', 'updateJob');
       const notes = optionalString(input, 'notes', 'updateJob');
       const isGig = optionalBoolean(input, 'is_gig', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig }));
+      const status = optionalString(input, 'status', 'updateJob');
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, status }));
+    },
+
+    saveJobStatuses: (args) => {
+      const input = asRecord(args, 'saveJobStatuses');
+      return c.lock.run(() => c.jobStatusService.save(input.styles));
     },
 
     listCompanies: () => companyRows(c.companies.list(), c.jobs.list(), c.applications.list()),

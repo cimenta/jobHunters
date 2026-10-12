@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { parseJobStatusStyles } from '../job-status';
 import { InMemoryRepository } from '../repository';
 import { errorOf } from '../testing/errors';
 import { FakePageFetcher, type FakePage } from '../testing/fake-fetcher';
@@ -18,7 +19,7 @@ function setup(jobs: Job[], pages: Record<string, FakePage> = {}, applications: 
   let time = 0;
   const service = new AvailabilityService({
     jobs: jobRepo, applications: new InMemoryRepository<Application>(applications), fetcher,
-    settings: () => ({ offlineTexts: ['position has been filled'], immediateRules: ['offline_text'], statusStyles: {}, ...settings }),
+    settings: () => ({ offlineTexts: ['position has been filled'], immediateRules: ['offline_text'], statusStyles: {}, jobStatusStyles: parseJobStatusStyles('{}')!, ...settings }),
     now: () => '2026-10-12T18:00:00.000Z', clock: () => (time += 100),
     log: (flow, entity, message) => logs.push(`${flow}|${entity}|${message}`),
   });
@@ -103,6 +104,15 @@ describe('AvailabilityService.checkDue', () => {
   it('looks at jobs without an application and jobs with an application in a checked status, not offline ones', () => {
     const { service } = setup(jobs, pages, applications);
     expect(service.eligibleJobs().map((job) => job.id)).toEqual(['new', 'old', 'open', 'recent']);
+  });
+
+  it('takes a job without an application from the flag of its own status', () => {
+    const styles = parseJobStatusStyles('{"no":{"check":false}}')!;
+    const own = [makeJob({ id: 'a', url: 'https://example.com/a', status: 'new' }), makeJob({ id: 'b', url: 'https://example.com/b', status: 'no' }), makeJob({ id: 'c', url: 'https://example.com/c', status: '' })];
+    const { service } = setup(own, {}, [], { jobStatusStyles: styles });
+    expect(service.eligibleJobs().map((job) => job.id).sort()).toEqual(['a', 'c']);
+    const on = setup(own, {}, [], { jobStatusStyles: parseJobStatusStyles('{"no":{"check":true}}')! });
+    expect(on.service.eligibleJobs()).toHaveLength(3);
   });
 
   it('follows the flag stored for a status', () => {

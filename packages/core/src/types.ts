@@ -35,6 +35,10 @@ export interface Job {
   flags: string;
   folder_url: string;
   notes: string;
+  /** Status of the ad (see job-status.ts); empty means new. */
+  status: string;
+  /** 0-100, written by the AI after a match evaluation; null until then. */
+  match_percent: number | null;
 }
 
 export interface Application {

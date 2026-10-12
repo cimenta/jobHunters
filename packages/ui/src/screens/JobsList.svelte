@@ -9,6 +9,7 @@
   import Skeleton from '../components/Skeleton.svelte';
   import { filterJobs, type JobFilters } from '../lib/filters';
   import { tr } from '../lib/i18n.svelte';
+  import { jobStatus, jobStatusOptions } from '../lib/job-status';
   import { availabilityLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -19,14 +20,16 @@
   let text = $state('');
   let availability = $state<JobFilters['availability']>('');
   let gig = $state(false);
+  let status = $state('');
 
-  const rows = $derived(filterJobs(jobs.data ?? [], { text, availability, gig }));
-  const filtered = $derived(text.trim() !== '' || availability !== '' || gig);
+  const rows = $derived(filterJobs(jobs.data ?? [], { text, availability, gig, status }));
+  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '');
 
   function clear(): void {
     text = '';
     availability = '';
     gig = false;
+    status = '';
   }
 </script>
 
@@ -57,6 +60,12 @@
           <option value="unknown">{availabilityLabel('unknown')}</option>
         </select>
       </Field>
+      <Field label={tr('ui.jobs.status')} for="job-status-filter">
+        <select id="job-status-filter" class="input" bind:value={status}>
+          <option value="">{tr('ui.jobs.statusAll')}</option>
+          {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
+        </select>
+      </Field>
       <label class="check"><input type="checkbox" bind:checked={gig} />{tr('ui.job.gig')}</label>
     </div>
 
@@ -67,6 +76,7 @@
     {:else}
       <ul class="list" data-ui="jobs.list">
         {#each rows as job (job.id)}
+          {@const current = jobStatus(job)}
           <li>
             <a class="list-item job" data-ui="job.{job.id}" href={paths.job(job.id)} aria-current={router.current.id === job.id ? 'true' : undefined}>
               <span class="dot {job.availability}" title={availabilityLabel(job.availability)} role="img" aria-label={availabilityLabel(job.availability)}></span>
@@ -74,6 +84,7 @@
                 <span class="title">{job.title}</span>
                 <span class="muted small">{[job.company_name, job.location].filter((part) => part !== '').join(' · ')}</span>
                 <span class="row wrap small">
+                  <Badge text={current.text} color={current.color} textColor={current.textColor} />
                   {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
                   {#if job.application_count > 0}<span class="muted">{tr('summary.applications', { count: job.application_count })}</span>{/if}
                 </span>

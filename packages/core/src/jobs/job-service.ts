@@ -136,6 +136,8 @@ export class JobService {
       flags: snapshotSaved ? '' : 'snapshot_missing',
       folder_url: folderUrl,
       notes: fields.notes ?? '',
+      status: 'new',
+      match_percent: null,
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

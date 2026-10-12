@@ -9,6 +9,7 @@ import {
   DocumentService,
   InMemoryKeyValueStore,
   JobService,
+  JobStatusService,
   QuestionService,
   ReminderService,
   Scheduler,
@@ -128,7 +129,8 @@ export function buildContainer(deps: ContainerDeps) {
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
   const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
-  const catalogService = new CatalogService({ jobs, companies });
+  const catalogService = new CatalogService({ jobs, companies, jobStatuses: () => settings.get().settings.job_status_styles });
+  const jobStatusService = new JobStatusService({ jobs, settings });
   const aiTaskService = new AiTaskService({
     tasks, jobs, companies, documents, questions, applications, newId: deps.newId, now: deps.now,
     experience: () => settings.get().settings.candidate_experience,
@@ -139,7 +141,7 @@ export function buildContainer(deps: ContainerDeps) {
     jobs, applications, fetcher: deps.fetcher, now: deps.now, clock: deps.clock ?? Date.now, log,
     settings: () => {
       const s = settings.get().settings;
-      return { offlineTexts: s.offline_texts, immediateRules: s.availability_immediate_rules, statusStyles: s.status_styles };
+      return { offlineTexts: s.offline_texts, immediateRules: s.availability_immediate_rules, statusStyles: s.status_styles, jobStatusStyles: s.job_status_styles };
     },
   });
   const scheduler = new Scheduler({
@@ -181,6 +183,7 @@ export function buildContainer(deps: ContainerDeps) {
     communicationService,
     reminderService,
     catalogService,
+    jobStatusService,
     aiTaskService,
     availabilityService,
     scheduler,
