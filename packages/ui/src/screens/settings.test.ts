@@ -543,7 +543,7 @@ describe('Settings: text history', () => {
     const card = section('My experience');
     await fireEvent.input(within(card).getByLabelText('My experience'), { target: { value: 'Version B' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(toasts.map((t) => t.text).join(' ')).toContain('History is full (1 of 1 unpinned versions)'));
+    await waitFor(() => expect(toasts.map((t) => t.text).join(' ')).toContain('History of My experience is full (1 of 1 unpinned versions)'));
     expect((within(card).getByLabelText('My experience') as HTMLTextAreaElement).value).toBe('Version B');
     expect((await api.getSettings()).settings.candidate_experience).toBe('Version A');
   });
@@ -624,5 +624,87 @@ describe('Settings: text history', () => {
     const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
     await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
     expect(within(dialog).getByText('No difference from the current text.')).toBeInTheDocument();
+  });
+});
+
+describe('Settings: history of AI prompts and offline texts', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  const prompt = (card: HTMLElement, type: string) => card.querySelector(`[data-ui="settings.prompt.${type}"]`) as HTMLTextAreaElement;
+
+  async function savePrompt(card: HTMLElement, type: string, text: string, count: number): Promise<void> {
+    await fireEvent.input(prompt(card, type), { target: { value: text } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(within(card).getByRole('button', { name: `History (${count})` })).toBeInTheDocument());
+  }
+
+  it('keeps a history for each prompt: the button belongs to the prompt on the open tab', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    expect(within(card).getByRole('button', { name: 'History (0)' })).toBeInTheDocument();
+    await savePrompt(card, 'resume_tailor', 'My resume prompt {{document_id}}', 2);
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Cover letter' }));
+    expect(within(card).getByRole('button', { name: 'History (0)' })).toBeInTheDocument();
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Resume' }));
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (2)' }));
+    expect(await screen.findByRole('dialog', { name: 'History: Tailoring the resume' })).toBeInTheDocument();
+  });
+
+  it('restores one prompt without losing the unsaved edits of another prompt', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    await savePrompt(card, 'resume_tailor', 'Resume A {{document_id}}', 2);
+    await savePrompt(card, 'resume_tailor', 'Resume B {{document_id}}', 3);
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Cover letter' }));
+    await fireEvent.input(prompt(card, 'cover_letter'), { target: { value: 'Unsaved cover letter' } });
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Resume' }));
+
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: Tailoring the resume' });
+    await fireEvent.click(byUi(dialog, 'settings.prompt.resume_tailor.history.dialog.item.2'));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Use This' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Use this version?' });
+    await fireEvent.click(within(confirm).getByRole('button', { name: 'Use this version' }));
+
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_resume_tailor).toBe('Resume A {{document_id}}'));
+    await waitFor(() => expect(prompt(card, 'resume_tailor').value).toBe('Resume A {{document_id}}'));
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Cover letter' }));
+    expect(prompt(card, 'cover_letter').value).toBe('Unsaved cover letter');
+  });
+
+  it('records the reset to the defaults in the history of the prompts that changed', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    await savePrompt(card, 'resume_tailor', 'My resume prompt {{document_id}}', 2);
+    await fireEvent.click(within(card).getByRole('button', { name: 'Reset all to default' }));
+    await waitFor(() => expect(within(card).getByRole('button', { name: 'History (3)' })).toBeInTheDocument());
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: Tailoring the resume' });
+    expect(byUi(dialog, 'settings.prompt.resume_tailor.history.dialog.item.3').textContent).toContain('Reset to default');
+  });
+
+  it('names the prompt whose history is full when nothing could be saved', async () => {
+    await open();
+    await api.updateSettings({ history_max_versions: '1' });
+    await api.updateSettings({ ai_prompt_resume_tailor: 'Resume A {{document_id}}' });
+    await reloadSettings();
+    await fireEvent.click(screen.getByRole('tab', { name: 'AI prompts' }));
+    const card = section('AI prompts');
+    await fireEvent.input(prompt(card, 'resume_tailor'), { target: { value: 'Resume B {{document_id}}' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toasts.map((t) => t.text).join(' ')).toContain('History of Tailoring the resume is full (1 of 1 unpinned versions)'));
+    expect((await api.getSettings()).settings.ai_prompt_resume_tailor).toBe('Resume A {{document_id}}');
+  });
+
+  it('keeps a history of the texts that mean an ad is gone, next to the availability settings', async () => {
+    await open('Availability');
+    const card = section('Availability of ads');
+    const history = () => byUi(card, 'settings.offline-texts.history');
+    expect(history().textContent).toContain('History (0)');
+    await fireEvent.input(byUi(card, 'settings.offline-texts'), { target: { value: 'gone' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(history().textContent).toContain('History (2)'));
+    await fireEvent.click(history());
+    expect(await screen.findByRole('dialog', { name: 'History: Texts that mean the ad is gone (one per line)' })).toBeInTheDocument();
   });
 });

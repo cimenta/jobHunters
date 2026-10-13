@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { HISTORY_COMMENT_MAX, HistoryService } from './history';
+import { HISTORY_COMMENT_MAX, HISTORY_KEYS, HistoryService, isHistoryKey } from './history';
 import { InMemoryKeyValueStore } from './key-value';
 import { InMemoryRepository } from './repository';
-import { SettingsService } from './settings';
+import { SETTING_KEYS, SETTINGS_DEFAULTS, SettingsService } from './settings';
 import { errorOf } from './testing/errors';
 import type { HistoryEntry } from './types';
 
@@ -12,8 +12,8 @@ function setup(max = 50) {
   const entries = new InMemoryRepository<HistoryEntry>();
   let n = 0;
   const store = new InMemoryKeyValueStore();
-  const history = new HistoryService({ entries, maxVersions: () => max, current: (key) => store.getAll()[key] ?? '', newId: () => `h${++n}`, now: () => '2026-10-13T08:00:00.000Z' });
-  const settings = new SettingsService(store, undefined, history);
+  const history = new HistoryService({ entries, maxVersions: () => max, current: (key): string => settings.raw(key), newId: () => `h${++n}`, now: () => '2026-10-13T08:00:00.000Z' });
+  const settings: SettingsService = new SettingsService(store, undefined, history);
   const texts = () => history.list(KEY).entries.map((e) => [e.version, e.source, e.text]);
   return { entries, history, store, settings, texts, setMax: (value: number) => (max = value) };
 }
@@ -162,5 +162,49 @@ describe('HistoryService', () => {
     expect(errorOf(() => history.get('nope'))).toMatchObject({ code: 'history_entry_not_found', params: { id: 'nope' } });
     expect(errorOf(() => history.update('nope', {}))).toMatchObject({ code: 'history_entry_not_found' });
     expect(errorOf(() => history.remove('nope'))).toMatchObject({ code: 'history_entry_not_found' });
+  });
+});
+
+describe('tracked texts', () => {
+  it('are all real settings, and cover the experience, the offline texts and every AI prompt', () => {
+    for (const key of HISTORY_KEYS) expect(SETTING_KEYS as readonly string[]).toContain(key);
+    expect(isHistoryKey('candidate_experience')).toBe(true);
+    expect(isHistoryKey('offline_texts')).toBe(true);
+    for (const type of ['resume_tailor', 'cover_letter', 'other', 'answer_question', 'match_job', 'import_job', 'import_match_job']) {
+      expect(isHistoryKey(`ai_prompt_${type}`)).toBe(true);
+    }
+    expect(isHistoryKey('ui_language')).toBe(false);
+    expect(isHistoryKey('ai_prompts_version')).toBe(false);
+  });
+
+  it('keep the built-in prompt as the initial version of that prompt and a history of its own', () => {
+    const { settings, history } = setup();
+    settings.update({ ai_prompt_cover_letter: 'My cover letter prompt' });
+    settings.update({ ai_prompt_match_job: 'My match prompt' });
+    const cover = history.list('ai_prompt_cover_letter').entries;
+    expect(cover.map((e) => [e.version, e.source])).toEqual([[2, 'saved'], [1, 'initial']]);
+    expect(cover[1]!.text).toBe(SETTINGS_DEFAULTS.ai_prompt_cover_letter);
+    expect(history.list('ai_prompt_match_job').entries).toHaveLength(2);
+    expect(history.list('ai_prompt_resume_tailor').entries).toEqual([]);
+  });
+
+  it('record a reset to the defaults with the source reset', () => {
+    const { settings, history } = setup();
+    settings.update({ ai_prompt_other: 'Mine' });
+    settings.update({ ai_prompt_other: SETTINGS_DEFAULTS.ai_prompt_other }, { source: 'reset' });
+    expect(history.list('ai_prompt_other').entries[0]).toMatchObject({ version: 3, source: 'reset', text: SETTINGS_DEFAULTS.ai_prompt_other });
+  });
+
+  it('name the text whose history is full', () => {
+    const { settings } = setup(1);
+    settings.update({ ai_prompt_other: 'Mine' });
+    expect(errorOf(() => settings.update({ ai_prompt_other: 'Mine 2', ai_prompt_match_job: 'Match' }))).toMatchObject({ code: 'history_full', params: { key: 'ai_prompt_other', used: 1, max: 1 } });
+  });
+
+  it('keep the raw text of the offline texts, one per line, as the live text', () => {
+    const { settings, history } = setup();
+    settings.update({ offline_texts: 'gone\nclosed' });
+    expect(history.list('offline_texts')).toMatchObject({ live: 'gone\nclosed' });
+    expect(history.list('offline_texts').entries.map((e) => e.text)).toEqual(['gone\nclosed', SETTINGS_DEFAULTS.offline_texts]);
   });
 });

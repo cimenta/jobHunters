@@ -77,4 +77,6 @@ it('explains the history of texts and the comparison in the Settings topic', asy
   expect(topic).toContain('History');
   expect(topic).toContain('Changes');
   expect(topic).toContain('Use This');
+  expect(topic).toContain('every AI prompt');
+  expect(topic).toContain('offline texts');
 });

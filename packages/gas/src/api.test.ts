@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { HistoryList } from '@jobhunters/core';
+import { PROMPTS_VERSION, SETTINGS_DEFAULTS, type HistoryList } from '@jobhunters/core';
 import type { FakePage } from '@jobhunters/core/testing';
 import { makeApplication } from '@jobhunters/core/testing';
 import { createApi } from './api';
@@ -577,5 +577,60 @@ describe('history', () => {
     expect(api('getSettings')).toMatchObject({ ok: true });
     expect(api('updateSettings', { ui_language: 'cs' })).toMatchObject({ ok: true });
     expect(api('updateSettings', { [HKEY]: 'Text' })).toMatchObject({ ok: false, error: { code: 'sheet_missing', params: { sheet: 'History' } } });
+  });
+});
+
+describe('history of prompts and offline texts', () => {
+  const list = (api: ReturnType<typeof setup>['api'], key: string) => (api('listHistory', { key }) as Ok<HistoryList>).data;
+
+  it('keeps a history for each prompt with the built-in prompt as its first version', () => {
+    const { api } = setup();
+    api('updateSettings', { ai_prompt_cover_letter: 'My cover letter prompt' });
+    const cover = list(api, 'ai_prompt_cover_letter');
+    expect(cover.entries.map((e) => [e.version, e.source])).toEqual([[2, 'saved'], [1, 'initial']]);
+    expect(cover.entries[1]!.text).toBe(SETTINGS_DEFAULTS.ai_prompt_cover_letter);
+    expect(cover.live).toBe('My cover letter prompt');
+    expect(list(api, 'ai_prompt_match_job').entries).toEqual([]);
+  });
+
+  it('restores an earlier version of a prompt and leaves the other prompts alone', () => {
+    const { api } = setup();
+    api('updateSettings', { ai_prompt_other: 'First', ai_prompt_match_job: 'Match mine' });
+    api('updateSettings', { ai_prompt_other: 'Second' });
+    const first = list(api, 'ai_prompt_other').entries.find((e) => e.text === 'First')!;
+    api('restoreHistory', { key: 'ai_prompt_other', id: first.id });
+    expect(api('getSettings')).toMatchObject({ data: { settings: { ai_prompt_other: 'First', ai_prompt_match_job: 'Match mine' } } });
+  });
+
+  it('resetPrompts puts the built-in prompts back, records a reset only for the prompts that changed and takes the notice as read', () => {
+    const { api } = setup();
+    api('updateSettings', { ai_prompt_cover_letter: 'Mine', ai_prompt_other: 'Mine too' });
+    expect(api('resetPrompts')).toMatchObject({ ok: true });
+    expect(api('getSettings')).toMatchObject({ data: { settings: { ai_prompt_cover_letter: SETTINGS_DEFAULTS.ai_prompt_cover_letter, ai_prompt_other: SETTINGS_DEFAULTS.ai_prompt_other, ai_prompts_version: String(PROMPTS_VERSION) } } });
+    expect(list(api, 'ai_prompt_cover_letter').entries[0]).toMatchObject({ version: 3, source: 'reset', text: SETTINGS_DEFAULTS.ai_prompt_cover_letter });
+    expect(list(api, 'ai_prompt_resume_tailor').entries).toEqual([]);
+    expect(api('resetPrompts')).toMatchObject({ ok: true });
+    expect(list(api, 'ai_prompt_cover_letter').entries).toHaveLength(3);
+  });
+
+  it('resetPrompts changes nothing and names the prompt whose history is full', () => {
+    const { api } = setup();
+    api('updateSettings', { history_max_versions: '1' });
+    api('updateSettings', { ai_prompt_other: 'Mine' });
+    expect(api('resetPrompts')).toMatchObject({ ok: false, error: { code: 'history_full', params: { key: 'ai_prompt_other', used: 1, max: 1 } } });
+    expect(api('getSettings')).toMatchObject({ data: { settings: { ai_prompt_other: 'Mine' } } });
+  });
+
+  it('lists the offline texts as the raw text, one phrase per line', () => {
+    const { api } = setup();
+    api('updateSettings', { offline_texts: 'gone\nclosed' });
+    const data = list(api, 'offline_texts');
+    expect(data.live).toBe('gone\nclosed');
+    expect(data.entries.map((e) => e.text)).toEqual(['gone\nclosed', SETTINGS_DEFAULTS.offline_texts]);
+  });
+
+  it('lists an empty history with the raw live text while the History sheet is missing', () => {
+    const { api } = setup({}, { missingSheets: ['History'] });
+    expect(api('listHistory', { key: 'offline_texts' })).toEqual({ ok: true, data: { entries: [], used: 0, max: 50, live: SETTINGS_DEFAULTS.offline_texts } });
   });
 });

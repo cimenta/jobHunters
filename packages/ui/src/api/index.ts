@@ -23,6 +23,7 @@ export const api = {
   getAppInfo: () => call<AppInfo>('getAppInfo'),
   getSettings: () => call<{ settings: Settings; warnings: AppWarning[] }>('getSettings'),
   updateSettings: (patch: Record<string, string>) => call<Settings>('updateSettings', patch),
+  resetPrompts: () => call<Settings>('resetPrompts'),
   listHistory: (key: string) => call<HistoryList>('listHistory', { key }),
   updateHistoryEntry: (id: string, patch: { comment?: string; pinned?: boolean }) => call<HistoryEntry>('updateHistoryEntry', { id, ...patch }),
   deleteHistoryEntry: (id: string) => call<null>('deleteHistoryEntry', { id }),

@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.15.2] - 2026-10-13
+
+- The History button now also covers the AI prompts and the texts that mean an ad is gone. Each of the seven prompts has a history of its own (its built-in text is the first version), shown by a button next to Save for the prompt on the open tab; "Reset all to default" is recorded in the history of every prompt it changed, with the source "Reset to default". The offline texts have a History button on the Availability tab. Use This on one prompt keeps what you typed and did not save in the other prompts.
+- When a save is refused because a history is full, the message names the text, for example the prompt, so you know where to make room.
+- The Help screen and the README describe where the History button is.
+
 ## [0.15.1] - 2026-10-13
 
 - History of texts shows what changes: when you select an older version, the right column opens on a new Changes tab that compares it with the current text. Lines that disappear from the current text are red, lines that appear when you use the version are green, and inside a changed line only the changed words are marked. A summary gives the number of added and removed lines, long runs of equal lines are folded (one button shows them), and the Text tab still shows the whole text. The current version has nothing to compare with and shows its text.

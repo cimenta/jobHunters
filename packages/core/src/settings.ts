@@ -235,6 +235,12 @@ export class SettingsService {
     return parseSettings(this.store.getAll());
   }
 
+  /** The text of a setting exactly as it is stored in the sheet (the default when nothing is stored). */
+  raw(key: string): string {
+    const stored = this.store.getAll();
+    return hasOwn(stored, key) ? stored[key]! : SETTINGS_DEFAULTS[key as SettingKey];
+  }
+
   /** Validates every entry first; writes nothing when one is invalid or when the history of a changed text is full. */
   update(patch: Readonly<Record<string, string>>, options: SettingsUpdateOptions = {}): Settings {
     for (const [key, value] of Object.entries(patch)) {

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from 'svelte';
   import { EXPERIENCE_MAX, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
@@ -165,13 +166,24 @@
   async function savePrompts(): Promise<void> {
     await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, prompts[type]])));
     await reloadSettings();
+    historyRevision += 1;
     toast.success(tr('ui.settings.savedPrompts'));
   }
 
   async function resetPrompts(): Promise<void> {
-    await api.updateSettings({ ...Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])), ai_prompts_version: String(PROMPTS_VERSION) });
+    await api.resetPrompts();
     await reloadSettings();
+    historyRevision += 1;
     toast.success(tr('ui.settings.resetPrompts'));
+  }
+
+  /** After Use This on one prompt: take that prompt from the settings and keep what is typed in the others and not saved yet. */
+  async function restorePrompt(type: PromptType): Promise<void> {
+    const keep = { ...prompts };
+    await reloadSettings();
+    await tick();
+    if (app.settings) prompts = { ...keep, [type]: app.settings[`ai_prompt_${type}`] };
+    historyRevision += 1;
   }
 
   /** The user keeps their own prompts: the notice about the new defaults is taken as read. */
@@ -208,6 +220,7 @@
       offline_texts: offlineTexts,
     });
     await reloadSettings();
+    historyRevision += 1;
     toast.success(tr('ui.settings.savedAvailability'));
   }
 
@@ -413,6 +426,9 @@
     <div class="actions">
       <Button variant="primary" ui="settings.prompts.save" onclick={savePrompts}>{tr('ui.save')}</Button>
       <Button variant="ghost" ui="settings.prompts.reset" onclick={resetPrompts}>{tr('ui.settings.promptsReset')}</Button>
+      {#each PROMPT_TYPES.filter((type) => `prompts.${type}` === promptTab) as type (type)}
+        <HistoryButton historyKey={`ai_prompt_${type}`} name={promptLabel(type)} ui="settings.prompt.{type}.history" refreshKey={historyRevision} onrestored={() => restorePrompt(type)} />
+      {/each}
     </div>
   </Card>
   {:else if tab === 'availability'}
@@ -437,7 +453,10 @@
     <Field label={tr('ui.settings.offlineTexts')} for="set-offline-texts">
       <textarea data-ui="settings.offline-texts" id="set-offline-texts" class="input" rows="5" bind:value={offlineTexts}></textarea>
     </Field>
-    <div><Button variant="primary" ui="settings.availability.save" onclick={saveAvailability}>{tr('ui.save')}</Button></div>
+    <div class="actions">
+      <Button variant="primary" ui="settings.availability.save" onclick={saveAvailability}>{tr('ui.save')}</Button>
+      <HistoryButton historyKey="offline_texts" name={tr('ui.settings.offlineTexts')} ui="settings.offline-texts.history" refreshKey={historyRevision} onrestored={reloadSettings} />
+    </div>
   </Card>
   {:else if tab === 'profile'}
   <Card ui="settings.profile">

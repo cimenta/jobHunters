@@ -31,7 +31,6 @@ import {
   type DriveGateway,
   type FolderRef,
   type HistoryEntry,
-  type HistoryKey,
   type Job,
   type KeyValueStore,
   type Lock,
@@ -106,7 +105,7 @@ export function buildContainer(deps: ContainerDeps) {
   const historyService = new HistoryService({
     entries: historyEntries,
     maxVersions: (): number => settings.get().settings.history_max_versions,
-    current: (key: string): string => settings.get().settings[key as HistoryKey],
+    current: (key: string): string => settings.raw(key),
     newId: deps.newId,
     now: deps.now,
   });

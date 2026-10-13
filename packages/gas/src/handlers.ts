@@ -1,4 +1,4 @@
-import { AppError, EDITABLE_JOB_FIELDS, isHistoryKey, NotFoundError, type HistoryKey, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
+import { AppError, EDITABLE_JOB_FIELDS, isHistoryKey, NotFoundError, type HistoryKey, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
 import type { Handler } from './api';
 import { asRecord, invalidArguments, optionalBoolean, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
@@ -54,13 +54,22 @@ export function createHandlers(c: Container): Record<string, Handler> {
 
     updateSettings: (args) => c.lock.run(() => c.settings.update(stringRecord(args, 'updateSettings'))),
 
+    /** Brings the built-in prompts back and takes the notice about new prompts as read; every changed prompt gets a history entry. */
+    resetPrompts: () =>
+      c.lock.run(() =>
+        c.settings.update(
+          { ...Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])), ai_prompts_version: String(PROMPTS_VERSION) },
+          { source: 'reset' },
+        ),
+      ),
+
     listHistory: (args) => {
       const key = historyKey(asRecord(args, 'listHistory'), 'listHistory');
       try {
         return c.historyService.list(key);
       } catch (error) {
         // The sheet is created by setup; until then there is simply nothing to show.
-        if (error instanceof AppError && error.code === 'sheet_missing') return { entries: [], used: 0, max: c.settings.get().settings.history_max_versions, live: c.settings.get().settings[key] };
+        if (error instanceof AppError && error.code === 'sheet_missing') return { entries: [], used: 0, max: c.settings.get().settings.history_max_versions, live: c.settings.raw(key) };
         throw error;
       }
     },

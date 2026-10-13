@@ -87,7 +87,8 @@ stays in the timeline of the application, so you are prepared for the next step 
 
 - **Profile** (name, e-mail, phone, address, portfolio, LinkedIn, GitHub, website) used in your documents.
 - **Experience**: free text about your work, skills and goals. It is the only source of facts the AI may use.
-- **History of your texts**: every saved change of your experience is kept as a version. A version can have a comment
+- **History of your texts**: every saved change of your experience, of each AI prompt and of the texts that mean an ad
+  is gone is kept as a version (resetting the prompts to the defaults is kept too, so your own prompts can always come back). A version can have a comment
   and a pin, and *Use This* restores it as a new version, so nothing is lost. A *Changes* tab compares a version with the
   current text: what disappears is red, what appears is green, and inside a changed line only the changed words are
   marked. The number of unpinned versions kept is a setting (default 50).

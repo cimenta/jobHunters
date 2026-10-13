@@ -3,7 +3,17 @@ import type { Repository } from './repository';
 import type { HistoryEntry, HistorySource } from './types';
 
 /** The settings whose text keeps a history. Add a key here to track another text. */
-export const HISTORY_KEYS = ['candidate_experience'] as const;
+export const HISTORY_KEYS = [
+  'candidate_experience',
+  'offline_texts',
+  'ai_prompt_resume_tailor',
+  'ai_prompt_cover_letter',
+  'ai_prompt_other',
+  'ai_prompt_answer_question',
+  'ai_prompt_match_job',
+  'ai_prompt_import_job',
+  'ai_prompt_import_match_job',
+] as const;
 export type HistoryKey = (typeof HISTORY_KEYS)[number];
 
 export function isHistoryKey(key: string): key is HistoryKey {
@@ -62,7 +72,7 @@ export class HistoryService implements SettingsHistory {
 
   assertRoom(key: string): void {
     const { used, max } = this.list(key);
-    if (used >= max) throw new ValidationError('history_full', `The history of ${key} is full`, { used, max });
+    if (used >= max) throw new ValidationError('history_full', `The history of ${key} is full`, { key, used, max });
   }
 
   record(key: string, previous: string, next: string, source: HistorySource, restoredFrom = ''): void {
@@ -70,7 +80,7 @@ export class HistoryService implements SettingsHistory {
     const all = this.ofKey(key);
     const used = all.filter((entry) => !entry.pinned).length;
     const max = this.deps.maxVersions();
-    if (used >= max) throw new ValidationError('history_full', `The history of ${key} is full`, { used, max });
+    if (used >= max) throw new ValidationError('history_full', `The history of ${key} is full`, { key, used, max });
     let version = (all[all.length - 1]?.version ?? 0) + 1;
     const base = { key, restored_from: '', comment: '' };
     if (all.length === 0) {

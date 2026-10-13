@@ -1,12 +1,17 @@
 import { CATALOGS, hasOwn, type AppWarning } from '@jobhunters/core';
 import { ApiError } from '../api/client';
+import { historyName } from './history-names';
 import { tr } from './i18n.svelte';
 
 /** Always a translated sentence: raw codes and technical messages never reach the screen. */
 export function describeError(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'transport_failed') return tr('ui.error.transport');
-    if (hasOwn(CATALOGS.en, `error.${error.code}`)) return tr(`error.${error.code}`, error.params);
+    if (hasOwn(CATALOGS.en, `error.${error.code}`)) {
+      // A full history names the text it is about, so the user knows which one to make room in.
+      const params = error.code === 'history_full' && typeof error.params.key === 'string' ? { ...error.params, name: historyName(error.params.key) } : error.params;
+      return tr(`error.${error.code}`, params);
+    }
   }
   return tr('ui.error.generic');
 }
