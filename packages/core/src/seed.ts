@@ -42,7 +42,7 @@ const JOB_AD = [
   '   - title: the name of the position',
   '   - description: the full text of the ad (the most important column)',
   '   - location, remote, employment_type: where and how the work is done',
-  '   - salary_min, salary_max: the salary, if the ad states one',
+  '   - salary_min, salary_max, salary_currency, salary_period: the salary, if the ad states one',
   '   The company name is in the sheet Companies, column name, in the row whose id equals the column company_id of the job row.',
 ].join('\n');
 
@@ -66,13 +66,20 @@ const STATUSES = [
   '- Set status to done ONLY when every cell listed under RESULT has been written.',
 ].join('\n');
 
+// Filled by the match, resume and cover letter prompts only; the cell is written once and never overwritten.
+const salaryStep = (n: number): string =>
+  `${n}. Salary suggestion: the sheet Jobs, the row with id {{job_id}}, column ai_salary. If the cell is EMPTY, write one estimate in exactly this format: <ask> (<min>-<max>), for example 95000 (80000-125000). All three numbers are whole numbers in the same unit, written without spaces or thousands separators and without a currency sign. The unit is the monthly gross amount in the currency of the column salary_currency of the same row (CZK when it is empty). <ask> is the amount the candidate should ask for; <min>-<max> is the realistic range for this position and this candidate; <ask> lies inside the range. Base it only on facts: the salary stated in the ad (salary_min, salary_max, salary_period; convert to a monthly amount), the seniority and requirements of the role, the location, and the candidate experience. If you cannot estimate it responsibly leave the cell empty. If the cell is not empty, do not change it. Never overwrite an existing value.`;
+
+const SALARY_RESULT = 'The same Jobs row: column ai_salary = the estimate, ONLY if it was empty (leave it as it is when it already had a value).';
+const SALARY_CHECK = '- ai_salary is empty only if you could not estimate; otherwise it matches the format <ask> (<min>-<max>) with <ask> inside the range; a non-empty cell was left untouched.';
+
 const CHECK_COMMON = [
   '- Every fact in what you wrote (employer, role, date, number, tool, achievement) can be found in the candidate experience or the contact details.',
   '- It is written in {{language}} and nowhere in another language.',
   '- You changed no cell and no document other than the ones listed under RESULT.',
 ];
 
-const DOCUMENT = (kind: string, steps: string[], checks: string[]) => [
+const DOCUMENT = (kind: string, steps: string[], checks: string[], withSalary = false) => [
   'TASK',
   `Write the content of one Google Doc that belongs to a job application. Kind of document: ${kind}.`,
   '',
@@ -101,8 +108,9 @@ const DOCUMENT = (kind: string, steps: string[], checks: string[]) => [
   '   Keep the layout of the template: sections, their order, fonts and headings. If the Doc is empty, write the whole document into it.',
   ...steps,
   '{{notes}}',
-  '8. Read the whole Doc again from the start and go through CHECK BEFORE YOU FINISH. Correct what does not pass.',
-  '9. Write RESULT.',
+  ...(withSalary ? [salaryStep(8)] : []),
+  `${withSalary ? 9 : 8}. Read the whole Doc again from the start and go through CHECK BEFORE YOU FINISH. Correct what does not pass.`,
+  `${withSalary ? 10 : 9}. Write RESULT.`,
   '',
   'RULES',
   '- Use only facts from E and F. Never invent employers, dates, skills, numbers, certificates or achievements.',
@@ -112,12 +120,14 @@ const DOCUMENT = (kind: string, steps: string[], checks: string[]) => [
   '',
   'RESULT (exactly these writes)',
   '1. The Google Doc at doc_url contains the finished text.',
-  '2. The sheet Tasks, the row with id {{task_id}}: column status = done, and column ai_note = one or two sentences saying what you wrote and which requirements of the ad you could not support with a fact.',
+  ...(withSalary ? [`2. ${SALARY_RESULT}`] : []),
+  `${withSalary ? 3 : 2}. The sheet Tasks, the row with id {{task_id}}: column status = done, and column ai_note = one or two sentences saying what you wrote and which requirements of the ad you could not support with a fact.`,
   '',
   'CHECK BEFORE YOU FINISH',
   ...CHECK_COMMON,
   '- No placeholder in double braces is left in the Doc.',
   ...checks,
+  ...(withSalary ? [SALARY_CHECK] : []),
   '',
   STATUSES,
 ].join('\n');
@@ -132,6 +142,7 @@ const RESUME = DOCUMENT(
     '   - keep every employer, role, date and number exactly as in the candidate experience',
   ],
   ['- The sections and their order are the same as in the template.', '- The first lines of each section are the ones most relevant to the job.'],
+  true,
 );
 
 const COVER_LETTER = DOCUMENT(
@@ -145,6 +156,7 @@ const COVER_LETTER = DOCUMENT(
     '   Avoid clichés such as "I am writing to apply", "team player", "passionate", "dynamic environment".',
   ],
   ['- The body text has at most 250 words.', '- It names the company and the position.', '- Each of the two middle paragraphs contains a concrete fact, not a general claim.'],
+  true,
 );
 
 const OTHER = DOCUMENT(
@@ -226,7 +238,8 @@ const MATCH = [
   '   - one requirement that is partly met or not met, and what is missing',
   '   (0 to 6 lines; write "none" if there is no gap)',
   '   Verdict: suitable, partly suitable or not suitable, then one sentence with the main reason. The verdict agrees with the number: 70 or more is suitable, 40 to 69 partly suitable, below 40 not suitable.',
-  '7. Write RESULT.',
+  salaryStep(7),
+  '8. Write RESULT.',
   '',
   'RULES',
   '- Judge only by facts in the candidate experience. Do not assume skills the candidate did not write down.',
@@ -237,7 +250,8 @@ const MATCH = [
   'RESULT (exactly these writes, in this order)',
   '1. The sheet Jobs, the row with id {{job_id}}: column match_percent = the whole number from step 5, digits only, without a percent sign.',
   '2. The sheet Tasks, the row with id {{task_id}}: column ai_note = the evaluation from step 6.',
-  '3. The same Tasks row: column status = done.',
+  `3. ${SALARY_RESULT}`,
+  '4. The same Tasks row: column status = done (last, after every other write).',
   '',
   'CHECK BEFORE YOU FINISH',
   '- match_percent is a whole number from 0 to 100.',
@@ -245,6 +259,7 @@ const MATCH = [
   '- Every strength names a fact from the candidate experience.',
   '- The verdict is one of the three allowed values.',
   '- It is written in {{language}}.',
+  SALARY_CHECK,
   '',
   STATUSES,
 ].join('\n');

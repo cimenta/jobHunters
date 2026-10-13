@@ -1,5 +1,6 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { DEMO_URL } from '@jobhunters/gas/dev';
 import { api } from '../api';
 import { loadApp } from '../state/app.svelte';
 import { router } from '../lib/router.svelte';
@@ -18,7 +19,7 @@ describe('JobDetail', () => {
     const id = await idOf('Android Developer');
     render(JobDetail, { id });
     expect(await screen.findByRole('heading', { name: 'Android Developer' })).toBeInTheDocument();
-    expect(screen.getByText(/Example s\.r\.o\. · Praha · 60,000 – 80,000 CZK .* month/)).toBeInTheDocument();
+    expect(screen.getByText('Example s.r.o.')).toBeInTheDocument();
     const original = screen.getByRole('link', { name: /Open the ad/ });
     expect(original).toHaveAttribute('target', '_blank');
     expect(original).toHaveAttribute('rel', 'noopener noreferrer');
@@ -113,6 +114,125 @@ describe('JobDetail', () => {
   });
 });
 
+describe('JobDetail layout', () => {
+  it('shortens the create button to the plus and the word Application, keeping the full accessible name', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    const button = await screen.findByRole('button', { name: 'Create application' });
+    expect(button).toHaveTextContent(/^Application$/);
+    expect(button).toHaveAttribute('data-ui', 'job-detail.create-application');
+  });
+
+  it('puts a two-column grid of icon actions under it, each with a tooltip and an accessible name', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const grid = document.querySelector('[data-ui="job-detail.actions"]') as HTMLElement;
+    expect(grid).not.toBeNull();
+    const buttons = [...grid.querySelectorAll('button')];
+    expect(buttons.map((b) => b.getAttribute('data-ui'))).toEqual(['job-detail.refresh', 'job-detail.check-availability']);
+    expect(within(grid).getByRole('button', { name: 'Check availability' })).toHaveAttribute('title', 'Check availability');
+    expect(within(grid).getByRole('button', { name: 'Refresh the ad' })).toHaveAttribute('title', 'Refresh the ad');
+    expect(buttons.every((b) => b.textContent?.trim() === '')).toBe(true);
+    const create = screen.getByRole('button', { name: 'Create application' });
+    expect(create.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('puts the status select above the icons in a side column, and the link and folder icons beside the buttons', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { url: DEMO_URL });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const status = document.querySelector('[data-ui="job-detail.status"]') as HTMLElement;
+    const grid = document.querySelector('[data-ui="job-detail.actions"]') as HTMLElement;
+    expect(status.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const link = grid.querySelector('[data-ui="job-detail.url-link"]') as HTMLElement;
+    expect(link).not.toBeNull();
+    expect(link).toHaveAttribute('title', 'Open the ad');
+    expect(link.textContent?.trim()).toBe('');
+  });
+
+  it('shows salary, work mode, location, type and the AI salary, each labelled and only when filled', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const info = document.querySelector('[data-ui="job-detail.info"]') as HTMLElement;
+    expect(info).toHaveTextContent('Salary');
+    expect(info).toHaveTextContent('60,000 – 80,000 CZK / month');
+    expect(info).toHaveTextContent('Work mode');
+    expect(info).toHaveTextContent('Hybrid');
+    expect(info).toHaveTextContent('Location');
+    expect(info).toHaveTextContent('Praha');
+    expect(info).toHaveTextContent('Type');
+    expect(info).toHaveTextContent('Full-time');
+    expect(info).toHaveTextContent('75,000 (65,000–90,000) CZK/month, AI estimate');
+    cleanup();
+
+    const analyst = await idOf('Data Analyst (part time)');
+    backend.container.jobs.update(analyst, { location: '', salary_min: null, salary_max: null });
+    render(JobDetail, { id: analyst });
+    await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
+    const empty = document.querySelector('[data-ui="job-detail.info"]');
+    expect(empty === null || !/Salary|Work mode|Location|Type|AI/.test(empty.textContent ?? '')).toBe(true);
+  });
+
+  it('hides the actions of a job that waits for the AI', async () => {
+    useDevBackend();
+    await api.importJob('https://blocked.example/job/9');
+    const job = (await api.listJobs()).find((j) => j.status === 'awaiting')!;
+    render(JobDetail, { id: job.id });
+    await screen.findByText('This job waits for the AI. Tell Claude: run the pending tasks.');
+    expect(document.querySelector('[data-ui="job-detail.refresh"]')).toBeNull();
+    expect(document.querySelector('[data-ui="job-detail.check-availability"]')).toBeNull();
+  });
+});
+
+describe('JobDetail refresh', () => {
+  it('reads the ad again, names the job and the changed fields, and shows the new data', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { url: DEMO_URL });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh the ad' }));
+    await waitFor(() => expect(toasts.some((t) => /^Refreshed "Demo Engineer": .*salary.*location.* updated$/.test(t.text))).toBe(true));
+    expect(await screen.findByRole('heading', { name: 'Demo Engineer' })).toBeInTheDocument();
+    expect(backend.container.jobs.get(id)).toMatchObject({ title: 'Demo Engineer', location: 'Brno', notes: '', ai_salary: '75000 (65000-90000)' });
+  });
+
+  it('says when nothing changed', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { url: DEMO_URL });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh the ad' }));
+    await screen.findByRole('heading', { name: 'Demo Engineer' });
+    toasts.length = 0;
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh the ad' }));
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Refreshed "Demo Engineer": nothing changed'));
+  });
+
+  it('shows an error notice for an unreadable ad and leaves the page intact', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { url: 'https://blocked.example/job/1' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(screen.getByRole('button', { name: 'Refresh the ad' }));
+    await waitFor(() => expect(toasts.some((t) => t.kind === 'error')).toBe(true));
+    expect(screen.getByRole('heading', { name: 'Android Developer' })).toBeInTheDocument();
+    expect(backend.container.jobs.get(id)!.title).toBe('Android Developer');
+  });
+});
+
 describe('JobDetail availability', () => {
   it('checks the availability on demand and explains the result', async () => {
     useDevBackend();
@@ -120,7 +240,7 @@ describe('JobDetail availability', () => {
     const id = await idOf('Android Developer');
     render(JobDetail, { id });
     await screen.findByRole('heading', { name: 'Android Developer' });
-    await fireEvent.click(screen.getByRole('button', { name: 'Availability' }));
+    await fireEvent.click(screen.getByRole('button', { name: 'Check availability' }));
     await waitFor(() => expect(toasts.some((t) => /may be gone/.test(t.text))).toBe(true));
     expect(await screen.findByText(/suspected: page not found \(answer 404\)/)).toBeInTheDocument();
     expect(screen.getByText(/^Checked /)).toBeInTheDocument();
@@ -170,7 +290,7 @@ describe('JobDetail awaiting the AI', () => {
     const job = await awaiting();
     render(JobDetail, { id: job.id });
     await screen.findByText('This job waits for the AI. Tell Claude: run the pending tasks.');
-    expect(screen.queryByRole('button', { name: 'Availability' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Check availability' })).toBeNull();
     expect(screen.queryByLabelText('Status')).toBeNull();
   });
 

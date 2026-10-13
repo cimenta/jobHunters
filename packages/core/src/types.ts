@@ -39,6 +39,8 @@ export interface Job {
   status: string;
   /** 0-100, written by the AI after a match evaluation; null until then. */
   match_percent: number | null;
+  /** `<ask> (<min>-<max>)`, whole monthly amounts in salary_currency; written by the AI only while empty. */
+  ai_salary: string;
 }
 
 export interface Application {

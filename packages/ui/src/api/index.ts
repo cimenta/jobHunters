@@ -2,7 +2,7 @@ import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, MenuCounts, Remo
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, PrepareResult, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, PrepareResult, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -35,6 +35,7 @@ export const api = {
   getJob: (id: string) => call<JobDetail>('getJob', { id }),
   saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
+  refreshJob: (id: string) => call<RefreshResult>('refreshJob', { id }),
   updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),

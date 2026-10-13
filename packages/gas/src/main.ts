@@ -63,6 +63,14 @@ export function api(method: string, args?: unknown): ApiResult {
 }
 
 /**
+ * What the web app calls: the same answer as api(), but as ONE JSON string. google.script.run drops the null properties of
+ * objects (they arrive as undefined: an empty salary, an ad without a match), a string keeps them.
+ */
+export function apiJson(method: string, args?: unknown): string {
+  return JSON.stringify(api(method, args));
+}
+
+/**
  * Run from the Apps Script editor after deploying (the first function of the file, so it is the default choice):
  * creates or updates the folder, the spreadsheet, its sheets and the hourly trigger. The execution log lists
  * what it did and ends with "Setup finished: OK" or "NOT OK"; the same verdict is the return value.

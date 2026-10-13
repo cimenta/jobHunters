@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.2] - 2026-10-13
+
+- The ad parser also reads the work mode (on-site, hybrid or remote) where the page states it.
+- The job detail and the job card show the salary, work mode, location and employment type of the ad.
+- New Jobs column `ai_salary`: the AI fills it when it evaluates the match or writes a resume or cover letter, only when the cell is empty (format `95000 (80000-125000)`: what to ask for and the realistic monthly range). The detail and the card show it as an AI estimate. Run `setup()` to add the column to your sheet and use "Reset all to default" in Settings > AI prompts to get the new prompt text.
+- The job detail has a shorter "+ Application" button on the right of the title. Under it the summary has two columns: the details on the left and a narrow column on the right with the status drop-down above a two-column grid of icon buttons (new Refresh, which re-reads the ad and updates the parsed fields while your notes, status, match and AI estimate are kept; the availability check; the link to the ad; the Drive folder), each with a hover explanation. On a phone the column goes above the details. New API method `refreshJob`.
+- Fix: the Jobs list did not load when an ad had no salary (an empty number reached the browser as "undefined"). The answers of the server now travel as one JSON string (new function `apiJson`), which keeps empty values, and the formatters tolerate missing values.
+
 ## [0.13.1] - 2026-10-13
 
 - A number next to "Applications" in the main menu shows how many applications are in draft status (hidden at zero, "99+" above 99). `getMenuCounts` now also returns `draftApplications`.

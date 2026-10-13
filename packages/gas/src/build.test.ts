@@ -20,7 +20,7 @@ describe('build', () => {
     const code = readFileSync(dist('Code.js'), 'utf8');
     const stubs = [...code.matchAll(/^function (\w+)\(/gm)].map((m) => m[1]);
     // The Apps Script editor lists the functions in this order and preselects the first: setup.
-    expect(stubs).toEqual(['setup', 'api', 'doGet', 'smokeTest', 'testSetupColumns', 'onHourlyTick']);
+    expect(stubs).toEqual(['setup', 'api', 'apiJson', 'doGet', 'smokeTest', 'testSetupColumns', 'onHourlyTick']);
   });
 
   it('ships the UI as one self-contained page', () => {

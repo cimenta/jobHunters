@@ -22,7 +22,7 @@
     answer = question.answer;
   });
 
-  const over = $derived(question.max_sentences !== null && countSentences(answer) > question.max_sentences);
+  const over = $derived(question.max_sentences != null && countSentences(answer) > question.max_sentences);
 
   async function save(): Promise<void> {
     await api.answerQuestion(question.id, answer);
@@ -98,7 +98,7 @@
   </div>
   <div class="row wrap">
     <span class="small" class:over>
-      {question.max_sentences === null ? tr('ui.questions.counterNoMax', { count: countSentences(answer) }) : tr('ui.questions.counter', { count: countSentences(answer), max: question.max_sentences })}
+      {question.max_sentences == null ? tr('ui.questions.counterNoMax', { count: countSentences(answer) }) : tr('ui.questions.counter', { count: countSentences(answer), max: question.max_sentences })}
     </span>
     <span class="grow"></span>
     <Button ui="question.{question.id}.copy" onclick={copy} disabled={answer === ''}><Icon name="copy" size={16} />{tr('ui.copy')}</Button>

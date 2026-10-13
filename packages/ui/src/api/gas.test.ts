@@ -9,7 +9,7 @@ function stubGoogle(behaviour: (success: (r: unknown) => void, failure: (e: unkn
       run: {
         withSuccessHandler: (success: (r: unknown) => void) => ({
           withFailureHandler: (failure: (e: unknown) => void) => ({
-            api: (method: string, args: unknown) => behaviour(success, failure, method, args),
+            apiJson: (method: string, args: unknown) => behaviour(success, failure, method, args),
           }),
         }),
       },
@@ -26,6 +26,23 @@ describe('gasTransport', () => {
     });
     await expect(gasTransport('listJobs')).resolves.toEqual({ ok: true, data: 1 });
     expect(seen).toEqual([['listJobs', null]]);
+  });
+
+  it('keeps null properties: the answer travels as one JSON string because google.script.run drops null properties of objects', async () => {
+    stubGoogle((success) => success(JSON.stringify({ ok: true, data: { salary_min: null, title: 't' } })));
+    const result = await gasTransport('listJobs');
+    expect(result).toEqual({ ok: true, data: { salary_min: null, title: 't' } });
+    expect((result as { data: { salary_min: unknown } }).data.salary_min).toBeNull();
+  });
+
+  it('still accepts an answer that is already an object', async () => {
+    stubGoogle((success) => success({ ok: true, data: 2 }));
+    await expect(gasTransport('x')).resolves.toEqual({ ok: true, data: 2 });
+  });
+
+  it('rejects an answer that is not valid JSON', async () => {
+    stubGoogle((success) => success('{not json'));
+    await expect(gasTransport('x')).rejects.toThrow();
   });
 
   it('rejects when google.script.run fails', async () => {

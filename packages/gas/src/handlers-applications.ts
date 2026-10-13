@@ -103,6 +103,11 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.availabilityService.check(id);
     },
 
+    refreshJob: (args) => {
+      const id = requireString(asRecord(args, 'refreshJob'), 'id', 'refreshJob');
+      return c.lock.run(() => c.jobService.refresh(id));
+    },
+
     requestJobMatch: (args) => {
       const id = requireString(asRecord(args, 'requestJobMatch'), 'id', 'requestJobMatch');
       return c.lock.run(() => c.aiTaskService.requestMatch(id));

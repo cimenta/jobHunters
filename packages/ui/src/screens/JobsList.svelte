@@ -14,7 +14,7 @@
   import { tr } from '../lib/i18n.svelte';
   import { reportAvailability } from '../lib/job-notices';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
-  import { safeHttpUrl, shorten } from '../lib/format';
+  import { formatAiSalary, formatEmploymentType, formatSalary, formatWorkMode, safeHttpUrl, shorten } from '../lib/format';
   import { availabilityLabel } from '../lib/labels';
   import { notifyError } from '../lib/notify';
   import { useResource } from '../lib/resource.svelte';
@@ -100,6 +100,11 @@
     }
   }
 
+  /** Work mode · type · salary of the ad, empty when the ad has none of them. */
+  function facts(job: JobRow): string {
+    return [formatWorkMode(job.remote), formatEmploymentType(job.employment_type), formatSalary(job)].filter((part) => part !== '').join(' · ');
+  }
+
   async function check(job: JobRow): Promise<void> {
     reportAvailability(await api.checkJobAvailability(job.id));
     invalidate();
@@ -181,6 +186,8 @@
                 <span class="grow body">
                   <span class="title">{job.title}</span>
                   <span class="muted small">{[job.company_name, job.location].filter((part) => part !== '').join(' · ')}</span>
+                  {#if facts(job) !== ''}<span class="muted small" data-ui="job.{job.id}.facts">{facts(job)}</span>{/if}
+                  {#if job.ai_salary}<span class="muted small" data-ui="job.{job.id}.ai-salary">{formatAiSalary(job.ai_salary, job.salary_currency)}</span>{/if}
                   <span class="row wrap small">
                     <Badge text={current.text} color={current.color} textColor={current.textColor} />
                     {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
@@ -197,7 +204,7 @@
                     <a data-ui="job.{job.id}.link" class="icon-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.jobs.card.open')} title={tr('ui.jobs.card.open')}><Icon name="external" size={18} /></a>
                   {/if}
                   {#if job.status !== 'awaiting'}
-                    <Button variant="ghost" label={tr('ui.jobs.card.check')} ui="job.{job.id}.check" onclick={() => check(job)}><Icon name="refresh" size={18} /></Button>
+                    <Button variant="ghost" label={tr('ui.jobs.card.check')} ui="job.{job.id}.check" onclick={() => check(job)}><Icon name="check" size={18} /></Button>
                   {:else}
                     <Button variant="ghost" label={tr('ui.jobs.card.delete')} ui="job.{job.id}.delete" onclick={() => (deleting = { id: job.id, title: job.title })}><Icon name="trash" size={18} /></Button>
                   {/if}

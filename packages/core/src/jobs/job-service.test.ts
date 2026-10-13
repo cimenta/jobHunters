@@ -242,3 +242,104 @@ describe('saveIfReadable and createPlaceholder', () => {
     expect(jobs.get(job.id)).toBeDefined();
   });
 });
+
+describe('refresh', () => {
+  const CHANGED_AD = AD.replace(/Android Developer/g, 'Senior Android Developer').replace('60 000 – 80 000', '70 000 – 90 000');
+
+  function saved(pages: Record<string, FakePage>) {
+    const ctx = setup(pages);
+    const { job } = ctx.service.save({ url: URL1 });
+    ctx.jobs.update(job.id, {
+      notes: 'my notes', status: 'interested', is_gig: true, match_percent: 77, ai_salary: '75000 (65000-90000)', flags: 'x', availability: 'offline', availability_reason: 'gone', offline_strikes: 2, last_checked_at: '2020-01-01T00:00:00.000Z',
+    });
+    return { ...ctx, id: job.id };
+  }
+
+  it('overwrites the parsed fields, lists exactly the changed ones and keeps the user data', () => {
+    const pages: Record<string, FakePage> = { [URL1]: ok() };
+    const { service, jobs, id } = saved(pages);
+    const before = jobs.get(id)!;
+    pages[URL1] = ok(CHANGED_AD);
+    const result = service.refresh(id);
+    expect(result.changed).toEqual(['title', 'salary_min', 'salary_max']);
+    expect(result.job).toMatchObject({ title: 'Senior Android Developer', salary_min: 70000, salary_max: 90000 });
+    const after = jobs.get(id)!;
+    expect(after).toEqual(result.job);
+    expect(after).toMatchObject({
+      notes: 'my notes', status: 'interested', is_gig: true, match_percent: 77, ai_salary: '75000 (65000-90000)', flags: 'x',
+      folder_url: before.folder_url, company_id: before.company_id, url: before.url, found_at: before.found_at,
+      availability: 'online', availability_reason: '', offline_strikes: 0, last_checked_at: NOW,
+    });
+  });
+
+  it('reports nothing changed for an identical page but still marks the job online', () => {
+    const { service, jobs, id } = saved({ [URL1]: ok() });
+    const result = service.refresh(id);
+    expect(result.changed).toEqual([]);
+    expect(jobs.get(id)).toMatchObject({ availability: 'online', offline_strikes: 0, last_checked_at: NOW });
+  });
+
+  it('does not report the parser id as changed but still writes it', () => {
+    const { service, jobs, id } = saved({ [URL1]: ok() });
+    jobs.update(id, { parser_id: 'old-parser' });
+    const result = service.refresh(id);
+    expect(result.changed).toEqual([]);
+    expect(jobs.get(id)!.parser_id).toBe('jobs-cz');
+  });
+
+  it('sets the company only when the job had none', () => {
+    const empty = saved({ [URL1]: ok() });
+    empty.jobs.update(empty.id, { company_id: '' });
+    const result = empty.service.refresh(empty.id);
+    expect(result.changed).toContain('company');
+    expect(result.job.company_id).toBe(empty.companies.list()[0]!.id);
+
+    const own = saved({ [URL1]: ok() });
+    const other = own.companies.insert({ id: 'mine', name: 'Other Co', website: '', notes: '' });
+    own.jobs.update(own.id, { company_id: other.id });
+    expect(own.service.refresh(own.id).job.company_id).toBe('mine');
+    expect(own.companies.list()).toHaveLength(2);
+  });
+
+  it('does not touch the Drive snapshot', () => {
+    const { service, drive, id } = saved({ [URL1]: ok() });
+    const files = drive.documents.size;
+    service.refresh(id);
+    expect(drive.documents.size).toBe(files);
+  });
+
+  it('refuses an unreadable page with a coded error and changes nothing', () => {
+    const login = '<html><title>Sign Up | LinkedIn</title><body>Log in</body></html>';
+    for (const page of [{ status: 429, html: '' }, { status: 403, html: '' }, { status: 200, html: login }] as FakePage[]) {
+      const pages: Record<string, FakePage> = { [URL1]: ok() };
+      const { service, jobs, id } = saved(pages);
+      const before = structuredClone(jobs.get(id));
+      pages[URL1] = page;
+      expect(() => service.refresh(id)).toThrowError(expect.objectContaining({ code: 'refresh_unreadable', params: { status: page.status } }));
+      expect(jobs.get(id)).toEqual(before);
+    }
+  });
+
+  it('refuses a download that throws and changes nothing', () => {
+    const { service, jobs, fetcher, id } = saved({ [URL1]: ok() });
+    const before = structuredClone(jobs.get(id));
+    fetcher.fetch = () => {
+      throw new Error('network down');
+    };
+    expect(() => service.refresh(id)).toThrowError(expect.objectContaining({ code: 'refresh_unreadable', params: { status: 0 } }));
+    expect(jobs.get(id)).toEqual(before);
+  });
+
+  it('refuses an awaiting job and an unknown id', () => {
+    const { service } = setup({ [URL1]: ok() });
+    const placeholder = service.createPlaceholder(URL2);
+    expect(() => service.refresh(placeholder.id)).toThrowError(expect.objectContaining({ code: 'job_awaiting' }));
+    expect(() => service.refresh('ghost')).toThrowError(expect.objectContaining({ code: 'job_not_found' }));
+  });
+
+  it('creates new jobs with an empty ai_salary', () => {
+    const { service } = setup({ [URL1]: ok() });
+    expect(service.save({ url: URL1 }).job.ai_salary).toBe('');
+    expect(service.createPlaceholder(URL2).ai_salary).toBe('');
+  });
+});

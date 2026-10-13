@@ -96,7 +96,9 @@ function seed(backend: DevBackend, now: () => string): void {
   const lorem = 'We are looking for a colleague to join our team. You will build and run services together with us.';
   const android = save('https://example.com/jobs/android', `Android Developer\n\n${lorem}`, {
     company: 'Example s.r.o.', location: 'Praha', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month',
+    remote: 'hybrid', employment_type: 'full_time',
   });
+  backend.container.jobs.update(android, { ai_salary: '75000 (65000-90000)' });
   const analyst = save('https://example.com/jobs/analyst', `Data Analyst (part time)\n\n${lorem}`, {
     company: 'Sample GmbH', location: 'Brno', is_gig: true, salary_min: 250, salary_max: 300, salary_currency: 'CZK', salary_period: 'hour',
   });

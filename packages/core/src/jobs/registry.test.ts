@@ -70,6 +70,40 @@ describe('StartupJobs parser', () => {
   });
 });
 
+describe('StartupJobs work mode', () => {
+  const url = 'https://www.startupjobs.cz/nabidka/108415/product-specialist-technical-engineer-integrations-ai';
+  const withLinks = (...modes: string[]) =>
+    fixture('startupjobs/ad.html').replace('</main>', modes.map((m) => `<a href="/nabidky?pracovni-rezim=${m}" class="label-sm">x </a>`).join('') + '</main>');
+
+  it('reads a hybrid ad and keeps the other fields', () => {
+    const { parserId, job } = parseJobPage(fixture('startupjobs/ad-hybrid.html'), url);
+    expect(parserId).toBe('startupjobs');
+    expect(job).toMatchObject({
+      title: 'Product Specialist / Technical Engineer – Integrations & AI',
+      company: 'salesconnect, s.r.o.',
+      location: 'Praha, Česko',
+      salary_min: 60000,
+      salary_max: 90000,
+      salary_currency: 'CZK',
+      salary_period: 'month',
+      employment_type: 'full_time',
+      language: 'cs',
+      remote: 'hybrid',
+    });
+  });
+
+  it('maps the on-site, remote and missing markers', () => {
+    expect(parseJobPage(withLinks('onsite'), url).job.remote).toBe('no');
+    expect(parseJobPage(withLinks('remote'), url).job.remote).toBe('yes');
+    expect(parseJobPage(fixture('startupjobs/ad.html'), url).job.remote).toBe('');
+  });
+
+  it('prefers remote over hybrid over on-site when an ad lists several modes', () => {
+    expect(parseJobPage(withLinks('onsite', 'hybrid'), url).job.remote).toBe('hybrid');
+    expect(parseJobPage(withLinks('onsite', 'hybrid', 'remote'), url).job.remote).toBe('yes');
+  });
+});
+
 describe('parseJobPage fallbacks', () => {
   it('uses the generic parser for other sites', () => {
     const { parserId, job } = parseJobPage(fixture('generic/json-ld.html'), 'https://example.com/job/1');

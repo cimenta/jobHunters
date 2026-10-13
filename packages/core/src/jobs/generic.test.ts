@@ -28,6 +28,11 @@ describe('parseGeneric', () => {
     expect(job.description).toBe('Analyse data for the business. You will work with the team and report to the head of data.\n- SQL');
   });
 
+  it('reads jobLocationType TELECOMMUTE as remote', () => {
+    const html = '<script type="application/ld+json">{"@type":"JobPosting","title":"A","jobLocationType":"TELECOMMUTE"}</script>';
+    expect(parseGeneric(html, 'https://example.com/job').remote).toBe('yes');
+  });
+
   it('falls back to OpenGraph and the title tag, and lists what is missing', () => {
     const html = '<head><title>Fallback title</title><meta property="og:title" content="OG title"><meta property="og:description" content="Teaser"></head>';
     const job = parseGeneric(html, 'https://example.com/job');

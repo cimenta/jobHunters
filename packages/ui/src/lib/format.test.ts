@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCount, formatDate, formatSalary, plusDays, safeHttpUrl, shorten } from './format';
+import { formatAiSalary, formatCount, formatDate, formatEmploymentType, formatSalary, formatWorkMode, plusDays, safeHttpUrl, shorten } from './format';
 import { setLocale } from './i18n.svelte';
 import { app } from '../state/app.svelte';
 
@@ -88,5 +88,62 @@ describe('formatCount', () => {
     expect(formatCount(1)).toBe('1');
     expect(formatCount(99)).toBe('99');
     expect(formatCount(100)).toBe('99+');
+  });
+});
+
+describe('formatWorkMode', () => {
+  it('names the work mode in the current language and returns nothing for an empty or unknown value', () => {
+    setLocale('en');
+    expect([formatWorkMode('no'), formatWorkMode('hybrid'), formatWorkMode('yes'), formatWorkMode(''), formatWorkMode('???')]).toEqual(['On-site', 'Hybrid', 'Remote', '', '']);
+    setLocale('cs');
+    expect([formatWorkMode('no'), formatWorkMode('hybrid'), formatWorkMode('yes')]).toEqual(['Na místě', 'Hybridně', 'Na dálku']);
+    setLocale('en');
+  });
+});
+
+describe('formatEmploymentType', () => {
+  it('names the known types and shows an unknown code as it is', () => {
+    setLocale('en');
+    expect([formatEmploymentType('full_time'), formatEmploymentType('part_time'), formatEmploymentType('contractor'), formatEmploymentType('intern')]).toEqual(['Full-time', 'Part-time', 'Contractor', 'Intern']);
+    expect(formatEmploymentType('full-time')).toBe('Full-time');
+    expect(formatEmploymentType('seasonal')).toBe('seasonal');
+    expect(formatEmploymentType('')).toBe('');
+    setLocale('cs');
+    expect(formatEmploymentType('full_time')).toBe('Plný úvazek');
+    setLocale('en');
+  });
+});
+
+describe('formatAiSalary', () => {
+  it('makes the stored estimate readable and says it is an AI estimate', () => {
+    setLocale('en');
+    expect(formatAiSalary('95000 (80000-125000)', 'CZK')).toBe('95,000 (80,000–125,000) CZK/month, AI estimate');
+    expect(formatAiSalary('95000 (80000-125000)', '')).toBe('95,000 (80,000–125,000) CZK/month, AI estimate');
+    expect(formatAiSalary('3000 (2500-4000)', 'EUR')).toBe('3,000 (2,500–4,000) EUR/month, AI estimate');
+    setLocale('cs');
+    expect(formatAiSalary('95000 (80000-125000)', 'CZK')).toBe('95 000 (80 000–125 000) Kč/měsíc, odhad AI');
+    expect(formatAiSalary('3000 (2500-4000)', 'EUR')).toBe('3 000 (2 500–4 000) EUR/měsíc, odhad AI');
+    setLocale('en');
+  });
+  it('returns an empty or malformed text unchanged', () => {
+    setLocale('en');
+    expect(formatAiSalary('', 'CZK')).toBe('');
+    expect(formatAiSalary('around 90k', 'CZK')).toBe('around 90k');
+    expect(formatAiSalary('95000', 'CZK')).toBe('95000');
+    expect(formatAiSalary('95000 (80000)', 'CZK')).toBe('95000 (80000)');
+  });
+});
+
+describe('missing values (the transport can drop null properties)', () => {
+  it('formatSalary gives an empty text when the salary fields are missing, not an error', () => {
+    const job = { salary_currency: '', salary_period: '' } as unknown as Parameters<typeof formatSalary>[0];
+    expect(formatSalary(job)).toBe('');
+    expect(formatSalary({ ...job, salary_min: 50000 } as unknown as Parameters<typeof formatSalary>[0])).toContain('50');
+  });
+
+  it('formatEmploymentType, formatWorkMode and formatAiSalary survive undefined', () => {
+    expect(formatEmploymentType(undefined as unknown as string)).toBe('');
+    expect(formatWorkMode(undefined as unknown as string)).toBe('');
+    expect(formatAiSalary(undefined as unknown as string, undefined as unknown as string)).toBe('');
   });
 });

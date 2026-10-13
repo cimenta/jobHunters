@@ -10,10 +10,10 @@
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import ConfirmDialog from '../components/ConfirmDialog.svelte';
-  import { formatDate, formatSalary, safeHttpUrl, shorten } from '../lib/format';
+  import { formatAiSalary, formatDate, formatEmploymentType, formatSalary, formatWorkMode, safeHttpUrl, shorten } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
-  import { reportAvailability } from '../lib/job-notices';
+  import { reportAvailability, reportRefresh } from '../lib/job-notices';
   import { availabilityLabel, availabilityReasonLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -60,6 +60,11 @@
     invalidate();
   }
 
+  async function refresh(): Promise<void> {
+    reportRefresh(await api.refreshJob(id));
+    invalidate();
+  }
+
   async function remove(): Promise<void> {
     const job = detail.data?.job;
     await api.deleteJob(id);
@@ -68,7 +73,18 @@
     navigate(paths.jobs);
   }
 
-  const salary = $derived(detail.data ? formatSalary(detail.data.job) : '');
+  /** The labelled facts of the ad; only the filled ones are listed. */
+  const facts = $derived.by(() => {
+    const job = detail.data?.job;
+    if (!job) return [];
+    return [
+      { key: 'salary', label: tr('ui.job.info.salary'), value: formatSalary(job) },
+      { key: 'work-mode', label: tr('ui.job.info.workMode'), value: formatWorkMode(job.remote) },
+      { key: 'location', label: tr('ui.job.info.location'), value: job.location },
+      { key: 'type', label: tr('ui.job.info.type'), value: formatEmploymentType(job.employment_type) },
+      { key: 'ai-salary', label: tr('ui.job.info.aiSalary'), value: formatAiSalary(job.ai_salary, job.salary_currency) },
+    ].filter((fact) => fact.value !== '');
+  });
 </script>
 
 <div class="stack" data-ui="job-detail">
@@ -79,36 +95,55 @@
   {:else if detail.data}
     {@const job = detail.data.job}
     {@const current = jobStatus(job)}
+    {@const jobUrl = safeHttpUrl(job.url)}
     <Card ui="job-detail.summary">
       <div class="page-title">
         <h1>{job.title}</h1>
         {#if job.status !== 'awaiting'}
-          <Button variant="primary" ui="job-detail.create-application" onclick={() => (creating = true)}><Icon name="plus" size={18} />{tr('ui.job.createApplication')}</Button>
+          <Button variant="primary" label={tr('ui.job.createApplicationLabel')} ui="job-detail.create-application" onclick={() => (creating = true)}><Icon name="plus" size={18} />{tr('ui.job.createApplicationShort')}</Button>
         {/if}
       </div>
-      <p class="muted">{[detail.data.company?.name ?? '', job.location, salary].filter((part) => part !== '').join(' · ')}</p>
-      <div class="row wrap">
-        <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
-        <Badge text={current.text} color={current.color} textColor={current.textColor} />
-        {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
-        {#if typeof job.match_percent === 'number' && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
-        {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
-        {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
-        {#if job.flags.includes('snapshot_missing')}<span class="warn small">{tr('ui.job.snapshotMissing')}</span>{/if}
-      </div>
-      <div class="row wrap">
-        {#if safeHttpUrl(job.url) !== ''}
-          <a data-ui="job-detail.url-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.open')}</a>
-        {/if}
-        {#if job.status !== 'awaiting'}
-        <select class="input status-select" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
-          {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
-        </select>
-        <Button ui="job-detail.check-availability" onclick={checkAvailability}>{tr('ui.job.checkAvailability')}</Button>
-        {/if}
-        {#if job.folder_url !== ''}
-          <a data-ui="job-detail.folder-link" href={job.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.job.folder')}</a>
-        {/if}
+      <div class="summary">
+        <div class="side">
+          {#if job.status !== 'awaiting'}
+            <select class="input" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
+              {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
+            </select>
+          {/if}
+          {#if job.status !== 'awaiting' || jobUrl !== '' || job.folder_url !== ''}
+            <div class="actions" role="group" aria-label={tr('ui.job.actions')} data-ui="job-detail.actions">
+              {#if job.status !== 'awaiting'}
+                <Button label={tr('ui.job.refresh')} ui="job-detail.refresh" onclick={refresh}><Icon name="refresh" size={18} /></Button>
+                <Button label={tr('ui.job.checkAvailability')} ui="job-detail.check-availability" onclick={checkAvailability}><Icon name="check" size={18} /></Button>
+              {/if}
+              {#if jobUrl !== ''}
+                <a class="btn tool" data-ui="job-detail.url-link" href={jobUrl} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.job.open')} title={tr('ui.job.open')}><Icon name="external" size={18} /></a>
+              {/if}
+              {#if job.folder_url !== ''}
+                <a class="btn tool" data-ui="job-detail.folder-link" href={job.folder_url} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.job.folder')} title={tr('ui.job.folder')}><Icon name="folder" size={18} /></a>
+              {/if}
+            </div>
+          {/if}
+        </div>
+        <div class="main stack">
+          {#if (detail.data.company?.name ?? '') !== ''}<p class="muted">{detail.data.company?.name}</p>{/if}
+          <div class="row wrap">
+            <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
+            <Badge text={current.text} color={current.color} textColor={current.textColor} />
+            {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
+            {#if typeof job.match_percent === 'number' && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
+            {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
+            {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
+            {#if job.flags.includes('snapshot_missing')}<span class="warn small">{tr('ui.job.snapshotMissing')}</span>{/if}
+          </div>
+          {#if facts.length > 0}
+            <dl class="facts" data-ui="job-detail.info">
+              {#each facts as fact (fact.key)}
+                <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="job-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+              {/each}
+            </dl>
+          {/if}
+        </div>
       </div>
     </Card>
 
@@ -171,6 +206,22 @@
 
 <style>
   .description { white-space: pre-wrap; }
+  .summary { display: grid; --icons-w: calc(2 * var(--tap) + var(--space-2)); grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main side'; gap: var(--space-4); align-items: start; }
+  .main { grid-area: main; min-width: 0; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding-left: var(--space-4); border-left: 1px solid var(--border); }
+  .side select { width: var(--icons-w); max-width: 100%; }
+  .actions { display: grid; grid-template-columns: repeat(2, var(--tap)); gap: var(--space-2); }
+  .actions :global(.btn) { min-width: var(--tap); width: var(--tap); padding: 0; }
+  .tool { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); text-decoration: none; }
+  .tool:hover { border-color: var(--accent); }
+  @media (max-width: 600px) {
+    .summary { grid-template-columns: 1fr; grid-template-areas: 'side' 'main'; }
+    .side { padding-left: 0; border-left: 0; }
+  }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+  .fact { min-width: 0; overflow-wrap: anywhere; }
+  .fact dd { margin: 0; }
+  .fact.wide { grid-column: 1 / -1; }
   .warn { color: var(--warning); font-weight: 600; }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
 </style>

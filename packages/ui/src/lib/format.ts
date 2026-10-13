@@ -25,16 +25,46 @@ export function formatDate(value: string): string {
   return date.toLocaleString(ui.locale, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: zone() });
 }
 
-export function formatSalary(job: { salary_min: number | null; salary_max: number | null; salary_currency: string; salary_period: string }): string {
+/** A null number can arrive as undefined, so every check here treats both as "missing". */
+export function formatSalary(job: { salary_min?: number | null; salary_max?: number | null; salary_currency?: string; salary_period?: string }): string {
   const { salary_min: min, salary_max: max } = job;
   const low = min ?? max;
-  if (low === null) return '';
+  if (low == null) return '';
   const high = max ?? min;
   const amount = (n: number): string => n.toLocaleString(ui.locale);
-  const range = high === null || high === low ? amount(low) : `${amount(low)} – ${amount(high)}`;
-  const currency = job.salary_currency === '' ? '' : ` ${job.salary_currency}`;
-  const period = job.salary_period === '' ? '' : ` / ${tr(`ui.period.${job.salary_period}`)}`;
+  const range = high == null || high === low ? amount(low) : `${amount(low)} – ${amount(high)}`;
+  const currency = !job.salary_currency ? '' : ` ${job.salary_currency}`;
+  const period = !job.salary_period ? '' : ` / ${tr(`ui.period.${job.salary_period}`)}`;
   return `${range}${currency}${period}`;
+}
+
+/** On-site / hybrid / remote in the current language; empty or unknown gives ''. */
+export function formatWorkMode(remote: string | undefined): string {
+  return remote === 'no' || remote === 'hybrid' || remote === 'yes' ? tr(`ui.workMode.${remote}`) : '';
+}
+
+const EMPLOYMENT_TYPES = ['full_time', 'part_time', 'contractor', 'intern'];
+
+/** A known employment type in the current language; any other value is shown as it is. */
+export function formatEmploymentType(code: string | undefined): string {
+  if (!code) return '';
+  const normalized = code.trim().toLowerCase().replace(/[-\s]+/g, '_');
+  return EMPLOYMENT_TYPES.includes(normalized) ? tr(`ui.employmentType.${normalized}`) : code;
+}
+
+const AI_SALARY = /^\s*(\d+)\s*\(\s*(\d+)\s*[-–]\s*(\d+)\s*\)\s*$/;
+
+/** The AI estimate "95000 (80000-125000)" made readable with its unit and a hint; anything not in that format is returned unchanged. */
+export function formatAiSalary(text: string | undefined, currency: string | undefined): string {
+  if (!text) return '';
+  currency = currency ?? '';
+  const match = AI_SALARY.exec(text);
+  if (!match) return text;
+  const amount = (digits: string): string => Number(digits).toLocaleString(ui.locale);
+  const unit = currency.trim() === '' || currency.trim().toUpperCase() === 'CZK' ? tr('ui.aiSalary.czk') : currency.trim();
+  return tr('ui.aiSalary.format', {
+    ask: amount(match[1]!), min: amount(match[2]!), max: amount(match[3]!), currency: unit, period: tr('ui.period.month'),
+  });
 }
 
 export function plusDays(date: string, days: number): string {

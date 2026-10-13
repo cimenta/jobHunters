@@ -23,6 +23,12 @@ describe('buildSetupPlan', () => {
     expect(sheet('INSTRUCTIONS').textColumns).toEqual([1]);
   });
 
+  it('has the ai_salary column on Jobs, right after match_percent, as plain text', () => {
+    const jobs = sheet('Jobs');
+    expect(jobs.headers.indexOf('ai_salary')).toBe(jobs.headers.indexOf('match_percent') + 1);
+    expect(jobs.textColumns).toContain(jobs.headers.indexOf('ai_salary') + 1);
+  });
+
   it('seeds the Profile sheet with the profile keys and empty values', () => {
     expect(sheet('Profile').seedRows).toEqual([['name', ''], ['email', ''], ['phone', ''], ['address', ''], ['links', '']]);
   });

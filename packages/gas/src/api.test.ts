@@ -457,4 +457,28 @@ describe('job import api', () => {
     api('importJob', { url: BLOCKED });
     expect(api('getDashboard')).toMatchObject({ ok: true, data: { aiTasksWaiting: { total: 1, byType: { import_job: 1 } } } });
   });
+
+  it('refreshJob re-reads the ad, reports the changed fields and keeps the user data', () => {
+    const fetched = pages();
+    const { api, container } = setup(fetched);
+    const saved = api('saveJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
+    const id = saved.data.job.id;
+    container.jobs.update(id, { notes: 'mine', ai_salary: '1 (1-1)' });
+    fetched[CLEAN_URL] = { status: 200, html: AD.replace(/Data Analyst/g, 'Lead Data Analyst') };
+    const result = api('refreshJob', { id }) as { ok: true; data: { job: { title: string; notes: string; ai_salary: string }; changed: string[] } };
+    expect(result).toMatchObject({ ok: true, data: { changed: ['title'], job: { title: 'Lead Data Analyst', notes: 'mine', ai_salary: '1 (1-1)' } } });
+    expect(container.jobs.get(id)!.title).toBe('Lead Data Analyst');
+  });
+
+  it('refreshJob answers with coded errors', () => {
+    const fetched = pages();
+    const { api } = setup(fetched);
+    expect(api('refreshJob', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('refreshJob', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'job_not_found' } });
+    const queued = api('importJob', { url: BLOCKED }) as { data: { job: { id: string } } };
+    expect(api('refreshJob', { id: queued.data.job.id })).toMatchObject({ ok: false, error: { code: 'job_awaiting' } });
+    const saved = api('saveJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
+    fetched[CLEAN_URL] = { status: 429, html: '' };
+    expect(api('refreshJob', { id: saved.data.job.id })).toMatchObject({ ok: false, error: { code: 'refresh_unreadable', params: { status: 429 } } });
+  });
 });

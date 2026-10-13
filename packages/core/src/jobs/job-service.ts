@@ -1,6 +1,7 @@
 import { ensureFolderPath, type DriveGateway, type FolderRef } from '../drive';
 import type { Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
+import { NotFoundError, ValidationError } from '../errors';
 import type { Company, Job } from '../types';
 import { foldDiacritics, truncateForCell } from './html';
 import type { FetchResult, PageFetcher } from './fetcher';
@@ -39,6 +40,12 @@ export interface SaveResult {
   company: Company | undefined;
   warnings: AppWarning[];
   missing: string[];
+}
+
+export interface RefreshResult {
+  job: Job;
+  /** Names of the Jobs columns whose value the refresh changed. */
+  changed: string[];
 }
 
 export interface JobServiceDeps {
@@ -106,6 +113,45 @@ export class JobService {
     return this.persist(url, acquired, input);
   }
 
+  /**
+   * Downloads the ad of a saved job again and overwrites the parsed fields. Notes, status, gig flag, match, ai_salary,
+   * flags and the Drive snapshot are never touched; the company is set only while the job has none. An unreadable
+   * page changes nothing.
+   */
+  refresh(jobId: string): RefreshResult {
+    const { jobs, now } = this.deps;
+    const job = jobs.get(jobId);
+    if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    if (job.status === 'awaiting') throw new ValidationError('job_awaiting', `Job ${jobId} is waiting for the AI`, { id: jobId });
+
+    const acquired = this.acquire(normalizeJobUrl(job.url), { url: job.url, text: undefined });
+    const { missing } = acquired.parsed;
+    if (!acquired.fetched || missing.includes('title') || missing.includes('description')) {
+      throw new ValidationError('refresh_unreadable', `The ad of job ${jobId} could not be read (HTTP ${acquired.fetchStatus})`, { status: acquired.fetchStatus });
+    }
+
+    const parsed = acquired.parsed;
+    const timestamp = now();
+    const patch: Partial<Job> = {
+      title: parsed.title.trim() || titleFromUrl(job.url), location: parsed.location, salary_min: parsed.salary_min, salary_max: parsed.salary_max,
+      salary_currency: parsed.salary_currency, salary_period: parsed.salary_period, employment_type: parsed.employment_type,
+      remote: parsed.remote, posted_at: parsed.posted_at, valid_until: parsed.valid_until, description: truncateForCell(parsed.description),
+      language: parsed.language, parser_id: acquired.parserId,
+    };
+    const companyName = parsed.company.trim();
+    if (job.company_id === '' && companyName !== '') patch.company_id = this.findOrCreateCompany(companyName).id;
+
+    const changed: string[] = [];
+    for (const [key, value] of Object.entries(patch)) {
+      if (key === 'parser_id') continue;
+      if (job[key as keyof Job] !== value) changed.push(key === 'company_id' ? 'company' : key);
+    }
+    const updated = jobs.update(jobId, {
+      ...patch, parsed_at: timestamp, availability: 'online', availability_reason: '', offline_strikes: 0, last_checked_at: timestamp,
+    });
+    return { job: updated, changed };
+  }
+
   /** A job that only waits for the AI to read the ad: the title comes from the address. */
   createPlaceholder(rawUrl: string): Job {
     const url = normalizeJobUrl(rawUrl);
@@ -114,7 +160,7 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null,
+      status: 'awaiting', match_percent: null, ai_salary: '',
     });
   }
 
@@ -167,6 +213,7 @@ export class JobService {
       notes: fields.notes ?? '',
       status: 'new',
       match_percent: null,
+      ai_salary: '',
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

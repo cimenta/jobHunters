@@ -20,6 +20,19 @@ describe('JobsList', () => {
     expect(within(row).getByText('1 application')).toBeInTheDocument();
   });
 
+
+  it('shows a muted line with work mode, type and salary, and the AI salary, only when there is something to show', async () => {
+    const backend = useDevBackend();
+    render(JobsList);
+    const row = (await screen.findByText('Android Developer')).closest('a')!;
+    expect(within(row).getByText('Hybrid · Full-time · 60,000 – 80,000 CZK / month')).toBeInTheDocument();
+    expect(within(row).getByText('75,000 (65,000–90,000) CZK/month, AI estimate')).toBeInTheDocument();
+    const long = (await screen.findByText(/^Senior Principal Staff/)).closest('a')!;
+    expect(long.querySelector('[data-ui$=".facts"]')).toBeNull();
+    expect(long.querySelector('[data-ui$=".ai-salary"]')).toBeNull();
+    expect(backend).toBeDefined();
+  });
+
   it('shows hostile text as text, not as markup', async () => {
     useDevBackend();
     render(JobsList);
@@ -458,7 +471,7 @@ describe('JobsList card', () => {
     await api.updateSettings({ candidate_experience: experience });
     await loadApp();
     const rows = await api.listJobs();
-    const plain = rows.find((job) => job.match_percent === null && job.application_count === 0 && job.status !== 'awaiting')!;
+    const plain = rows.find((job) => typeof job.match_percent !== 'number' && job.application_count === 0 && job.status !== 'awaiting')!;
     return { backend, rows, plain };
   }
 
@@ -493,7 +506,7 @@ describe('JobsList card', () => {
     const awaiting = fresh.find((job) => job.status === 'awaiting')!;
     await waitFor(() => expect(within(actionsOf(plain.id)).getByLabelText(MATCH)).toBeInTheDocument());
     for (const job of fresh) {
-      const wants = job.match_percent === null && job.application_count === 0 && job.status !== 'awaiting';
+      const wants = typeof job.match_percent !== 'number' && job.application_count === 0 && job.status !== 'awaiting';
       const box = actionsOf(job.id) ? within(actionsOf(job.id)).queryByLabelText(MATCH) : null;
       expect(box !== null, job.title).toBe(wants);
     }
