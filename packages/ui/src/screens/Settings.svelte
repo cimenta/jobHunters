@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { OFFLINE_RULES, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
+  import { OFFLINE_RULES, parseRefreshSeconds, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -50,6 +50,10 @@
   let uiLanguage = $state('en');
   let uiTheme = $state('system');
   let resultNotices = $state(true);
+  let menuNormal = $state('60');
+  let menuBusy = $state('15');
+  let menuNormalError = $state('');
+  let menuBusyError = $state('');
   let docLanguage = $state('en');
   let documentSet = $state<string[]>([]);
   let profileValues = $state<Record<string, string>>({ name: '', email: '', phone: '', address: '', links: '' });
@@ -70,6 +74,10 @@
       immediateRules = [...settings.availability_immediate_rules];
       offlineTexts = settings.offline_texts.join('\n');
       prompts = Object.fromEntries(PROMPT_TYPES.map((type) => [type, settings[`ai_prompt_${type}`]])) as Record<PromptType, string>;
+      menuNormalError = '';
+      menuBusyError = '';
+      menuNormal = String(settings.menu_refresh_seconds);
+      menuBusy = String(settings.menu_refresh_busy_seconds);
       docLanguage = settings.default_document_language;
       documentSet = [...settings.default_document_set];
     }
@@ -94,6 +102,25 @@
     await api.updateSettings({ result_notices: String(resultNotices) });
     await reloadSettings();
     toast.success(tr(resultNotices ? 'ui.settings.noticesOn' : 'ui.settings.noticesOff'));
+  }
+
+  async function saveMenuRefresh(): Promise<void> {
+    const normal = parseRefreshSeconds(String(menuNormal).trim());
+    const busy = parseRefreshSeconds(String(menuBusy).trim());
+    menuNormalError = normal === undefined ? tr('ui.settings.menuRefreshInvalid') : '';
+    menuBusyError = busy === undefined ? tr('ui.settings.menuRefreshInvalid') : '';
+    if (normal === undefined || busy === undefined) return;
+    await api.updateSettings({ menu_refresh_seconds: String(normal), menu_refresh_busy_seconds: String(busy) });
+    await reloadSettings();
+    const key =
+      normal === 0 && busy === 0
+        ? 'ui.settings.savedMenuRefreshOff'
+        : busy === 0
+          ? 'ui.settings.savedMenuRefreshBusyOff'
+          : normal === 0
+            ? 'ui.settings.savedMenuRefreshNormalOff'
+            : 'ui.settings.savedMenuRefresh';
+    toast.success(tr(key, { normal, busy }));
   }
 
   async function saveExperience(): Promise<void> {
@@ -220,6 +247,18 @@
     <label class="check"><input data-ui="settings.result-notices" type="checkbox" bind:checked={resultNotices} />{tr('ui.settings.resultNotices')}</label>
     <p class="muted small">{tr('ui.settings.resultNoticesHint')}</p>
     <div><Button variant="primary" ui="settings.notices.save" onclick={saveNotices}>{tr('ui.save')}</Button></div>
+  </Card>
+
+  <Card ui="settings.menu-refresh">
+    <h2>{tr('ui.settings.menuRefresh')}</h2>
+    <Field label={tr('ui.settings.menuRefreshNormal')} for="set-menu-normal" error={menuNormalError}>
+      <input data-ui="settings.menu-refresh.normal" id="set-menu-normal" class="input" type="number" min="0" max="3600" step="1" inputmode="numeric" bind:value={menuNormal} oninput={() => { menuNormalError = ''; menuBusyError = ''; }} />
+    </Field>
+    <Field label={tr('ui.settings.menuRefreshBusy')} for="set-menu-busy" error={menuBusyError}>
+      <input data-ui="settings.menu-refresh.busy" id="set-menu-busy" class="input" type="number" min="0" max="3600" step="1" inputmode="numeric" bind:value={menuBusy} oninput={() => { menuNormalError = ''; menuBusyError = ''; }} />
+    </Field>
+    <p class="muted small">{tr('ui.settings.menuRefreshHint')}</p>
+    <div><Button variant="primary" ui="settings.menu-refresh.save" onclick={saveMenuRefresh}>{tr('ui.save')}</Button></div>
   </Card>
 
   {:else if tab === 'documents'}

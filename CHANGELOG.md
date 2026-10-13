@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.1] - 2026-10-13
+
+- A number next to "Applications" in the main menu shows how many applications are in draft status (hidden at zero, "99+" above 99). `getMenuCounts` now also returns `draftApplications`.
+- The numbers in the main menu refresh by themselves (every minute, every 15 seconds while AI tasks are waiting, and when you return to the window), so they follow the AI's work without a reload. How often is set in Settings > General > Menu numbers (seconds, 0 turns the timed refresh off; new settings `menu_refresh_seconds` default 60 and `menu_refresh_busy_seconds` default 15).
+
 ## [0.13.0] - 2026-10-13
 
 - Job cards without an application have a "Prepare with AI" checkbox. Ticking it creates the application and queues AI tasks for the documents of your default set (the language of the ad when it is English or Czech, otherwise the default document language); a notice names the job and the number of tasks. New API method `prepareApplication`.

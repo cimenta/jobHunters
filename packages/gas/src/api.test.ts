@@ -434,6 +434,24 @@ describe('job import api', () => {
     expect(result.data.newJobs).toBe(jobs.filter((j) => j.status === 'new').length);
   });
 
+  it('getMenuCounts counts applications in draft and follows status changes and new applications', () => {
+    const { api } = setup(pages());
+    const saved = api('saveJob', { url: CLEAN_URL }) as { ok: true; data: { job: { id: string } } };
+    const jobId = saved.data.job.id;
+    const draftCount = () => (api('getMenuCounts') as { data: { draftApplications: number } }).data.draftApplications;
+    const listedDrafts = () => (api('listApplications') as { data: { status: string }[] }).data.filter((a) => a.status === 'draft').length;
+    expect(draftCount()).toBe(0);
+    const first = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    expect(draftCount()).toBe(1);
+    expect(draftCount()).toBe(listedDrafts());
+    api('createApplication', { jobId, fromApplicationId: first });
+    expect(draftCount()).toBe(2);
+    expect(draftCount()).toBe(listedDrafts());
+    api('setApplicationStatus', { id: first, to: 'sent' });
+    expect(draftCount()).toBe(1);
+    expect(draftCount()).toBe(listedDrafts());
+  });
+
   it('getDashboard counts waiting AI tasks', () => {
     const { api } = setup(pages());
     api('importJob', { url: BLOCKED });

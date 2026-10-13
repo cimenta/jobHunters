@@ -21,6 +21,8 @@ export const SETTING_KEYS = [
   'availability_check_enabled',
   'availability_check_hours',
   'availability_immediate_rules',
+  'menu_refresh_seconds',
+  'menu_refresh_busy_seconds',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -56,6 +58,10 @@ export interface Settings {
   availability_check_hours: number[];
   /** Offline rules that mark a job offline at once; the others need two confirmations. Stored comma-separated. */
   availability_immediate_rules: string[];
+  /** Seconds between refreshes of the menu numbers; 0 turns the timed refresh off. */
+  menu_refresh_seconds: number;
+  /** The same while AI tasks are waiting. */
+  menu_refresh_busy_seconds: number;
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -93,6 +99,8 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   availability_check_enabled: 'false',
   availability_check_hours: '18',
   availability_immediate_rules: 'offline_text',
+  menu_refresh_seconds: '60',
+  menu_refresh_busy_seconds: '15',
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -116,6 +124,14 @@ const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'];
 const items = (raw: string, separator: RegExp): string[] =>
   raw.split(separator).map((part) => part.trim()).filter((part) => part !== '');
 
+/** Refresh interval in seconds: a whole number, 0 (off) or 5..3600; undefined when invalid. */
+export const parseRefreshSeconds = (raw: string): number | undefined => {
+  const text = raw.trim();
+  if (!/^\d{1,4}$/.test(text)) return undefined;
+  const seconds = Number(text);
+  return seconds === 0 || (seconds >= 5 && seconds <= 3600) ? seconds : undefined;
+};
+
 const parsePrompt = (raw: string): string | undefined => (raw.trim() !== '' && raw.length <= 10000 ? raw : undefined);
 
 /** Each parser returns undefined for an invalid value. */
@@ -137,6 +153,8 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
     const parts = items(raw, /,/);
     return parts.every((part) => (OFFLINE_RULES as readonly string[]).includes(part)) ? parts : undefined;
   },
+  menu_refresh_seconds: parseRefreshSeconds,
+  menu_refresh_busy_seconds: parseRefreshSeconds,
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),
   default_document_set: (raw) => {

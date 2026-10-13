@@ -96,11 +96,23 @@ describe('buildMenuCounts', () => {
     const result = buildMenuCounts({
       jobs: [makeJob({ id: 'a', status: 'new' }), makeJob({ id: 'b', status: '' }), makeJob({ id: 'c', status: 'weird' }), makeJob({ id: 'd', status: 'no' }), makeJob({ id: 'e', status: 'awaiting' }), makeJob({ id: 'f', status: 'new', match_percent: 80 })],
       tasks: [task('1', 'pending'), task('2', 'in_progress'), task('3', 'done'), task('4', 'needs_input'), task('5', 'failed')],
+      applications: [],
     });
-    expect(result).toEqual({ newJobs: 4, aiTasksWaiting: 2 });
+    expect(result).toEqual({ newJobs: 4, aiTasksWaiting: 2, draftApplications: 0 });
+  });
+  it('counts only applications in draft status', () => {
+    const result = buildMenuCounts({
+      jobs: [],
+      tasks: [],
+      applications: [
+        makeApplication({ id: 'a', status: 'draft' }), makeApplication({ id: 'b', status: 'draft' }), makeApplication({ id: 'c', status: 'sent' }),
+        makeApplication({ id: 'd', status: 'waiting' }), makeApplication({ id: 'e', status: '' }), makeApplication({ id: 'f', status: 'weird' }),
+      ],
+    });
+    expect(result.draftApplications).toBe(2);
   });
   it('is zero without data', () => {
-    expect(buildMenuCounts({ jobs: [], tasks: [] })).toEqual({ newJobs: 0, aiTasksWaiting: 0 });
+    expect(buildMenuCounts({ jobs: [], tasks: [], applications: [] })).toEqual({ newJobs: 0, aiTasksWaiting: 0, draftApplications: 0 });
   });
 });
 

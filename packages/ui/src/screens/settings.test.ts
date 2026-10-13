@@ -229,3 +229,76 @@ describe('Settings ad statuses', () => {
     await waitFor(async () => expect((await api.getSettings()).settings.job_status_styles.no?.check).toBe(true));
   });
 });
+
+describe('Settings: menu numbers', () => {
+  const card = () => document.querySelector('[data-ui="settings.menu-refresh"]') as HTMLElement;
+  const normal = () => document.querySelector('[data-ui="settings.menu-refresh.normal"]') as HTMLInputElement;
+  const busy = () => document.querySelector('[data-ui="settings.menu-refresh.busy"]') as HTMLInputElement;
+  const save = () => document.querySelector('[data-ui="settings.menu-refresh.save"]') as HTMLButtonElement;
+
+  it('shows the current values and saves new ones with a notice', async () => {
+    await open();
+    expect(card()).not.toBeNull();
+    expect(normal()).toHaveValue(60);
+    expect(busy()).toHaveValue(15);
+    await fireEvent.input(normal(), { target: { value: '120' } });
+    await fireEvent.input(busy(), { target: { value: '0' } });
+    await fireEvent.click(save());
+    await waitFor(async () => {
+      const settings = (await api.getSettings()).settings;
+      expect(settings.menu_refresh_seconds).toBe(120);
+      expect(settings.menu_refresh_busy_seconds).toBe(0);
+    });
+    await waitFor(() => expect(app.settings?.menu_refresh_seconds).toBe(120));
+    expect(toasts.map((t) => t.text)).toContain('Menu numbers refresh every 120 s; off while AI tasks wait');
+  });
+
+  const alerts = () => within(card()).queryAllByRole('alert');
+  const field = (el: HTMLElement) => el.closest('.field')!;
+
+  it('rejects 1.5, 4, 3601 and empty under the right field, saves nothing, and clears the error on edit', async () => {
+    await open();
+    for (const bad of ['1.5', '4', '3601', '']) {
+      await fireEvent.input(normal(), { target: { value: '60' } });
+      await fireEvent.input(busy(), { target: { value: bad } });
+      await fireEvent.click(save());
+      await waitFor(() => expect(alerts()).toHaveLength(1));
+      expect(field(busy())).toContainElement(alerts()[0]!);
+      expect(field(normal()).querySelector('[role="alert"]')).toBeNull();
+      expect((await api.getSettings()).settings.menu_refresh_busy_seconds).toBe(15);
+      await fireEvent.input(normal(), { target: { value: '61' } });
+      expect(alerts()).toHaveLength(0);
+    }
+    await fireEvent.input(normal(), { target: { value: '4' } });
+    await fireEvent.click(save());
+    await waitFor(() => expect(field(normal()).querySelector('[role="alert"]')).not.toBeNull());
+    expect((await api.getSettings()).settings.menu_refresh_seconds).toBe(60);
+  });
+
+  it('accepts 0, 5 and 3600', async () => {
+    await open();
+    for (const good of ['0', '5', '3600']) {
+      await fireEvent.input(normal(), { target: { value: good } });
+      await fireEvent.input(busy(), { target: { value: good } });
+      await fireEvent.click(save());
+      await waitFor(async () => expect((await api.getSettings()).settings.menu_refresh_seconds).toBe(Number(good)));
+      expect((await api.getSettings()).settings.menu_refresh_busy_seconds).toBe(Number(good));
+      expect(alerts()).toHaveLength(0);
+    }
+  });
+
+  it('says a zero value is off in the saved notice', async () => {
+    await open();
+    await fireEvent.input(normal(), { target: { value: '60' } });
+    await fireEvent.input(busy(), { target: { value: '0' } });
+    await fireEvent.click(save());
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Menu numbers refresh every 60 s; off while AI tasks wait'));
+    await fireEvent.input(normal(), { target: { value: '0' } });
+    await fireEvent.input(busy(), { target: { value: '15' } });
+    await fireEvent.click(save());
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Menu numbers: no timed refresh, every 15 s while AI tasks wait'));
+    await fireEvent.input(busy(), { target: { value: '0' } });
+    await fireEvent.click(save());
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Menu numbers refresh only when you return to the window'));
+  });
+});

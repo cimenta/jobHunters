@@ -203,7 +203,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       }),
 
     getMenuCounts: () =>
-      buildMenuCounts({ jobs: c.jobs.list(), tasks: c.tasks.list(), styles: c.settings.get().settings.job_status_styles }),
+      buildMenuCounts({ jobs: c.jobs.list(), tasks: c.tasks.list(), applications: c.applications.list(), styles: c.settings.get().settings.job_status_styles }),
 
     getApplication: (args) => {
       const id = requireString(asRecord(args, 'getApplication'), 'id', 'getApplication');

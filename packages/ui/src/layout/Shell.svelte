@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
+  import { untrack, type Snippet } from 'svelte';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { paths, sectionOf, type Section } from '../lib/route';
@@ -8,6 +8,8 @@
   import { api } from '../api';
   import { useResource } from '../lib/resource.svelte';
   import { app } from '../state/app.svelte';
+  import { invalidation } from '../state/invalidate.svelte';
+  import { createMenuPoller, menuRefreshSeconds } from '../lib/menu-poll';
 
   let { children }: { children?: Snippet } = $props();
 
@@ -25,6 +27,45 @@
   const counts = useResource(() => api.getMenuCounts());
   const newJobs = $derived(counts.status === 'ready' ? (counts.data?.newJobs ?? 0) : 0);
   const waiting = $derived(counts.status === 'ready' ? (counts.data?.aiTasksWaiting ?? 0) : 0);
+  const drafts = $derived(counts.status === 'ready' ? (counts.data?.draftApplications ?? 0) : 0);
+
+  // Keeps the menu numbers fresh (the AI works in the sheet): 15 s while AI tasks wait, else 60 s, only while visible.
+  const poller = createMenuPoller({
+    // Resolve first: a rejected promise given to `counts.run` would replace good numbers with an error. A result that
+    // was overtaken by an `invalidate()` load while the request was in flight is dropped.
+    fetch: async () => {
+      const version = invalidation.version;
+      const value = await api.getMenuCounts();
+      if (version !== invalidation.version) return;
+      await counts.run(Promise.resolve(value));
+    },
+    waiting: () => untrack(() => waiting),
+    intervalFor: (busy) => 1000 * menuRefreshSeconds(untrack(() => app.settings), busy > 0),
+    now: () => Date.now(),
+    setTimeout: (callback, ms) => setTimeout(callback, ms),
+    clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
+    isHidden: () => document.hidden,
+  });
+  $effect(() => {
+    const refresh = () => poller.kick();
+    const onVisible = () => {
+      if (!document.hidden) poller.kick();
+    };
+    poller.start();
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      poller.stop();
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  });
+  $effect(() => {
+    void waiting;
+    void app.settings?.menu_refresh_seconds;
+    void app.settings?.menu_refresh_busy_seconds;
+    poller.reschedule();
+  });
   const labels: Record<Section, () => string> = {
     dashboard: () => tr('ui.nav.dashboard'),
     jobs: () => tr('ui.nav.jobs'),
@@ -40,7 +81,7 @@
   <nav aria-label={tr('ui.nav.label')} data-ui="nav">
     <span class="brand" data-ui="app.brand">JobHunters{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}</span>
     {#each items as item (item.section)}
-      {@const count = item.section === 'jobs' ? newJobs : item.section === 'tasks' ? waiting : 0}
+      {@const count = item.section === 'jobs' ? newJobs : item.section === 'tasks' ? waiting : item.section === 'applications' ? drafts : 0}
       {#snippet link()}
         <a
           class="item"
@@ -48,15 +89,19 @@
           href={item.href}
           aria-label={count > 0 && item.section === 'jobs'
             ? tr('ui.nav.jobsNew', { label: labels[item.section](), count })
-            : count > 0
-              ? tr('ui.nav.tasksWaiting', { label: labels[item.section](), count })
-              : labels[item.section]()}
+            : count > 0 && item.section === 'applications'
+              ? tr('ui.nav.applicationsDraft', { label: labels[item.section](), count })
+              : count > 0
+                ? tr('ui.nav.tasksWaiting', { label: labels[item.section](), count })
+                : labels[item.section]()}
           aria-current={current === item.section ? 'page' : undefined}
         >
           <Icon name={item.icon} size={22} />
           <span class="label">{labels[item.section]()}</span>
           {#if item.section === 'tasks' && count > 0}
             <span class="count" data-ui="nav.count.tasks" aria-hidden="true" title={tr('ui.nav.tasksWaitingTip', { count })}>{formatCount(count)}</span>
+          {:else if item.section === 'applications' && count > 0}
+            <span class="count" data-ui="nav.count.applications" aria-hidden="true" title={tr('ui.nav.applicationsDraftTip', { count })}>{formatCount(count)}</span>
           {/if}
         </a>
       {/snippet}

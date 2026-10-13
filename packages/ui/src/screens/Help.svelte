@@ -87,6 +87,7 @@
       <li>{tr('ui.help.applications.i5')}</li>
       <li>{tr('ui.help.applications.i6')}</li>
       <li>{tr('ui.help.applications.i7')}</li>
+      <li>{tr('ui.help.applications.i8')}</li>
     </ul>
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>
   </Card>

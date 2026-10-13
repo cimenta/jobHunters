@@ -158,3 +158,38 @@ describe('import_job prompt setting', () => {
     expect(empty.warnings).toMatchObject([{ code: 'setting_invalid', params: { key: 'ai_prompt_import_job' } }]);
   });
 });
+
+describe('menu refresh settings', () => {
+  it('default to 60 and 15 seconds', () => {
+    const { settings, warnings } = parseSettings({});
+    expect(settings).toMatchObject({ menu_refresh_seconds: 60, menu_refresh_busy_seconds: 15 });
+    expect(warnings).toEqual([]);
+    expect(SETTINGS_DEFAULTS).toMatchObject({ menu_refresh_seconds: '60', menu_refresh_busy_seconds: '15' });
+  });
+
+  it('accept 0, 5 and 3600', () => {
+    for (const value of ['0', '5', '3600', ' 30 ']) {
+      const { settings, warnings } = parseSettings({ menu_refresh_seconds: value, menu_refresh_busy_seconds: value });
+      expect(warnings, value).toEqual([]);
+      expect(settings.menu_refresh_seconds).toBe(Number(value));
+      expect(settings.menu_refresh_busy_seconds).toBe(Number(value));
+    }
+  });
+
+  it('refuse 4, 3601, text, decimals and empty with one warning and the default', () => {
+    for (const value of ['4', '3601', 'abc', '1.5', '', '-5']) {
+      const { settings, warnings } = parseSettings({ menu_refresh_seconds: value });
+      expect(warnings, value).toEqual([{ code: 'setting_invalid', params: { key: 'menu_refresh_seconds', value } }]);
+      expect(settings.menu_refresh_seconds).toBe(60);
+    }
+    expect(parseSettings({ menu_refresh_busy_seconds: '2' }).settings.menu_refresh_busy_seconds).toBe(15);
+  });
+
+  it('update refuses an invalid value and writes nothing', () => {
+    const store = new InMemoryKeyValueStore();
+    const service = new SettingsService(store);
+    expect(errorOf(() => service.update({ menu_refresh_seconds: '4' }))).toMatchObject({ code: 'settings_invalid', params: { key: 'menu_refresh_seconds' } });
+    expect(store.getAll().menu_refresh_seconds).toBeUndefined();
+    expect(service.update({ menu_refresh_seconds: '0' }).menu_refresh_seconds).toBe(0);
+  });
+});

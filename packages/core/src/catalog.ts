@@ -94,12 +94,15 @@ export interface MenuCounts {
   /** Jobs whose status is new (unknown or empty codes resolve to new). */
   newJobs: number;
   aiTasksWaiting: number;
+  /** Applications whose status is draft (an empty or unknown status is not draft). */
+  draftApplications: number;
 }
 
-export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; styles?: JobStatusStyles }): MenuCounts {
+export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; applications: readonly Application[]; styles?: JobStatusStyles }): MenuCounts {
   const styles = input.styles ?? DEFAULT_JOB_STATUS_STYLES;
   const newJobs = input.jobs.filter((job) => jobStatusOf(styles, job.status) === 'new').length;
-  return { newJobs, aiTasksWaiting: countWaitingTasks(input.tasks).total };
+  const draftApplications = input.applications.filter((application) => application.status === 'draft').length;
+  return { newJobs, aiTasksWaiting: countWaitingTasks(input.tasks).total, draftApplications };
 }
 
 export function buildDashboard(input: {

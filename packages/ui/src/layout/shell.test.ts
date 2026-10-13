@@ -1,5 +1,5 @@
 import { CATALOGS } from '@jobhunters/core';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 it('has a navigation label for every section in both languages', () => {
   for (const locale of ['en', 'cs'] as const) {
@@ -9,11 +9,11 @@ it('has a navigation label for every section in both languages', () => {
   }
 });
 
-import { render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
 import { api } from '../api';
-import { invalidate } from '../state/invalidate.svelte';
+import { invalidate, invalidation } from '../state/invalidate.svelte';
 import { useDevBackend } from '../test/transport';
-import { createRawSnippet } from 'svelte';
+import { createRawSnippet, tick } from 'svelte';
 import { app } from '../state/app.svelte';
 import Shell from './Shell.svelte';
 
@@ -95,7 +95,7 @@ describe('menu counts', () => {
   });
 
   it('shows 99+ above 99', async () => {
-    const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ newJobs: 150, aiTasksWaiting: 100 });
+    const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ newJobs: 150, aiTasksWaiting: 100, draftApplications: 0 });
     render(Shell, { children: body() });
     await waitFor(() => expect(count('jobs')).toHaveTextContent('99+'));
     expect(count('tasks')).toHaveTextContent('99+');
@@ -114,8 +114,236 @@ describe('menu counts', () => {
     spy.mockRestore();
   });
 
+  describe('draft applications', () => {
+    const draftCount = () => document.querySelector('[data-ui="nav.count.applications"]');
+    const zero = { newJobs: 0, aiTasksWaiting: 0, draftApplications: 0 };
+
+    it('shows the number of applications in draft next to Applications', async () => {
+      useDevBackend();
+      const job = (await api.listJobs()).find((j) => j.application_count === 0)!;
+      await api.createApplication({ jobId: job.id });
+      const expected = (await api.listApplications()).filter((a) => a.status === 'draft').length;
+      expect(expected).toBe(1);
+      render(Shell, { children: body() });
+      await waitFor(() => expect(draftCount()).toHaveTextContent(String(expected)));
+      expect(draftCount()).toHaveAttribute('aria-hidden', 'true');
+      expect(draftCount()).toHaveAttribute('title', `Applications in draft: ${expected}`);
+      expect(screen.getByRole('link', { name: `Applications, ${expected} in draft` })).toHaveAttribute('data-ui', 'nav.applications');
+      expect(draftCount()!.closest('a.item')).not.toBeNull();
+    });
+
+    it('renders no element at zero', async () => {
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ ...zero, newJobs: 3 });
+      render(Shell, { children: body() });
+      await waitFor(() => expect(count('jobs')).toHaveTextContent('3'));
+      expect(draftCount()).toBeNull();
+      expect(screen.getByRole('link', { name: 'Applications' })).toHaveAttribute('data-ui', 'nav.applications');
+      spy.mockRestore();
+    });
+
+    it('shows 99+ above 99', async () => {
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ ...zero, draftApplications: 120 });
+      render(Shell, { children: body() });
+      await waitFor(() => expect(draftCount()).toHaveTextContent('99+'));
+      expect(draftCount()).toHaveAttribute('title', 'Applications in draft: 120');
+      spy.mockRestore();
+    });
+
+    it('shows no number when loading the counts fails', async () => {
+      const spy = vi.spyOn(api, 'getMenuCounts').mockRejectedValue(new Error('boom'));
+      render(Shell, { children: body() });
+      await waitFor(() => expect(spy).toHaveBeenCalled());
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(draftCount()).toBeNull();
+      expect(document.querySelector('[role="alert"]')).toBeNull();
+      spy.mockRestore();
+    });
+
+    it('refreshes after an application is created', async () => {
+      useDevBackend();
+      render(Shell, { children: body() });
+      await waitFor(() => expect(count('jobs')).not.toBeNull());
+      expect(draftCount()).toBeNull();
+      const job = (await api.listJobs()).find((j) => j.application_count === 0)!;
+      await api.createApplication({ jobId: job.id });
+      invalidate();
+      await waitFor(() => expect(draftCount()).toHaveTextContent('1'));
+    });
+  });
+
   it('gives the plus link a tooltip', () => {
     render(Shell, { children: body() });
     expect(screen.getByRole('link', { name: 'Add job' })).toHaveAttribute('title', 'Add job');
+  });
+});
+
+describe('menu counts auto-refresh', () => {
+  const body = () => createRawSnippet(() => ({ render: () => '<p>Body</p>' }));
+  const count = (kind: 'jobs' | 'tasks') => document.querySelector(`[data-ui="nav.count.${kind}"]`);
+  const nums = (newJobs: number, aiTasksWaiting = 0) => ({ newJobs, aiTasksWaiting, draftApplications: 0 });
+  let spy: ReturnType<typeof vi.spyOn>;
+  let hidden = false;
+
+  async function advance(ms: number) {
+    await vi.advanceTimersByTimeAsync(ms);
+    await tick();
+  }
+  async function mount(first = nums(1)) {
+    spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(first);
+    const view = render(Shell, { children: body() });
+    await advance(0);
+    return view;
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    hidden = false;
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden);
+  });
+  afterEach(() => {
+    app.settings = undefined;
+    cleanup();
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+  });
+
+  it('refreshes after 60 s and shows the new numbers', async () => {
+    await mount(nums(1));
+    expect(count('jobs')).toHaveTextContent('1');
+    expect(spy).toHaveBeenCalledTimes(1);
+    spy.mockResolvedValue(nums(5));
+    await advance(59_000);
+    expect(spy).toHaveBeenCalledTimes(1);
+    await advance(1_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(count('jobs')).toHaveTextContent('5');
+  });
+
+  it('polls every 15 s while AI tasks wait, then back to 60 s', async () => {
+    await mount(nums(0, 2));
+    expect(count('tasks')).toHaveTextContent('2');
+    await advance(15_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    spy.mockResolvedValue(nums(0, 0));
+    await advance(15_000);
+    expect(spy).toHaveBeenCalledTimes(3);
+    expect(count('tasks')).toBeNull();
+    await advance(15_000);
+    expect(spy).toHaveBeenCalledTimes(3);
+    await advance(45_000);
+    expect(spy).toHaveBeenCalledTimes(4);
+  });
+
+  it('makes no request while the page is hidden and one when it becomes visible', async () => {
+    await mount();
+    hidden = true;
+    await advance(180_000);
+    expect(spy).toHaveBeenCalledTimes(1);
+    hidden = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+    await advance(0);
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('refreshes on window focus but not twice within 2 s', async () => {
+    await mount();
+    await advance(5_000);
+    window.dispatchEvent(new Event('focus'));
+    await advance(0);
+    expect(spy).toHaveBeenCalledTimes(2);
+    await advance(1_000);
+    window.dispatchEvent(new Event('focus'));
+    await advance(0);
+    expect(spy).toHaveBeenCalledTimes(2);
+    await advance(1_500);
+    window.dispatchEvent(new Event('focus'));
+    await advance(0);
+    expect(spy).toHaveBeenCalledTimes(3);
+  });
+
+  it('never runs two requests at once', async () => {
+    await mount();
+    let release!: (value: ReturnType<typeof nums>) => void;
+    spy.mockImplementation(() => new Promise((resolve) => { release = resolve; }));
+    await advance(60_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    await advance(10_000);
+    window.dispatchEvent(new Event('focus'));
+    await advance(120_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    release(nums(7));
+    await advance(0);
+    expect(count('jobs')).toHaveTextContent('7');
+    spy.mockResolvedValue(nums(8));
+    await advance(60_000);
+    expect(spy).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps the previous numbers when a poll fails and recovers at the next tick', async () => {
+    await mount(nums(4));
+    spy.mockRejectedValue(new Error('boom'));
+    await advance(60_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    expect(count('jobs')).toHaveTextContent('4');
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    spy.mockResolvedValue(nums(6));
+    await advance(60_000);
+    expect(count('jobs')).toHaveTextContent('6');
+  });
+
+  it('stops all polling and removes the listeners when unmounted', async () => {
+    const view = await mount();
+    const winRemove = vi.spyOn(window, 'removeEventListener');
+    const docRemove = vi.spyOn(document, 'removeEventListener');
+    view.unmount();
+    expect(winRemove).toHaveBeenCalledWith('focus', expect.any(Function));
+    expect(docRemove).toHaveBeenCalledWith('visibilitychange', expect.any(Function));
+    spy.mockClear();
+    await advance(300_000);
+    window.dispatchEvent(new Event('focus'));
+    document.dispatchEvent(new Event('visibilitychange'));
+    await advance(10_000);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it('drops a poll result overtaken by invalidate() and never invalidates itself', async () => {
+    await mount(nums(1));
+    const before = invalidation.version;
+    let release!: (value: ReturnType<typeof nums>) => void;
+    spy.mockImplementationOnce(() => new Promise((resolve) => { release = resolve; }));
+    await advance(60_000);
+    expect(invalidation.version).toBe(before);
+    spy.mockResolvedValue(nums(9));
+    invalidate();
+    await advance(0);
+    expect(count('jobs')).toHaveTextContent('9');
+    release(nums(2));
+    await advance(0);
+    expect(count('jobs')).toHaveTextContent('9');
+    expect(invalidation.version).toBe(before + 1);
+  });
+
+  it('uses the intervals from the settings without a reload and 0 turns the timer off', async () => {
+    await mount(nums(1));
+    app.settings = { menu_refresh_seconds: 10, menu_refresh_busy_seconds: 15 } as typeof app.settings;
+    await advance(10_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    app.settings = { menu_refresh_seconds: 0, menu_refresh_busy_seconds: 15 } as typeof app.settings;
+    await advance(600_000);
+    expect(spy).toHaveBeenCalledTimes(2);
+    window.dispatchEvent(new Event('focus'));
+    await advance(0);
+    expect(spy).toHaveBeenCalledTimes(3);
+  });
+
+  it('shows no numbers and no error when the first load fails, and shows them once a poll succeeds', async () => {
+    spy = vi.spyOn(api, 'getMenuCounts').mockRejectedValue(new Error('boom'));
+    render(Shell, { children: body() });
+    await advance(0);
+    expect(count('jobs')).toBeNull();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    spy.mockResolvedValue(nums(3));
+    await advance(60_000);
+    expect(count('jobs')).toHaveTextContent('3');
   });
 });
