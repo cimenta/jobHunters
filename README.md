@@ -8,6 +8,10 @@ do the writing and the reading for you.
   in your Drive, the documents are Google Docs.
 - **Your data stays yours.** Nothing is sent to a service run by this project. You can open the spreadsheet any time
   and read or edit every row by hand.
+- **The AI is optional.** Everything that does not need writing or judgement works without it. With it, the app helps
+  with the match evaluation, the salary estimate, the resume and cover letter, and other documents such as an interview
+  preparation. No API key and no particular AI vendor is needed (see
+  [Working with the AI assistant](#working-with-the-ai-assistant)).
 - **Works on a phone.** The web app is responsive; add it to the home screen.
 - **English and Czech** interface.
 
@@ -60,6 +64,8 @@ do the writing and the reading for you.
   application copies them into its own folder and fills in what it knows.
 - **The AI writes the content** (the `{{body}}`, the whole document, or the answers to application questions) from your
   experience and the text of the ad, in the language of the ad. You can edit the result in Google Docs.
+- **Any other document, too.** A template of the type *Other* describes what the document must contain, for example an
+  interview preparation for this company and position, and the AI fills it in from the ad and your experience.
 - **Preview, open in Google Docs, export to PDF.** PDFs are named after you, the document type, the company and the
   position, and the app tells you when a document changed since its last export.
 - **Questions of the application** with an answer limit in sentences, answered by the AI or by you.
@@ -74,10 +80,16 @@ do the writing and the reading for you.
   overdue and what is coming, and a **timeline** of everything that happened to an application.
 - **Companies** with their website, notes, jobs and applications.
 
+The record of what happened and when is the core of this part: every status change, message, reminder and document
+stays in the timeline of the application, so you are prepared for the next step and for the interview.
+
 ### Make it yours
 
 - **Profile** (name, e-mail, phone, address, portfolio, LinkedIn, GitHub, website) used in your documents.
 - **Experience**: free text about your work, skills and goals. It is the only source of facts the AI may use.
+- **History of your texts**: every saved change of your experience is kept as a version. A version can have a comment
+  and a pin, and *Use This* restores it as a new version, so nothing is lost. The number of unpinned versions kept is a
+  setting (default 50).
 - **AI prompts**: the full text of every AI task is editable, each on its own tab, with a button to go back to the
   defaults. The app tells you when the built-in prompts changed in a new version.
 - **Settings with built-in explanations**: a "?" next to a setting says what it does and which values are allowed.
@@ -174,7 +186,7 @@ an update, or "the built-in prompts changed").
 
 ## Working with the AI assistant
 
-The app does not call an AI by itself. It writes **tasks** into your spreadsheet, and an AI assistant that can edit your
+The AI is optional, and the app does not call one by itself: it needs no API key and is tied to no vendor. It writes **tasks** into your spreadsheet, and an AI assistant that can edit your
 Sheet, Drive and Docs (for example Claude with the Google connectors) carries them out when you ask it to:
 
 1. In the app you ask for something: a match evaluation, the content of a document, an answer to a question, the import
@@ -186,6 +198,8 @@ Sheet, Drive and Docs (for example Claude with the Google connectors) carries th
 
 Good to know:
 
+- It has been tried with **Claude.ai** and **Google AI Studio**. Any assistant that can read and edit your Sheet, Drive
+  and Docs and follow numbered instructions should do.
 - The instructions are **prompts you can read and edit** (Settings → AI prompts). They are written to work with any
   capable assistant, with numbered steps and exact cell names.
 - The AI is told to use **only the facts from your experience text** and to leave out what it does not know.
