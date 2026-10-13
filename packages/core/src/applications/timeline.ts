@@ -1,6 +1,7 @@
+import { communicationKind } from '../communication-kinds';
 import type { ApplicationDocument, Communication, Reminder, StatusHistoryEntry } from '../types';
 
-export type TimelineType = 'status' | 'communication' | 'document' | 'pdf' | 'reminder';
+export type TimelineType = 'status' | 'message' | 'meeting' | 'homework' | 'confirmation' | 'document' | 'pdf' | 'reminder';
 
 export interface TimelineEvent {
   at: string;
@@ -33,7 +34,7 @@ export function buildTimeline(input: TimelineInput, options: TimelineOptions = {
   }
   for (const c of input.communications) {
     if (c.application_id === applicationId) {
-      events.push({ at: c.datetime, type: 'communication', ref: c.id, data: { direction: c.direction, channel: c.channel, summary: c.summary } });
+      events.push({ at: c.datetime, type: communicationKind(c.kind), ref: c.id, data: { direction: c.direction, channel: c.channel, summary: c.summary } });
     }
   }
   for (const d of input.documents) {

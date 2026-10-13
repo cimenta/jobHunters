@@ -11,6 +11,7 @@ export type JobOverrides = Partial<{
 }>;
 
 export interface CommunicationInput {
+  kind?: string;
   direction: string;
   channel: string;
   summary: string;

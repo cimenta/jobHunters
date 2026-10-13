@@ -1,7 +1,8 @@
 <script lang="ts" module>
   export type IconName =
     | 'home' | 'briefcase' | 'file' | 'building' | 'settings' | 'plus' | 'check' | 'clock' | 'external'
-    | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle' | 'help' | 'folder';
+    | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle' | 'help' | 'folder'
+    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out';
 
   const PATHS: Record<IconName, string> = {
     home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
@@ -25,6 +26,16 @@
     help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.7M12 17h.01',
     folder: 'M3 6h6l2 2h10v11H3z',
     sparkle: 'M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2zM19 3v4M17 5h4',
+    flag: 'M5 3v18M5 4h12l-2 4 2 4H5',
+    mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+    phone: 'M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z',
+    chat: 'M4 5h16v11H9l-5 4z',
+    calendar: 'M3 6h18v15H3zM3 10h18M8 3v4M16 3v4',
+    task: 'M5 3h14v18H5zM9 12l2 2 4-4M9 7h6',
+    video: 'M3 6h12v12H3zM15 10l6-3v10l-6-3',
+    bell: 'M6 17v-6a6 6 0 0 1 12 0v6l2 2H4zM10 21h4',
+    'arrow-in': 'M19 5L5 19M5 9v10h10',
+    'arrow-out': 'M5 19L19 5M9 5h10v10',
   };
 </script>
 

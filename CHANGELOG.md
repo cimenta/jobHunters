@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.0] - 2026-10-13
+
+- Every entry of an application's Timeline now has a round coloured icon (a flag for a status change, the icon of the channel for a message, a calendar for a meeting, a task sheet for homework, a check for a confirmation, a file or download for documents and PDFs, a bell for reminders) and a small arrow showing whether it came to you or went from you. The filter chips carry the same icons.
+- New entry types in the Communication tab: Meeting (an interview or call; it may be in the future and then shows as "upcoming"), Homework (received or submitted) and Confirmation (the employer confirmed that they received your application; it also fills the date the application was sent when that is empty). Choose the type first in the Add entry window; the other fields adapt to it. Entries added before this version are shown as messages.
+- New channel: Video call.
+- The Communications sheet gets a new column, kind. Run "Setup" after the update (Settings > General > Run setup); until then the Communication tab and the timeline cannot be read.
+
 ## [0.15.5] - 2026-10-13
 
 - When adding several links ends, a block says so: green "Done: all 5 ads are saved", or orange with the exact numbers ("Done: 3 saved, 1 sent to the AI, 1 failed") when something was not saved, or "Stopped: 2 of 5 links processed." when you stopped it. It replaces the small summary line below the results, the page scrolls to it, and it has the buttons Close (closes the whole Add a job window), AI tasks (when ads were sent to the AI) and Add more (empties the links).

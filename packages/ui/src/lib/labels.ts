@@ -1,3 +1,4 @@
+import { DIRECTIONS_BY_KIND, communicationKind } from '@jobhunters/core';
 import { tr } from './i18n.svelte';
 
 /** "suspected http_gone: 404" -> a sentence in the language of the app. */
@@ -54,6 +55,8 @@ export function channelLabel(value: string): string {
       return tr('ui.channel.email');
     case 'phone':
       return tr('ui.channel.phone');
+    case 'video':
+      return tr('ui.channel.video');
     case 'linkedin':
       return tr('ui.channel.linkedin');
     case 'in_person':
@@ -65,6 +68,22 @@ export function channelLabel(value: string): string {
     default:
       return value;
   }
+}
+
+export function kindLabel(kind: string): string {
+  return tr(`ui.kind.${communicationKind(kind)}`);
+}
+
+/** The direction in the words of the kind (meeting: "Invited by the employer"); a message keeps Incoming / Outgoing / Note. */
+export function directionLabelFor(kind: string, direction: string): string {
+  const known = communicationKind(kind);
+  return known !== 'message' && DIRECTIONS_BY_KIND[known].includes(direction) ? tr(`ui.comm.dir.${known}.${direction}`) : directionLabel(direction);
+}
+
+/** A label of the entry dialog; a message keeps the plain label, the other kinds have their own wording. */
+export function commLabel(field: 'direction' | 'summary' | 'when', kind: string): string {
+  const known = communicationKind(kind);
+  return known === 'message' ? tr(`ui.comm.${field}`) : tr(`ui.comm.${field}.${known}`);
 }
 
 export const AI_TASK_TYPES = ['import_job', 'import_match_job', 'match_job', 'resume_tailor', 'cover_letter', 'other', 'answer_question'];

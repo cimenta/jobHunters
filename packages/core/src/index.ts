@@ -2,6 +2,7 @@ export * from './application-service';
 export * from './availability';
 export * from './applications';
 export * from './catalog';
+export * from './communication-kinds';
 export * from './drive';
 export * from './errors';
 export * from './history';

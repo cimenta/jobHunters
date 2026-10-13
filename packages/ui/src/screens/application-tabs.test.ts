@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { router } from '../lib/router.svelte';
+import { invalidate } from '../state/invalidate.svelte';
 import { dismissToast, toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import ApplicationDetail from './ApplicationDetail.svelte';
@@ -126,6 +127,50 @@ describe('Communication tab', () => {
     expect(toasts.some((item) => item.kind === 'success')).toBe(true);
   });
 
+  it('adds a meeting through the type picker and adapts the form', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    expect(within(dialog).getByLabelText('Direction')).toBeInTheDocument();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Meeting' }));
+    expect(within(dialog).getByLabelText('Who set it up')).toHaveValue('incoming');
+    expect(within(dialog).getByRole('option', { name: 'Invited by the employer' })).toBeInTheDocument();
+    expect(within(dialog).getByText(/May be in the future/)).toBeInTheDocument();
+    await fireEvent.change(within(dialog).getByLabelText('Channel'), { target: { value: 'video' } });
+    await fireEvent.input(within(dialog).getByLabelText(/Meeting title/), { target: { value: 'Technical interview' } });
+    await fireEvent.input(within(dialog).getByLabelText(/Starts at/), { target: { value: '2099-01-01T10:00' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.find((c) => c.summary === 'Technical interview')).toMatchObject({ kind: 'meeting', channel: 'video', direction: 'incoming' }));
+    const row = (await screen.findByText('Technical interview')).closest('li')!;
+    expect(row.querySelector('svg')).not.toBeNull();
+    expect(within(row).getByText('Invited by the employer')).toBeInTheDocument();
+  });
+
+  it('fixes the direction of a confirmation and explains that it fills the applied date', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmation' }));
+    const direction = within(dialog).getByLabelText('Direction');
+    expect(direction).toBeDisabled();
+    expect(direction).toHaveValue('incoming');
+    expect(within(dialog).getByText(/sets the date the application was sent/)).toBeInTheDocument();
+    await fireEvent.input(within(dialog).getByLabelText(/Confirmation text/), { target: { value: 'Automatic reply' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.some((c) => c.kind === 'confirmation')).toBe(true));
+  });
+
+  it('resets an outgoing direction when an entry is edited into a confirmation', async () => {
+    const id = await open(/Communication/);
+    const item = (await screen.findByText('Sent the application')).closest('li')!;
+    await fireEvent.click(within(item).getByRole('button', { name: 'Edit' }));
+    const dialog = screen.getByRole('dialog', { name: 'Edit entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmation' }));
+    expect(within(dialog).getByLabelText('Direction')).toHaveValue('incoming');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.find((c) => c.summary === 'Sent the application')).toMatchObject({ kind: 'confirmation', direction: 'incoming' }));
+  });
+
   it('requires a summary', async () => {
     await open(/Communication/);
     await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
@@ -175,7 +220,7 @@ describe('Timeline tab', () => {
     expect(screen.getByText(/Outgoing · E-mail: Sent the application/)).toBeInTheDocument();
 
     // The chips switch event types off and on; all are on at first.
-    const chip = screen.getByRole('button', { name: 'Communication' });
+    const chip = screen.getByRole('button', { name: 'Messages' });
     expect(chip).toHaveAttribute('aria-pressed', 'true');
     await fireEvent.click(chip);
     expect(chip).toHaveAttribute('aria-pressed', 'false');
@@ -188,6 +233,33 @@ describe('Timeline tab', () => {
     const newestFirst = firstText();
     await fireEvent.click(screen.getByRole('button', { name: 'Oldest first' }));
     expect(firstText()).not.toBe(newestFirst);
+  });
+});
+
+describe('Timeline tab entry kinds', () => {
+  it('shows an icon per entry, marks an upcoming meeting and filters the new kinds', async () => {
+    const id = await open(/Timeline/);
+    await api.addCommunication(id, { kind: 'meeting', direction: 'incoming', channel: 'video', summary: 'Technical interview', datetime: '2099-01-01T10:00' });
+    await api.addCommunication(id, { kind: 'homework', direction: 'incoming', channel: 'email', summary: 'Take-home task' });
+    await api.addCommunication(id, { kind: 'confirmation', direction: 'incoming', channel: 'email', summary: 'We got it' });
+    invalidate();
+
+    expect(await screen.findByText('Meeting: Technical interview')).toBeInTheDocument();
+    expect(screen.getByText('Homework received: Take-home task')).toBeInTheDocument();
+    expect(screen.getByText('Application receipt confirmed: We got it')).toBeInTheDocument();
+
+    const rows = [...document.querySelectorAll('[data-ui^="timeline.event."][data-type]')] as HTMLElement[];
+    expect(rows.map((row) => row.getAttribute('data-type'))).toEqual(expect.arrayContaining(['status', 'message', 'meeting', 'homework', 'confirmation']));
+    expect(rows.every((row) => row.querySelector('svg') !== null)).toBe(true);
+
+    const meetingRow = rows.find((row) => row.getAttribute('data-type') === 'meeting')!;
+    expect(within(meetingRow).getByText('upcoming')).toBeInTheDocument();
+    expect(within(meetingRow).getByText('Video call · Invited by the employer')).toBeInTheDocument();
+    expect(rows.filter((row) => row.textContent?.includes('upcoming'))).toHaveLength(1);
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Meetings' }));
+    expect(screen.queryByText('Meeting: Technical interview')).toBeNull();
+    expect(screen.getByText('Homework received: Take-home task')).toBeInTheDocument();
   });
 });
 

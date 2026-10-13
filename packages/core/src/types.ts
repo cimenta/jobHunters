@@ -141,6 +141,8 @@ export interface Communication {
   summary: string;
   details: string;
   attachment_url: string;
+  /** message, meeting, homework or confirmation; empty in rows from before the kind existed (read as message). */
+  kind: string;
 }
 
 export interface Template {

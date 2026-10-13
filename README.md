@@ -76,7 +76,8 @@ do the writing and the reading for you.
 - **Statuses** (draft, sent, waiting, interview, offer, rejected, ghosted, withdrawn) with your own names and colours,
   and a table of **which changes are allowed**. Moving to "Waiting" asks for a reminder date.
 - A **Kanban board** with drag and drop, or a list with filters.
-- **Communication log** (e-mail, phone, LinkedIn, in person, portal), **reminders** with a Dashboard of what is
+- **Communication log** (messages, meetings, homework and confirmations over e-mail, phone, video call, LinkedIn, in person or a
+  portal), **reminders** with a Dashboard of what is
   overdue and what is coming, and a **timeline** of everything that happened to an application.
 - **Companies** with their website, notes, jobs and applications.
 

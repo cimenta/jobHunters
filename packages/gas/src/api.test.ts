@@ -263,9 +263,21 @@ describe('applications api', () => {
     expect(detail.data).toMatchObject({ job: { title: 'Data Analyst' }, company: { name: 'Example Ltd' } });
     expect(detail.data.documents).toHaveLength(2);
     expect(detail.data.questions).toHaveLength(1);
-    expect(new Set(detail.data.timeline.map((e) => e.type))).toEqual(new Set(['status', 'document', 'pdf', 'communication', 'reminder']));
+    expect(new Set(detail.data.timeline.map((e) => e.type))).toEqual(new Set(['status', 'document', 'pdf', 'message', 'reminder']));
     const listed = api('listApplications') as { ok: true; data: { job_title: string; company_name: string }[] };
     expect(listed.data).toMatchObject([{ job_title: 'Data Analyst', company_name: 'Example Ltd' }]);
+  });
+
+  it('stores the kind of a communication entry and refuses a direction that does not fit it', () => {
+    const { api, jobId } = prepared();
+    const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    const meeting = api('addCommunication', { applicationId, kind: 'meeting', direction: 'incoming', channel: 'video', summary: 'Technical interview', datetime: '2099-01-01T10:00' });
+    expect(meeting).toMatchObject({ ok: true, data: { kind: 'meeting', channel: 'video' } });
+    expect(api('addCommunication', { applicationId, direction: 'outgoing', channel: 'email', summary: 'Plain' })).toMatchObject({ ok: true, data: { kind: 'message' } });
+    expect(api('addCommunication', { applicationId, kind: 'confirmation', direction: 'outgoing', channel: 'email', summary: 'Received' })).toMatchObject({ ok: false, error: { code: 'communication_invalid', params: { field: 'direction' } } });
+    const detail = api('getApplication', { id: applicationId }) as { data: { communications: { kind: string }[]; timeline: { type: string }[] } };
+    expect(detail.data.communications.map((c) => c.kind).sort()).toEqual(['meeting', 'message']);
+    expect(detail.data.timeline.map((e) => e.type)).toEqual(expect.arrayContaining(['meeting', 'message']));
   });
 
   it('answers questions within the limit and manages reminders', () => {

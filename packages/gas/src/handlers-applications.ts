@@ -14,7 +14,7 @@ import type { Handler } from './api';
 import { asRecord, invalidArguments, optionalBoolean, optionalNumber, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
 
-const COMMUNICATION_FIELDS = ['direction', 'channel', 'summary', 'details', 'datetime', 'contactId', 'attachmentUrl'] as const;
+const COMMUNICATION_FIELDS = ['kind', 'direction', 'channel', 'summary', 'details', 'datetime', 'contactId', 'attachmentUrl'] as const;
 
 function communicationPatch(input: Record<string, unknown>, method: string): Partial<Omit<CommunicationInput, 'applicationId'>> {
   const patch: Partial<Omit<CommunicationInput, 'applicationId'>> = {};

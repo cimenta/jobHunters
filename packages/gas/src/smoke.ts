@@ -104,7 +104,7 @@ export function runSmokeTest(deps: SmokeDeps): SmokeResult {
     step('application detail and timeline', () => {
       const detail = data<{ documents: unknown[]; questions: unknown[]; timeline: { type: string }[] }>('getApplication', { id: applicationId });
       const types = new Set(detail.timeline.map((event) => event.type));
-      for (const wanted of ['status', 'document', 'pdf', 'communication', 'reminder']) {
+      for (const wanted of ['status', 'document', 'pdf', 'message', 'reminder']) {
         if (!types.has(wanted)) throw new Error(`timeline has no ${wanted} event`);
       }
     });

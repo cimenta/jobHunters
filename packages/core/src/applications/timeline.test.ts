@@ -5,7 +5,7 @@ import { buildTimeline, type TimelineInput } from './timeline';
 
 const communication: Communication = {
   id: 'm1', application_id: 'a1', datetime: '2026-10-05T10:00:00.000Z', direction: 'incoming', channel: 'email',
-  contact_id: '', summary: 'They replied', details: '', attachment_url: '',
+  contact_id: '', summary: 'They replied', details: '', attachment_url: '', kind: 'message',
 };
 
 const input: TimelineInput = {
@@ -24,11 +24,27 @@ describe('buildTimeline', () => {
   it('collects events of one application from all sources, oldest first by default', () => {
     const events = buildTimeline(input);
     expect(events.map((e) => `${e.type}:${e.ref}`)).toEqual([
-      'status:a1', 'document:d1', 'pdf:d1', 'status:a1', 'reminder:r1', 'communication:m1', 'reminder:r1',
+      'status:a1', 'document:d1', 'pdf:d1', 'status:a1', 'reminder:r1', 'message:m1', 'reminder:r1',
     ]);
     expect(events[0]).toEqual({ at: '2026-10-01T08:00:00.000Z', type: 'status', ref: 'a1', data: { from: '', to: 'draft' } });
-    expect(events.find((e) => e.type === 'communication')!.data).toEqual({ direction: 'incoming', channel: 'email', summary: 'They replied' });
+    expect(events.find((e) => e.type === 'message')!.data).toEqual({ direction: 'incoming', channel: 'email', summary: 'They replied' });
     expect(events.filter((e) => e.type === 'reminder').map((e) => e.data.state)).toEqual(['created', 'done']);
+  });
+
+  it('gives each communication kind its own timeline type and reads an empty or unknown kind as a message', () => {
+    const events = buildTimeline({
+      ...input,
+      history: [], documents: [], reminders: [],
+      communications: [
+        { ...communication, id: 'k1', kind: 'meeting', datetime: '2026-10-06T10:00:00.000Z' },
+        { ...communication, id: 'k2', kind: 'homework', datetime: '2026-10-07T10:00:00.000Z' },
+        { ...communication, id: 'k3', kind: 'confirmation', datetime: '2026-10-08T10:00:00.000Z' },
+        { ...communication, id: 'k4', kind: '', datetime: '2026-10-09T10:00:00.000Z' },
+        { ...communication, id: 'k5', kind: 'mesage', datetime: '2026-10-10T10:00:00.000Z' },
+      ],
+    });
+    expect(events.map((e) => `${e.type}:${e.ref}`)).toEqual(['meeting:k1', 'homework:k2', 'confirmation:k3', 'message:k4', 'message:k5']);
+    expect(buildTimeline({ ...input, communications: [{ ...communication, kind: 'meeting' }] }, { types: ['meeting'] }).map((e) => e.ref)).toEqual(['m1']);
   });
 
   it('can be reversed and filtered by type', () => {

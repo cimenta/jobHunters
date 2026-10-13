@@ -1,3 +1,4 @@
+import { COMMUNICATION_KINDS } from './communication-kinds';
 import { APPLICATION_STATUSES } from './status';
 import type { Application, ApplicationDocument, Communication, Company, HistoryEntry, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
 
@@ -31,7 +32,7 @@ const QUESTION_COLUMNS = [
   'id', 'application_id', 'position', 'question', 'answer', 'max_sentences', 'status', 'created_at', 'updated_at',
 ] as const satisfies readonly (keyof Question)[];
 const COMMUNICATION_COLUMNS = [
-  'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url',
+  'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url', 'kind',
 ] as const satisfies readonly (keyof Communication)[];
 const TEMPLATE_COLUMNS = ['id', 'type', 'language', 'name', 'doc_url'] as const satisfies readonly (keyof Template)[];
 const LOG_COLUMNS = ['time', 'flow', 'entity', 'message'] as const satisfies readonly (keyof LogEntry)[];
@@ -96,7 +97,8 @@ export const ALLOWED_VALUES: Readonly<Record<string, readonly string[]>> = {
   'Documents.type': ['resume', 'cover_letter', 'other'],
   'Questions.status': ['open', 'answered'],
   'Communications.direction': ['incoming', 'outgoing', 'note'],
-  'Communications.channel': ['email', 'phone', 'linkedin', 'in_person', 'portal', 'other'],
+  'Communications.channel': ['email', 'phone', 'video', 'linkedin', 'in_person', 'portal', 'other'],
+  'Communications.kind': [...COMMUNICATION_KINDS],
   'Reminders.status': ['open', 'done', 'dismissed'],
   'Reminders.source': ['manual', 'waiting'],
   'Tasks.type': ['cover_letter', 'resume_tailor', 'answer_question', 'rewrite', 'summarize_job', 'extract_job', 'match_job', 'import_job', 'import_match_job', 'other'],
