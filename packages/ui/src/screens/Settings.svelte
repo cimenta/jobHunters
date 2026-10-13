@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { EXPERIENCE_MAX, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, type PromptType } from '@jobhunters/core';
+  import { EXPERIENCE_MAX, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -13,7 +13,7 @@
   import { documentTypeLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
   import type { SetupResult } from '../api/types';
-  import { app, reloadSettings, reloadSetupStatus } from '../state/app.svelte';
+  import { app, promptsOutdated, reloadSettings, reloadSetupStatus } from '../state/app.svelte';
   import { ids, setIdsVisible } from '../state/ids.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
@@ -22,7 +22,7 @@
   import TransitionsEditor from './TransitionsEditor.svelte';
 
   /** The order of the prompt tabs; the tab names are short, the full name stays on the text field. */
-  const PROMPT_TAB_ORDER: PromptType[] = ['resume_tailor', 'cover_letter', 'answer_question', 'match_job', 'other', 'import_job'];
+  const PROMPT_TAB_ORDER: PromptType[] = ['resume_tailor', 'cover_letter', 'answer_question', 'match_job', 'other', 'import_job', 'import_match_job'];
   const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'] as const;
   const PLACEHOLDERS = ['{{name}}', '{{email}}', '{{phone}}', '{{address}}', '{{portfolio}}', '{{linkedin}}', '{{github}}', '{{website}}', '{{links}}', '{{company}}', '{{position}}', '{{location}}', '{{date}}', '{{body}}'];
 
@@ -57,7 +57,7 @@
   let applicationStatusesTab = $state('statuses.applications.labels');
   let promptTab = $state('prompts.resume_tailor');
   let experience = $state('');
-  let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '', import_job: '' });
+  let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '', import_job: '', import_match_job: '' });
   let checkEnabled = $state(false);
   let checkHours = $state('18');
   let immediateRules = $state<string[]>([]);
@@ -152,9 +152,16 @@
   }
 
   async function resetPrompts(): Promise<void> {
-    await api.updateSettings(Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])));
+    await api.updateSettings({ ...Object.fromEntries(PROMPT_TYPES.map((type) => [`ai_prompt_${type}`, SETTINGS_DEFAULTS[`ai_prompt_${type}`]])), ai_prompts_version: String(PROMPTS_VERSION) });
     await reloadSettings();
     toast.success(tr('ui.settings.resetPrompts'));
+  }
+
+  /** The user keeps their own prompts: the notice about the new defaults is taken as read. */
+  async function keepPrompts(): Promise<void> {
+    await api.updateSettings({ ai_prompts_version: String(PROMPTS_VERSION) });
+    await reloadSettings();
+    toast.success(tr('ui.settings.promptsKept'));
   }
 
   function promptLabel(type: PromptType): string {
@@ -171,6 +178,8 @@
         return tr('ui.settings.promptMatch');
       case 'import_job':
         return tr('ui.settings.promptImport');
+      case 'import_match_job':
+        return tr('ui.settings.promptImportMatch');
     }
   }
 
@@ -217,10 +226,10 @@
 
   <Tabs
     items={[
-      { id: 'general', label: tr('ui.settings.tab.general') },
+      { id: 'general', label: tr('ui.settings.tab.general'), alert: app.setupNeeded },
       { id: 'documents', label: tr('ui.settings.tab.documents') },
       { id: 'experience', label: tr('ui.settings.tab.experience') },
-      { id: 'prompts', label: tr('ui.settings.tab.prompts') },
+      { id: 'prompts', label: tr('ui.settings.tab.prompts'), alert: promptsOutdated() },
       { id: 'availability', label: tr('ui.settings.tab.availability') },
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
@@ -346,6 +355,15 @@
       <h2>{tr('ui.settings.prompts')}</h2>
       <HelpTip ui="settings.help.prompts" label={tr('ui.settings.prompts')} text={tr('ui.settings.tip.prompts', { max: PROMPT_MAX })} />
     </div>
+    {#if promptsOutdated()}
+      <div class="attention" role="alert" data-ui="settings.prompts.update">
+        <p><strong>{tr('ui.settings.promptsUpdateTitle')}</strong> {tr('ui.settings.promptsUpdateText')}</p>
+        <div class="actions">
+          <Button variant="primary" ui="settings.prompts.update.reset" onclick={resetPrompts}>{tr('ui.settings.promptsReset')}</Button>
+          <Button ui="settings.prompts.update.keep" onclick={keepPrompts}>{tr('ui.settings.promptsKeep')}</Button>
+        </div>
+      </div>
+    {/if}
     <p class="muted small">{tr('ui.settings.promptsHint')}</p>
     <Tabs
       items={PROMPT_TAB_ORDER.map((type) => ({ id: `prompts.${type}`, label: tr(`ui.settings.promptTab.${type}`) }))}
@@ -528,6 +546,9 @@
   .general-grid :global(.card) { gap: var(--space-2); padding: var(--space-3); margin-bottom: var(--space-2); break-inside: avoid; }
   .general-grid :global(h2) { font-size: var(--text-m); margin: 0; }
   .reasons { margin: 0; padding-left: var(--space-4); color: var(--danger); }
+  .attention { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-3); color: var(--text); background: var(--danger-soft); border: 1px solid var(--danger); border-radius: var(--radius-s); }
+  .attention p { margin: 0; }
+  .attention strong { color: var(--danger); }
   .head { display: flex; align-items: center; gap: var(--space-2); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
   .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }

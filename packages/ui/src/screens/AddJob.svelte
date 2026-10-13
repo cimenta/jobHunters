@@ -12,6 +12,7 @@
   import { paths } from '../lib/route';
   import { navigate } from '../lib/router.svelte';
   import { invalidate } from '../state/invalidate.svelte';
+  import { app } from '../state/app.svelte';
   import { toast } from '../state/toast.svelte';
   import BatchAdd from './BatchAdd.svelte';
 
@@ -23,6 +24,10 @@
   let pasting = $state(false);
   let pasted = $state('');
   let usedText = $state(false);
+  /** The ad could not be downloaded: let the AI read it, fill in the job and evaluate the match in one task. */
+  let aiJob = $state(false);
+  const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
+  const hasPastedText = $derived(pasted.trim() !== '');
   let draft = $state<JobDraft>(emptyDraft());
   let formError = $state<string>();
 
@@ -49,6 +54,18 @@
       notifyError(error);
     } finally {
       loading = false;
+    }
+  }
+
+  async function createAiJob(): Promise<void> {
+    if (!preview) return;
+    const result = await api.importAiJob(preview.url);
+    invalidate();
+    if (result.status === 'queued') {
+      toast.success(tr('ui.addJob.aiJobCreated', { title: result.job.title }));
+      navigate(paths.job(result.job.id));
+    } else if (result.status === 'duplicate') {
+      navigate(paths.job(result.job.id));
     }
   }
 
@@ -108,9 +125,31 @@
           <p class="muted">{tr('ui.addJob.notFetched', { status: preview.fetchStatus })}</p>
         {/if}
         <Field label={tr('ui.addJob.pasteLabel')} for="job-text">
-          <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" bind:value={pasted}></textarea>
+          <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" disabled={aiJob} bind:value={pasted}></textarea>
         </Field>
-        <div><Button ui="add-job.read-text" variant="primary" disabled={pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button></div>
+        <div>
+          {#if aiJob}
+            <Button ui="add-job.create-ai-job" variant="primary" onclick={createAiJob}>{tr('ui.addJob.createAiJob')}</Button>
+          {:else}
+            <Button ui="add-job.read-text" variant="primary" disabled={pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button>
+          {/if}
+        </div>
+        {#if preview && !preview.fetched && preview.duplicateOf === ''}
+          <p class="muted small or">{tr('ui.addJob.or')}</p>
+          <label class="check">
+            <input data-ui="add-job.ai-job" type="checkbox" bind:checked={aiJob} disabled={!hasExperience || hasPastedText} />
+            <span>
+              {tr('ui.addJob.aiJob')}
+              {#if !hasExperience}
+                <small class="warn" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobNeedsExperience')} <a data-ui="add-job.ai-job.settings" href={paths.settings}>{tr('ui.nav.settings')}</a></small>
+              {:else if hasPastedText}
+                <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobClearText')}</small>
+              {:else}
+                <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobHint')}</small>
+              {/if}
+            </span>
+          </label>
+        {/if}
       </Card>
     {/if}
 
@@ -154,6 +193,10 @@
 </div>
 
 <style>
+  .or { text-align: center; margin: 0; }
+  .check { display: flex; align-items: flex-start; gap: var(--space-2); min-height: var(--tap); }
+  .check small { display: block; }
+  .warn { color: var(--warning); }
   [hidden] { display: none; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }

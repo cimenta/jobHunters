@@ -24,6 +24,23 @@ describe('api', () => {
     expect(setup().api('runSetup')).toEqual({ ok: true, data: { ok: false, lines: ['Setup cannot run here.'] } });
   });
 
+  it('importAiJob queues one import-and-match task, and refuses without the candidate experience', () => {
+    const { api } = setup();
+    expect(api('importAiJob', { url: 'https://example.com/jobs/1' })).toMatchObject({ ok: false, error: { code: 'match_experience_required' } });
+    expect(api('updateSettings', { candidate_experience: 'Ten years of Kotlin' })).toMatchObject({ ok: true });
+    const result = api('importAiJob', { url: 'https://example.com/jobs/1' }) as { ok: true; data: { status: string; task: { type: string } } };
+    expect(result.data).toMatchObject({ status: 'queued', task: { type: 'import_match_job' } });
+    expect(api('importAiJob', { url: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('the AI job uses the built-in import-and-match prompt even when the user kept old own prompts and never reset them', () => {
+    const { api } = setup();
+    api('updateSettings', { candidate_experience: 'Ten years of Kotlin', ai_prompt_import_job: 'My old import prompt {{job_id}}', ai_prompts_version: '1' });
+    const result = api('importAiJob', { url: 'https://example.com/jobs/2' }) as { ok: true; data: { task: { instructions: string } } };
+    expect(result.data.task.instructions).toContain('match_percent');
+    expect(result.data.task.instructions).not.toContain('My old import prompt');
+  });
+
   it('rejects unknown methods, including inherited property names', () => {
     const { api } = setup();
     expect(api('nope')).toMatchObject({ ok: false, error: { code: 'unknown_method', params: { method: 'nope' } } });

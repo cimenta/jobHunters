@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { InMemoryKeyValueStore } from './key-value';
 import type { Lock } from './lock';
 import { errorOf } from './testing/errors';
-import { parseSettings, SETTINGS_DEFAULTS, SettingsService } from './settings';
+import { parseSettings, PROMPT_MAX, SETTINGS_DEFAULTS, SettingsService } from './settings';
 
 describe('parseSettings', () => {
   it('returns the defaults for an empty sheet', () => {
@@ -113,7 +113,7 @@ describe('prompt settings', () => {
     const empty = parseSettings({ ai_prompt_other: '  ' });
     expect(empty.settings.ai_prompt_other).toMatch(/the sheet Documents/);
     expect(empty.warnings).toMatchObject([{ code: 'setting_invalid', params: { key: 'ai_prompt_other' } }]);
-    expect(parseSettings({ ai_prompt_answer_question: 'x'.repeat(10001) }).warnings).toHaveLength(1);
+    expect(parseSettings({ ai_prompt_answer_question: 'x'.repeat(PROMPT_MAX + 1) }).warnings).toHaveLength(1);
   });
 });
 

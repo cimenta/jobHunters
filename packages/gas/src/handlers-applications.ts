@@ -137,6 +137,11 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.jobImportService.importOne(url));
     },
 
+    importAiJob: (args) => {
+      const url = requireString(asRecord(args, 'importAiJob'), 'url', 'importAiJob');
+      return c.lock.run(() => c.jobImportService.importWithAi(url));
+    },
+
     deleteJob: (args) => {
       const id = requireString(asRecord(args, 'deleteJob'), 'id', 'deleteJob');
       return c.lock.run(() => {

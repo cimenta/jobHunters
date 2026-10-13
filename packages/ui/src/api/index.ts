@@ -48,6 +48,7 @@ export const api = {
   cancelAiTask: (id: string) => call<null>('cancelAiTask', { id }),
   previewJob: (input: { url: string; text?: string }) => call<JobPreview>('previewJob', input),
   importJob: (url: string) => call<ImportResult>('importJob', { url }),
+  importAiJob: (url: string) => call<ImportResult>('importAiJob', { url }),
   deleteJob: (id: string) => call<null>('deleteJob', { id }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 

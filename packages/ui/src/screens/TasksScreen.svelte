@@ -45,7 +45,7 @@
   /** An import task whose job still waits for the AI takes the job with it, so ask first. */
   async function askRemove(id: string): Promise<void> {
     const task = rows.find((row) => row.id === id);
-    if (task?.type === 'import_job' && task.job_id !== '') {
+    if ((task?.type === 'import_job' || task?.type === 'import_match_job') && task.job_id !== '') {
       const detail = await api.getJob(task.job_id).catch(() => undefined);
       if (detail?.job.status === 'awaiting') {
         confirming = id;

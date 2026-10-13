@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.4] - 2026-10-13
+
+- When Add job cannot download an ad (LinkedIn answers HTTP 429), next to pasting the text there is the checkbox "Create AI job to import" (only while no text is pasted, and only when your experience is described in Settings). "Create AI job" saves a placeholder job and queues one AI task that reads the ad, fills in the job and evaluates your match in one go. New API method `importAiJob`, new AI task type `import_match_job`, new prompt tab "Import + match" in Settings > AI prompts. The two import prompts now tell the AI what to do when a site blocks it (HTTP 429, login wall): try the one address ONCE in the candidate's own browser through the Chrome extension, where the candidate is already signed in, and stop at any further obstacle. The longest allowed AI prompt is now 15000 characters (was 10000).
+
+- Settings shows a red exclamation mark (in the main menu and on the tab) not only when setup has to be run but also when the built-in AI prompts changed in a new version. The tab AI prompts then has a red notice that says what to do: "Reset all to default" takes the new texts (your own edits are replaced), "Keep my prompts" keeps yours and hides the notice. New setting `ai_prompts_version`; the version of the defaults is `PROMPTS_VERSION` in the code and is raised whenever the default texts change.
+
 ## [0.13.3] - 2026-10-13
 
 - New "Setup" card in Settings > General: the "Run setup" button runs setup (folder, spreadsheet, sheets, hourly trigger) and shows the verdict and every step in a window. Run it after every update; it never overwrites your data. New API method `runSetup`.

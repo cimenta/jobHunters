@@ -1,4 +1,4 @@
-import { NO_LOCK, SHEETS, type FetchResult, type SheetName } from '@jobhunters/core';
+import { NO_LOCK, SHEETS, type FetchResult, type SheetName, PROMPTS_VERSION } from '@jobhunters/core';
 import { FakeDrive, FakeGrid, FakePageFetcher, type FakePage } from '@jobhunters/core/testing';
 import { createApi, type ApiResult } from './api';
 import { buildContainer } from './container';
@@ -46,7 +46,7 @@ function addDays(isoDate: string, days: number): string {
 }
 
 /** The real handlers over in-memory sheets and Drive: what the UI talks to during development and in tests. */
-export function createDevBackend(options: { seed?: boolean; now?: () => string; setupNeeded?: boolean } = {}): DevBackend {
+export function createDevBackend(options: { seed?: boolean; now?: () => string; setupNeeded?: boolean; promptsOutdated?: boolean } = {}): DevBackend {
   const now = options.now ?? (() => new Date().toISOString());
   const grids = new Map<SheetName, FakeGrid>();
   const grid = (sheet: SheetName): FakeGrid => {
@@ -89,6 +89,7 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string; 
     },
   });
   const api = createApi({ handlers: createHandlers(container), log: container.log });
+  container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION) });
   const backend: DevBackend = { call: (method, args) => api(method, args), container, drive };
   if (options.seed) seed(backend, now);
   return backend;

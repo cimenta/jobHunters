@@ -36,6 +36,8 @@ export const SETTING_KEYS = [
   'ai_prompt_answer_question',
   'ai_prompt_match_job',
   'ai_prompt_import_job',
+  'ai_prompt_import_match_job',
+  'ai_prompts_version',
 ] as const;
 export type SettingKey = (typeof SETTING_KEYS)[number];
 
@@ -83,6 +85,9 @@ export interface Settings {
   ai_prompt_answer_question: string;
   ai_prompt_match_job: string;
   ai_prompt_import_job: string;
+  ai_prompt_import_match_job: string;
+  /** The version of the default prompts the user accepted (reset to them or chose to keep their own); empty = never. */
+  ai_prompts_version: string;
 }
 
 const defaultPrompt = (type: PromptType): string => DEFAULT_PROMPTS.find((p) => p.type === type)?.instruction ?? '';
@@ -114,6 +119,8 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ai_prompt_answer_question: defaultPrompt('answer_question'),
   ai_prompt_match_job: defaultPrompt('match_job'),
   ai_prompt_import_job: defaultPrompt('import_job'),
+  ai_prompt_import_match_job: defaultPrompt('import_match_job'),
+  ai_prompts_version: '',
 };
 
 /** Codes of the availability rules that can decide a job is offline. */
@@ -133,7 +140,7 @@ export const parseRefreshSeconds = (raw: string): number | undefined => {
 };
 
 /** Longest AI prompt and longest candidate experience text, in characters. */
-export const PROMPT_MAX = 10000;
+export const PROMPT_MAX = 15000;
 export const EXPERIENCE_MAX = 40000;
 
 const parsePrompt = (raw: string): string | undefined => (raw.trim() !== '' && raw.length <= PROMPT_MAX ? raw : undefined);
@@ -175,6 +182,8 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   ai_prompt_answer_question: parsePrompt,
   ai_prompt_match_job: parsePrompt,
   ai_prompt_import_job: parsePrompt,
+  ai_prompt_import_match_job: parsePrompt,
+  ai_prompts_version: (raw) => (/^\d{0,6}$/.test(raw.trim()) ? raw.trim() : undefined),
 };
 
 function isSettingKey(key: string): key is SettingKey {

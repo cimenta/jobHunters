@@ -1,5 +1,5 @@
 import { PROFILE_KEYS } from './applications/placeholders';
-import { INSTRUCTIONS_LINES } from './seed';
+import { INSTRUCTIONS_LINES, PROMPTS_VERSION } from './seed';
 import { ALLOWED_VALUES, columnType, SHEETS } from './schema';
 import { SETTING_KEYS, SETTINGS_DEFAULTS } from './settings';
 
@@ -21,7 +21,8 @@ export interface SheetSetup {
 }
 
 function seedRowsFor(name: string): string[][] {
-  if (name === 'Settings') return SETTING_KEYS.map((key) => [key, SETTINGS_DEFAULTS[key]]);
+  // A new installation starts with the current prompts, so it is not asked to reset them.
+  if (name === 'Settings') return SETTING_KEYS.map((key) => [key, key === 'ai_prompts_version' ? String(PROMPTS_VERSION) : SETTINGS_DEFAULTS[key]]);
   if (name === 'Profile') return PROFILE_KEYS.map((key) => [key, '']);
   if (name === 'INSTRUCTIONS') return INSTRUCTIONS_LINES.map((line) => [line]);
   return [];

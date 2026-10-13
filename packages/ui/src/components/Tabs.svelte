@@ -1,8 +1,11 @@
 <script lang="ts">
+  import { tr } from '../lib/i18n.svelte';
   interface Item {
     id: string;
     label: string;
     count?: number;
+    /** A red exclamation mark: something on this tab needs the user. */
+    alert?: boolean;
   }
   let { items, active = $bindable(), label, ui = 'tabs' }: { items: Item[]; active: string; label: string; ui?: string } = $props();
 
@@ -30,12 +33,13 @@
       onclick={() => (active = item.id)}
       onkeydown={(event) => onkeydown(event, index)}
     >
-      {item.label}{#if item.count !== undefined}<span class="count">{item.count}</span>{/if}
+      {item.label}{#if item.count !== undefined}<span class="count">{item.count}</span>{/if}{#if item.alert}<span class="alert" data-ui="tab.{item.id}.alert" role="img" aria-label={tr('ui.settings.tabAlert')}>!</span>{/if}
     </button>
   {/each}
 </div>
 
 <style>
+  .alert { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-left: var(--space-2); border-radius: 50%; background: var(--danger); color: #fff; font-size: 0.7rem; font-weight: 800; }
   .tabs { display: flex; gap: var(--space-1); overflow-x: auto; border-bottom: 1px solid var(--border); scrollbar-width: thin; }
   button {
     display: inline-flex;

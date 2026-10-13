@@ -16,7 +16,7 @@ const AD = readFileSync(new URL('../../fixtures/jobs-cz/ad.html', import.meta.ur
 const URL1 = 'https://www.jobs.cz/rpd/2000000001/';
 const URL2 = 'https://www.jobs.cz/rpd/2000000002/';
 
-function setup(pages: Record<string, FakePage> = {}) {
+function setup(pages: Record<string, FakePage> = {}, experience = '') {
   const jobs = new InMemoryRepository<Job>();
   const companies = new InMemoryRepository<Company>();
   const tasks = new InMemoryRepository<AiTask>();
@@ -31,11 +31,11 @@ function setup(pages: Record<string, FakePage> = {}) {
     documents: new InMemoryRepository<ApplicationDocument>(),
     questions: new InMemoryRepository<Question>(),
     applications,
-    newId, now: () => NOW, experience: () => '', language: () => 'en',
+    newId, now: () => NOW, experience: () => experience, language: () => 'en',
     prompt: (type) => DEFAULT_PROMPTS.find((p) => p.type === type)!.instruction,
   });
   const service = new JobImportService({ jobService, aiTasks, jobs, tasks, companies, applications });
-  return { service, jobs, tasks, fetcher, applications };
+  return { service, jobs, tasks, fetcher, applications, aiTasks };
 }
 
 describe('JobImportService', () => {
@@ -97,5 +97,50 @@ describe('JobImportService', () => {
     applications.insert(makeApplication({ id: 'a1', job_id: queued.job.id }));
     expect(errorOf(() => service.deleteAwaiting(queued.job.id)).code).toBe('job_not_deletable');
     expect(jobs.get(queued.job.id)).toBeDefined();
+  });
+});
+
+describe('importWithAi', () => {
+  const EXPERIENCE = 'Ten years of Kotlin';
+
+  it('creates a placeholder and ONE task that imports the ad and evaluates the match, without downloading anything', () => {
+    const { service, jobs, tasks, fetcher } = setup({}, EXPERIENCE);
+    const result = service.importWithAi(URL1);
+    expect(result.status).toBe('queued');
+    expect(fetcher.calls).toEqual([]);
+    expect(jobs.list()).toHaveLength(1);
+    expect(jobs.list()[0]).toMatchObject({ status: 'awaiting', url: URL1 });
+    expect(tasks.list()).toHaveLength(1);
+    const task = tasks.list()[0]!;
+    expect(task).toMatchObject({ type: 'import_match_job', status: 'pending', job_id: jobs.list()[0]!.id, target_type: 'job' });
+    expect(task.instructions).toContain(URL1);
+    expect(task.instructions).toContain(jobs.list()[0]!.id);
+    expect(task.instructions).toContain('match_percent');
+    expect(task.instructions).not.toMatch(/\{\{\s*\w+\s*\}\}/);
+  });
+
+  it('needs the candidate experience and then creates nothing', () => {
+    const { service, jobs, tasks } = setup({}, '');
+    expect(() => service.importWithAi(URL1)).toThrow();
+    expect(jobs.list()).toHaveLength(0);
+    expect(tasks.list()).toHaveLength(0);
+  });
+
+  it('refuses an invalid address and does not queue a second task for a known ad', () => {
+    const { service, jobs, tasks } = setup({}, EXPERIENCE);
+    expect(service.importWithAi('not a link').status).toBe('invalid');
+    expect(service.importWithAi(URL1).status).toBe('queued');
+    expect(service.importWithAi(URL1).status).toBe('duplicate');
+    expect(jobs.list()).toHaveLength(1);
+    expect(tasks.list()).toHaveLength(1);
+  });
+
+  it('counts as the match task of the job and removing the task takes the waiting placeholder with it', () => {
+    const { service, jobs, tasks, aiTasks } = setup({}, EXPERIENCE);
+    service.importWithAi(URL1);
+    const job = jobs.list()[0]!;
+    expect(aiTasks.matchFor(job.id)?.type).toBe('import_match_job');
+    aiTasks.remove(tasks.list()[0]!.id);
+    expect(jobs.list()).toHaveLength(0);
   });
 });

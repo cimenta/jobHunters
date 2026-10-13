@@ -1,4 +1,4 @@
-import type { AppWarning, Settings, UiTheme } from '@jobhunters/core';
+import { PROMPTS_VERSION, type AppWarning, type Settings, type UiTheme } from '@jobhunters/core';
 import { api } from '../api';
 import { setLocale } from '../lib/i18n.svelte';
 
@@ -25,6 +25,16 @@ export async function reloadSetupStatus(): Promise<void> {
     app.setupNeeded = false;
     app.setupReasons = [];
   }
+}
+
+/** The built-in AI prompts changed since the user last took them over (or chose to keep their own). */
+export function promptsOutdated(): boolean {
+  return app.settings !== undefined && app.settings.ai_prompts_version !== String(PROMPTS_VERSION);
+}
+
+/** Something in Settings needs the user: setup has to be run, or the prompts are outdated. */
+export function settingsNeedAttention(): boolean {
+  return app.setupNeeded || promptsOutdated();
 }
 
 /** 'system' leaves the choice to the device (prefers-color-scheme), the others force it. */

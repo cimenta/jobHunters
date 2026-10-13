@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { setLocale } from '../lib/i18n.svelte';
@@ -93,6 +93,60 @@ describe('AddJob', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]![0].html).toContain('Demo Engineer');
     spy.mockRestore();
+  });
+
+  async function failedDownload(experience: string): Promise<void> {
+    useDevBackend({ seed: false });
+    await api.updateSettings({ candidate_experience: experience });
+    await loadApp();
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/blocked' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByText(/could not be downloaded \(HTTP 404\)/);
+  }
+  const aiBox = () => document.querySelector('[data-ui="add-job.ai-job"]') as HTMLInputElement | null;
+
+  it('has no AI job checkbox until the download failed', async () => {
+    useDevBackend({ seed: false });
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    await loadApp();
+    render(AddJob);
+    expect(aiBox()).toBeNull();
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByDisplayValue('Demo Engineer');
+    expect(aiBox()).toBeNull();
+  });
+
+  it('after a failed download offers "Create AI job to import", which queues ONE import-and-match task', async () => {
+    await failedDownload('Ten years of Kotlin');
+    expect(aiBox()).not.toBeNull();
+    expect(aiBox()).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Use this text' })).toBeInTheDocument();
+    await fireEvent.click(aiBox()!);
+    expect(screen.queryByRole('button', { name: 'Use this text' })).toBeNull();
+    expect(screen.getByLabelText('Text of the ad')).toBeDisabled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Create AI job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const tasks = await api.listAiTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ type: 'import_match_job', status: 'pending' });
+    expect(toasts.map((t) => t.text).some((text) => /AI job created for .*1 AI task queued \(import and match\)/.test(text))).toBe(true);
+  });
+
+  it('disables the checkbox while text is pasted, and without a described experience', async () => {
+    await failedDownload('Ten years of Kotlin');
+    await fireEvent.input(screen.getByLabelText('Text of the ad'), { target: { value: 'Some pasted ad' } });
+    expect(aiBox()).toBeDisabled();
+    expect(document.querySelector('[data-ui="add-job.ai-job.hint"]')).toHaveTextContent('Clear the pasted text');
+    await fireEvent.input(screen.getByLabelText('Text of the ad'), { target: { value: '' } });
+    expect(aiBox()).toBeEnabled();
+    cleanup();
+
+    await failedDownload('');
+    expect(aiBox()).toBeDisabled();
+    expect(document.querySelector('[data-ui="add-job.ai-job.hint"]')).toHaveTextContent('Describe your experience first');
+    expect(document.querySelector('[data-ui="add-job.ai-job.settings"]')).toHaveAttribute('href', '#/settings');
   });
 
   it('offers to paste the text when the page cannot be downloaded, and still saves', async () => {

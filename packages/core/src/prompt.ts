@@ -8,6 +8,7 @@ export const PROMPT_PLACEHOLDERS: Readonly<Record<PromptType, readonly string[]>
   answer_question: ['task_id', 'question_id', 'application_id', 'job_id', 'language', 'limit', 'notes'],
   match_job: ['task_id', 'job_id', 'language'],
   import_job: ['task_id', 'job_id', 'url', 'language'],
+  import_match_job: ['task_id', 'job_id', 'url', 'language'],
 };
 
 const PLACEHOLDER = /\{\{\s*(\w+)\s*\}\}/g;

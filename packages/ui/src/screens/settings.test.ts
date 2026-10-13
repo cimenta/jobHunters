@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { ui } from '../lib/i18n.svelte';
 import { statusStyle } from '../lib/status';
-import { app, loadApp } from '../state/app.svelte';
+import { PROMPTS_VERSION } from '@jobhunters/core';
+import { app, loadApp, reloadSettings } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import Settings from './Settings.svelte';
@@ -365,7 +366,7 @@ describe('Settings: setup', () => {
 });
 
 describe('Settings: setup needed', () => {
-  const navMark = () => document.querySelector('[data-ui="nav.setup-needed"]');
+  const navMark = () => document.querySelector('[data-ui="nav.action-needed"]');
   const cardMark = () => document.querySelector('[data-ui="settings.setup.needed"]');
 
   it('shows no red mark in the menu or on the Setup card when setup is not needed', async () => {
@@ -382,7 +383,7 @@ describe('Settings: setup needed', () => {
     render(Shell, { children: createRawSnippet(() => ({ render: () => '<div></div>' })) });
     await waitFor(() => expect(navMark()).not.toBeNull());
     expect(navMark()).toHaveTextContent('!');
-    expect(screen.getByRole('link', { name: 'Settings: setup needs to be run' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Settings: something needs your attention' })).toBeInTheDocument();
     cleanup();
 
     render(Settings);
@@ -405,9 +406,9 @@ describe('Settings: AI prompt tabs', () => {
     const card = section('AI prompts');
     const tabs = within(card).getAllByRole('tab').map((tab) => tab.getAttribute('data-ui'));
     expect(tabs).toEqual([
-      'tab.prompts.resume_tailor', 'tab.prompts.cover_letter', 'tab.prompts.answer_question', 'tab.prompts.match_job', 'tab.prompts.other', 'tab.prompts.import_job',
+      'tab.prompts.resume_tailor', 'tab.prompts.cover_letter', 'tab.prompts.answer_question', 'tab.prompts.match_job', 'tab.prompts.other', 'tab.prompts.import_job', 'tab.prompts.import_match_job',
     ]);
-    expect(within(card).getAllByRole('tab').map((tab) => tab.textContent?.trim())).toEqual(['Resume', 'Cover letter', 'Questions', 'Job match', 'Document', 'Import']);
+    expect(within(card).getAllByRole('tab').map((tab) => tab.textContent?.trim())).toEqual(['Resume', 'Cover letter', 'Questions', 'Job match', 'Document', 'Import', 'Import + match']);
     expect(document.querySelectorAll('[data-ui^="settings.prompt."]:is(textarea)').length).toBe(1);
     const first = card.querySelector('[data-ui="settings.prompt.resume_tailor"]') as HTMLTextAreaElement;
     await fireEvent.input(first, { target: { value: 'My resume prompt {{document_id}}' } });
@@ -416,5 +417,57 @@ describe('Settings: AI prompt tabs', () => {
     expect(card.querySelector('[data-ui="settings.prompt.cover_letter"]')).not.toBeNull();
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_resume_tailor).toBe('My resume prompt {{document_id}}'));
+  });
+});
+
+describe('Settings: prompts outdated', () => {
+  const navMark = () => document.querySelector('[data-ui="nav.action-needed"]');
+  const tabMark = (tab: string) => document.querySelector(`[data-ui="tab.${tab}.alert"]`);
+  const banner = () => document.querySelector('[data-ui="settings.prompts.update"]');
+
+  async function openPrompts(outdated: boolean): Promise<void> {
+    useDevBackend({ promptsOutdated: outdated });
+    await loadApp();
+    render(Settings);
+    await screen.findByRole('heading', { name: 'Settings' });
+    await fireEvent.click(screen.getByRole('tab', { name: /^AI prompts/ }));
+  }
+
+  it('shows no mark and no notice when the prompts are current', async () => {
+    await openPrompts(false);
+    expect(banner()).toBeNull();
+    expect(tabMark('prompts')).toBeNull();
+    expect(app.settings?.ai_prompts_version).toBe(String(PROMPTS_VERSION));
+  });
+
+  it('marks the tab and shows what to do; "Reset all to default" takes the new prompts and clears it', async () => {
+    await openPrompts(true);
+    expect(tabMark('prompts')).not.toBeNull();
+    expect(banner()).toHaveTextContent('The default AI prompts changed in this version.');
+    expect(banner()).toHaveTextContent('Reset all to default');
+    await fireEvent.click(document.querySelector('[data-ui="settings.prompts.update.reset"]') as HTMLElement);
+    await waitFor(() => expect(banner()).toBeNull());
+    expect(tabMark('prompts')).toBeNull();
+    expect((await api.getSettings()).settings.ai_prompts_version).toBe(String(PROMPTS_VERSION));
+    expect((await api.getSettings()).settings.ai_prompt_import_match_job).toContain('match_percent');
+  });
+
+  it('"Keep my prompts" clears the notice but leaves the own texts as they are', async () => {
+    await openPrompts(true);
+    await api.updateSettings({ ai_prompt_other: 'My own prompt {{document_id}}' });
+    await reloadSettings();
+    await fireEvent.click(document.querySelector('[data-ui="settings.prompts.update.keep"]') as HTMLElement);
+    await waitFor(() => expect(banner()).toBeNull());
+    expect((await api.getSettings()).settings).toMatchObject({ ai_prompts_version: String(PROMPTS_VERSION), ai_prompt_other: 'My own prompt {{document_id}}' });
+  });
+
+  it('puts the mark by Settings in the main menu', async () => {
+    useDevBackend({ promptsOutdated: true });
+    await loadApp();
+    const { default: Shell } = await import('../layout/Shell.svelte');
+    const { createRawSnippet } = await import('svelte');
+    render(Shell, { children: createRawSnippet(() => ({ render: () => '<div></div>' })) });
+    await waitFor(() => expect(navMark()).not.toBeNull());
+    expect(screen.getByRole('link', { name: 'Settings: something needs your attention' })).toBeInTheDocument();
   });
 });

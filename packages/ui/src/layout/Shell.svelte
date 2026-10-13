@@ -7,7 +7,7 @@
   import { router } from '../lib/router.svelte';
   import { api } from '../api';
   import { useResource } from '../lib/resource.svelte';
-  import { app } from '../state/app.svelte';
+  import { app, settingsNeedAttention } from '../state/app.svelte';
   import { invalidation } from '../state/invalidate.svelte';
   import { createMenuPoller, menuRefreshSeconds } from '../lib/menu-poll';
 
@@ -87,8 +87,8 @@
           class="item"
           data-ui="nav.{item.section}"
           href={item.href}
-          aria-label={item.section === 'settings' && app.setupNeeded
-            ? tr('ui.nav.setupNeeded', { label: labels[item.section]() })
+          aria-label={item.section === 'settings' && settingsNeedAttention()
+            ? tr('ui.nav.actionNeeded', { label: labels[item.section]() })
             : count > 0 && item.section === 'jobs'
             ? tr('ui.nav.jobsNew', { label: labels[item.section](), count })
             : count > 0 && item.section === 'applications'
@@ -102,8 +102,8 @@
           <span class="label">{labels[item.section]()}</span>
           {#if item.section === 'tasks' && count > 0}
             <span class="count" data-ui="nav.count.tasks" aria-hidden="true" title={tr('ui.nav.tasksWaitingTip', { count })}>{formatCount(count)}</span>
-          {:else if item.section === 'settings' && app.setupNeeded}
-            <span class="count alert" data-ui="nav.setup-needed" aria-hidden="true" title={tr('ui.nav.setupNeededTip')}>!</span>
+          {:else if item.section === 'settings' && settingsNeedAttention()}
+            <span class="count alert" data-ui="nav.action-needed" aria-hidden="true" title={tr('ui.nav.actionNeededTip')}>!</span>
           {:else if item.section === 'applications' && count > 0}
             <span class="count" data-ui="nav.count.applications" aria-hidden="true" title={tr('ui.nav.applicationsDraftTip', { count })}>{formatCount(count)}</span>
           {/if}

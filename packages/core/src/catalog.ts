@@ -27,7 +27,7 @@ export function jobRows(jobs: readonly Job[], companies: readonly Company[], app
   const counts = countBy(applications, (a) => a.job_id);
   const newestMatch = new Map<string, AiTask>();
   for (const task of tasks) {
-    if (task.type !== 'match_job') continue;
+    if (task.type !== 'match_job' && task.type !== 'import_match_job') continue;
     const current = newestMatch.get(task.job_id);
     if (!current || task.created_at >= current.created_at) newestMatch.set(task.job_id, task);
   }

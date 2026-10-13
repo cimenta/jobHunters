@@ -227,6 +227,11 @@ export class JobService {
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };
   }
 
+  /** The saved job for the same ad as the address, if any. */
+  duplicateOf(rawUrl: string): Job | undefined {
+    return this.findDuplicate(normalizeJobUrl(rawUrl));
+  }
+
   private findDuplicate(url: string): Job | undefined {
     const key = jobUrlKey(url);
     return this.deps.jobs.list().find((job) => jobUrlKey(job.url) === key);

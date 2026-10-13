@@ -30,6 +30,9 @@ export interface AiTaskRow extends AiTask {
 const ACTIVE = ['pending', 'in_progress'];
 const LANGUAGE_NAMES: Record<string, string> = { en: 'English', cs: 'Czech' };
 
+/** Task types whose result is the match evaluation of a job. */
+const MATCH_TYPES: readonly string[] = ['match_job', 'import_match_job'];
+
 export class AiTaskService {
   constructor(private readonly deps: AiTaskServiceDeps) {}
 
@@ -52,7 +55,7 @@ export class AiTaskService {
     const task = this.deps.tasks.get(id);
     if (!task) throw new NotFoundError('task_not_found', `Task ${id} not found`, { id });
     this.deps.tasks.remove(id);
-    if (task.type === 'import_job') {
+    if (task.type === 'import_job' || task.type === 'import_match_job') {
       const job = this.deps.jobs.get(task.job_id);
       if (job && job.status === 'awaiting') this.deps.jobs.remove(job.id);
     }
@@ -134,7 +137,7 @@ export class AiTaskService {
 
   /** The newest match task of a job, whatever its state. */
   matchFor(jobId: string): AiTask | undefined {
-    const found = this.deps.tasks.list().filter((t) => t.type === 'match_job' && t.job_id === jobId);
+    const found = this.deps.tasks.list().filter((t) => MATCH_TYPES.includes(t.type) && t.job_id === jobId);
     return found.sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0)).at(-1);
   }
 
@@ -167,6 +170,30 @@ export class AiTaskService {
     return tasks.insert({
       id, created_at: now(), application_id: '', job_id: jobId, type: 'import_job', target_type: 'job', target_id: jobId,
       instructions: renderPrompt(this.deps.prompt('import_job'), { task_id: id, job_id: jobId, url: job.url, language: LANGUAGE_NAMES[language()] ?? 'English' }),
+      status: 'pending', ai_note: '', completed_at: '',
+    });
+  }
+
+  /** The experience setting must be filled in before the AI evaluates a match. */
+  assertExperience(): void {
+    if (this.deps.experience().trim() === '') throw new ValidationError('match_experience_required', 'The experience setting is empty', {});
+  }
+
+  /**
+   * Queues one AI task that reads an ad the app did not download, fills in its job and evaluates the match, so the AI
+   * has all the information at once. Needs the candidate experience.
+   */
+  requestImportAndMatch(jobId: string): AiTask {
+    const { tasks, jobs, newId, now, language } = this.deps;
+    const job = jobs.get(jobId);
+    if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    this.assertExperience();
+    const current = tasks.list().filter((t) => t.type === 'import_match_job' && t.job_id === jobId && ACTIVE.includes(t.status)).at(0);
+    if (current) return current;
+    const id = newId();
+    return tasks.insert({
+      id, created_at: now(), application_id: '', job_id: jobId, type: 'import_match_job', target_type: 'job', target_id: jobId,
+      instructions: renderPrompt(this.deps.prompt('import_match_job'), { task_id: id, job_id: jobId, url: job.url, language: LANGUAGE_NAMES[language()] ?? 'English' }),
       status: 'pending', ai_note: '', completed_at: '',
     });
   }

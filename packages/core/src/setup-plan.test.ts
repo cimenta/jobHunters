@@ -33,6 +33,13 @@ describe('buildSetupPlan', () => {
     expect(sheet('Profile').seedRows).toEqual([['name', ''], ['email', ''], ['phone', ''], ['address', ''], ['portfolio', ''], ['linkedin', ''], ['github', ''], ['website', ''], ['links', '']]);
   });
 
+  it('seeds the Settings sheet with the current prompts version, while an existing installation without the row reads "never accepted"', async () => {
+    const { PROMPTS_VERSION, SETTINGS_DEFAULTS } = await import('./index');
+    const seeded = sheet('Settings').seedRows.find((row) => row[0] === 'ai_prompts_version');
+    expect(seeded).toEqual(['ai_prompts_version', String(PROMPTS_VERSION)]);
+    expect(SETTINGS_DEFAULTS.ai_prompts_version).toBe('');
+  });
+
   it('uses checkboxes for booleans', () => {
     expect(sheet('Jobs').checkboxColumns).toEqual([sheet('Jobs').headers.indexOf('is_gig') + 1]);
     expect(sheet('Companies').checkboxColumns).toEqual([]);
