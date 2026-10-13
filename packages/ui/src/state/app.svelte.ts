@@ -10,7 +10,22 @@ export const app = $state<{
   timeZone: string;
   settings: Settings | undefined;
   warnings: AppWarning[];
-}>({ phase: 'loading', error: undefined, version: '', timeZone: '', settings: undefined, warnings: [] });
+  /** Setup has something left to create (the red mark in the menu and on the Setup card), and why. */
+  setupNeeded: boolean;
+  setupReasons: string[];
+}>({ phase: 'loading', error: undefined, version: '', timeZone: '', settings: undefined, warnings: [], setupNeeded: false, setupReasons: [] });
+
+/** Asks the server whether setup is needed. A failed question leaves the mark off: it must never block the app. */
+export async function reloadSetupStatus(): Promise<void> {
+  try {
+    const status = await api.getSetupStatus();
+    app.setupNeeded = status.needed;
+    app.setupReasons = status.reasons;
+  } catch {
+    app.setupNeeded = false;
+    app.setupReasons = [];
+  }
+}
 
 /** 'system' leaves the choice to the device (prefers-color-scheme), the others force it. */
 export function applyTheme(theme: UiTheme): void {
@@ -22,6 +37,8 @@ export function applyTheme(theme: UiTheme): void {
 export async function loadApp(): Promise<void> {
   app.phase = 'loading';
   app.error = undefined;
+  // The check is slow on the server; it starts with the other startup calls and the mark appears when it answers.
+  void reloadSetupStatus();
   try {
     const [info, loaded] = await Promise.all([api.getAppInfo(), api.getSettings()]);
     app.version = info.version;

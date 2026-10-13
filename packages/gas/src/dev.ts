@@ -46,7 +46,7 @@ function addDays(isoDate: string, days: number): string {
 }
 
 /** The real handlers over in-memory sheets and Drive: what the UI talks to during development and in tests. */
-export function createDevBackend(options: { seed?: boolean; now?: () => string } = {}): DevBackend {
+export function createDevBackend(options: { seed?: boolean; now?: () => string; setupNeeded?: boolean } = {}): DevBackend {
   const now = options.now ?? (() => new Date().toISOString());
   const grids = new Map<SheetName, FakeGrid>();
   const grid = (sheet: SheetName): FakeGrid => {
@@ -61,6 +61,7 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string }
   const root = drive.ensureFolder(null, 'JobHunters');
   const pages: Record<string, FakePage> = { [DEMO_URL]: { status: 200, html: DEMO_PAGE } };
   let counter = 0;
+  let setupNeeded = options.setupNeeded ?? false;
   const container = buildContainer({
     grid,
     lock: NO_LOCK,
@@ -70,6 +71,22 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string }
     fetcher: new BlockingFetcher(pages),
     drive,
     rootFolder: () => root,
+    setupStatus: () => ({ needed: setupNeeded, reasons: setupNeeded ? ['Sheet Jobs lacks the columns ai_salary'] : [] }),
+    runSetup: () => {
+      setupNeeded = false;
+      return {
+      ok: true,
+      lines: [
+        'Setup started',
+        'Root folder "JobHunters": found (https://drive.example.com/folder)',
+        'Spreadsheet "JobHunters": found (https://sheets.example.com/sheet)',
+        'Sheet Jobs: existing, nothing to add',
+        'Hourly trigger: already present',
+        'Check: all sheets have every column',
+        'Setup finished: OK',
+      ],
+      };
+    },
   });
   const api = createApi({ handlers: createHandlers(container), log: container.log });
   const backend: DevBackend = { call: (method, args) => api(method, args), container, drive };

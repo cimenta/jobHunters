@@ -81,6 +81,20 @@ describe('AddJob', () => {
     expect(toasts.map((t) => t.text)).toContain('Job saved: "Demo Engineer"');
   });
 
+  it('sends the page it already downloaded back with the save, so the ad is not downloaded twice', async () => {
+    useDevBackend({ seed: false });
+    const spy = vi.spyOn(api, 'saveJob');
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByDisplayValue('Demo Engineer');
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0]![0].html).toContain('Demo Engineer');
+    spy.mockRestore();
+  });
+
   it('offers to paste the text when the page cannot be downloaded, and still saves', async () => {
     useDevBackend({ seed: false });
     render(AddJob);

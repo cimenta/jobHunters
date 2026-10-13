@@ -103,6 +103,26 @@ describe('duplicates', () => {
   });
 });
 
+describe('saving what the preview downloaded', () => {
+  it('returns the page in the preview and saves it without downloading the ad a second time', () => {
+    const { service, drive, fetcher } = setup({ [URL1]: ok() });
+    const preview = service.preview({ url: URL1 });
+    expect(preview.fetched).toBe(true);
+    expect(preview.html).toContain('<');
+    const result = service.save({ url: URL1, html: preview.html });
+    expect(fetcher.calls).toEqual([URL1]);
+    expect(result.warnings).toEqual([]);
+    expect(result.job).toMatchObject({ flags: '', availability: 'online', parser_id: preview.parserId });
+    expect(result.job.folder_url).not.toBe('');
+    expect([...drive.documents.values()].length).toBeGreaterThan(0);
+  });
+
+  it('gives an empty page when nothing was downloaded', () => {
+    const { service } = setup({ [URL1]: { status: 429, html: '' } });
+    expect(service.preview({ url: URL1 })).toMatchObject({ fetched: false, fetchStatus: 429, html: '' });
+  });
+});
+
 describe('when the page cannot be downloaded', () => {
   it.each([403, 429, 404, 0])('saves the link only for HTTP status %i', (status) => {
     const { service, drive } = setup({ [URL1]: { status, html: '' } });

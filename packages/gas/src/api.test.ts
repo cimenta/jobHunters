@@ -16,6 +16,14 @@ describe('api', () => {
     expect(setup().api('getAppInfo')).toEqual({ ok: true, data: { version: '9.9.9', locales: ['en', 'cs'], timeZone: 'UTC' } });
   });
 
+  it('getSetupStatus says setup is not needed where nothing can be checked', () => {
+    expect(setup().api('getSetupStatus')).toEqual({ ok: true, data: { needed: false, reasons: [] } });
+  });
+
+  it('runSetup reports that setup cannot run where no runner is given', () => {
+    expect(setup().api('runSetup')).toEqual({ ok: true, data: { ok: false, lines: ['Setup cannot run here.'] } });
+  });
+
   it('rejects unknown methods, including inherited property names', () => {
     const { api } = setup();
     expect(api('nope')).toMatchObject({ ok: false, error: { code: 'unknown_method', params: { method: 'nope' } } });

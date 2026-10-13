@@ -4,7 +4,7 @@
     label: string;
     count?: number;
   }
-  let { items, active = $bindable(), label }: { items: Item[]; active: string; label: string } = $props();
+  let { items, active = $bindable(), label, ui = 'tabs' }: { items: Item[]; active: string; label: string; ui?: string } = $props();
 
   function onkeydown(event: KeyboardEvent, index: number): void {
     const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
@@ -17,7 +17,7 @@
   }
 </script>
 
-<div class="tabs" role="tablist" aria-label={label} data-ui="tabs">
+<div class="tabs" role="tablist" aria-label={label} data-ui={ui}>
   {#each items as item, index (item.id)}
     <button
       role="tab"

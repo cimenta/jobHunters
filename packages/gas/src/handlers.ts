@@ -14,6 +14,8 @@ function parseJobInput(args: unknown, method: string) {
   const url = requireString(input, 'url', method);
   const text = input.text;
   if (text !== undefined && typeof text !== 'string') fail();
+  const html = input.html;
+  if (html !== undefined && typeof html !== 'string') fail();
   const raw = input.overrides;
   let overrides: JobOverrides | undefined;
   if (raw !== undefined) {
@@ -30,7 +32,7 @@ function parseJobInput(args: unknown, method: string) {
       (overrides as Record<string, unknown>)[key] = value;
     }
   }
-  return { url, text: text as string | undefined, overrides };
+  return { url, text: text as string | undefined, html: html as string | undefined, overrides };
 }
 
 export function createHandlers(c: Container): Record<string, Handler> {
@@ -47,6 +49,10 @@ export function createHandlers(c: Container): Record<string, Handler> {
     updateSettings: (args) => c.lock.run(() => c.settings.update(stringRecord(args, 'updateSettings'))),
 
     getWarnings: () => c.collectWarnings(),
+
+    getSetupStatus: () => (c.setupStatus ? c.setupStatus() : { needed: false, reasons: [] }),
+
+    runSetup: () => (c.runSetup ? c.lock.run(() => c.runSetup!()) : { ok: false, lines: ['Setup cannot run here.'] }),
 
     previewJob: (args) => c.jobService.preview(parseJobInput(args, 'previewJob')),
 

@@ -5,6 +5,18 @@ export type {
 } from '@jobhunters/core';
 import type { AiTask, AiTaskRow, Application, ApplicationRow, Communication, Company, DocumentView, Job, JobRow, Question, Reminder, TimelineEvent } from '@jobhunters/core';
 
+/** What running setup reported: every log line and whether it ended OK. */
+export interface SetupResult {
+  ok: boolean;
+  lines: string[];
+}
+
+/** Whether setup has to be run, and why. */
+export interface SetupStatus {
+  needed: boolean;
+  reasons: string[];
+}
+
 export interface AppInfo {
   version: string;
   locales: string[];
@@ -43,4 +55,4 @@ export interface ApplicationDetail {
   tasks: AiTaskRow[];
 }
 
-export type Profile = Record<'name' | 'email' | 'phone' | 'address' | 'links', string>;
+export type Profile = Record<'name' | 'email' | 'phone' | 'address' | 'portfolio' | 'linkedin' | 'github' | 'website' | 'links', string>;

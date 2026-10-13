@@ -24,8 +24,8 @@ export function dropNullProperties<T>(value: T): T {
  * Seeded in-memory backend with a fixed clock; installs itself as the UI transport. Answers pass through
  * `dropNullProperties` like in Apps Script; `keepNulls: true` switches that off for a test that needs the raw answer.
  */
-export function useDevBackend(options: { seed?: boolean; keepNulls?: boolean } = {}) {
-  const backend = createDevBackend({ seed: options.seed ?? true, now: () => FIXED_NOW });
+export function useDevBackend(options: { seed?: boolean; keepNulls?: boolean; setupNeeded?: boolean } = {}) {
+  const backend = createDevBackend({ seed: options.seed ?? true, now: () => FIXED_NOW, setupNeeded: options.setupNeeded });
   setTransport(async (method, args) => {
     const result = backend.call(method, args) as ApiResult;
     return options.keepNulls ? result : dropNullProperties(result);

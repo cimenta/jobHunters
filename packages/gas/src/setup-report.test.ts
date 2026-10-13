@@ -41,5 +41,8 @@ describe('describeSheetChange', () => {
   it('describes columns added to an existing sheet and an unchanged one', () => {
     expect(describeSheetChange('Jobs', { created: false, columns: 12, seedRows: 0, addedColumns: ['status', 'match_percent'] })).toBe('Sheet Jobs: existing, added columns status, match_percent');
     expect(describeSheetChange('Jobs', { created: false, columns: 12, seedRows: 0, addedColumns: [] })).toBe('Sheet Jobs: existing, nothing to add');
+    expect(describeSheetChange('Profile', { created: false, columns: 2, seedRows: 0, addedColumns: [], addedRows: ['github', 'website'] })).toBe('Sheet Profile: existing, added rows github, website');
+    expect(describeSheetChange('Profile', { created: false, columns: 2, seedRows: 0, addedColumns: ['x'], addedRows: ['github'] })).toBe('Sheet Profile: existing, added columns x; added rows github');
+    expect(describeSheetChange('Profile', { created: false, columns: 2, seedRows: 0, addedColumns: [], repairedValues: ['phone'] })).toBe('Sheet Profile: existing, repaired values phone');
   });
 });

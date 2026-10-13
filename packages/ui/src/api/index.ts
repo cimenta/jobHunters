@@ -2,7 +2,7 @@ import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, MenuCounts, Remo
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, PrepareResult, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, PrepareResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -23,6 +23,8 @@ export const api = {
   getAppInfo: () => call<AppInfo>('getAppInfo'),
   getSettings: () => call<{ settings: Settings; warnings: AppWarning[] }>('getSettings'),
   updateSettings: (patch: Record<string, string>) => call<Settings>('updateSettings', patch),
+  getSetupStatus: () => call<SetupStatus>('getSetupStatus'),
+  runSetup: () => call<SetupResult>('runSetup'),
   getProfile: () => call<Profile>('getProfile'),
   updateProfile: (patch: Partial<Profile>) => call<Profile>('updateProfile', patch),
   listTemplates: () => call<Template[]>('listTemplates'),
@@ -47,7 +49,7 @@ export const api = {
   previewJob: (input: { url: string; text?: string }) => call<JobPreview>('previewJob', input),
   importJob: (url: string) => call<ImportResult>('importJob', { url }),
   deleteJob: (id: string) => call<null>('deleteJob', { id }),
-  saveJob: (input: { url: string; text?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
+  saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 
   listCompanies: () => call<CompanyRow[]>('listCompanies'),
   getCompany: (id: string) => call<CompanyDetail>('getCompany', { id }),

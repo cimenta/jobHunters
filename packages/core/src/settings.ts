@@ -132,13 +132,17 @@ export const parseRefreshSeconds = (raw: string): number | undefined => {
   return seconds === 0 || (seconds >= 5 && seconds <= 3600) ? seconds : undefined;
 };
 
-const parsePrompt = (raw: string): string | undefined => (raw.trim() !== '' && raw.length <= 10000 ? raw : undefined);
+/** Longest AI prompt and longest candidate experience text, in characters. */
+export const PROMPT_MAX = 10000;
+export const EXPERIENCE_MAX = 40000;
+
+const parsePrompt = (raw: string): string | undefined => (raw.trim() !== '' && raw.length <= PROMPT_MAX ? raw : undefined);
 
 /** Each parser returns undefined for an invalid value. */
 const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } = {
   ui_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
   ui_theme: (raw) => (['system', 'light', 'dark'].includes(raw.trim()) ? (raw.trim() as UiTheme) : undefined),
-  candidate_experience: (raw) => (raw.length <= 40000 ? raw : undefined),
+  candidate_experience: (raw) => (raw.length <= EXPERIENCE_MAX ? raw : undefined),
   default_document_language: (raw) => (isLocale(raw.trim()) ? (raw.trim() as Locale) : undefined),
   reminder_time: (raw) => (/^([01]\d|2[0-3]):[0-5]\d$/.test(raw.trim()) ? raw.trim() : undefined),
   reminder_email: (raw) => (raw.trim() === '' || /^[^@\s]+@[^@\s]+$/.test(raw.trim()) ? raw.trim() : undefined),

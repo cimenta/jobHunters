@@ -52,7 +52,7 @@ const EXPERIENCE = [
 ].join('\n');
 
 const CONTACT = [
-  'Contact details: the sheet Profile, the rows with key name, email, phone, address and links, the column value of each.',
+  'Contact details: the sheet Profile, the rows with key name, email, phone, address, portfolio, linkedin, github, website and links (other links), the column value of each.',
   '   (In the app this is Settings, tab Profile.) A missing or empty row means that detail is unknown: leave it out, do not make it up.',
 ].join('\n');
 
@@ -101,7 +101,7 @@ const DOCUMENT = (kind: string, steps: string[], checks: string[], withSalary = 
   '4. For each requirement find the matching facts in the candidate experience (E). A requirement without a matching fact is not mentioned and not invented.',
   '5. Open the Google Doc at doc_url and see what is in it: a template with placeholders in double braces, an empty Doc, or text that is already there.',
   '6. If the Doc contains placeholders in double braces, replace each one:',
-  '   - {{name}}, {{email}}, {{phone}}, {{address}}, {{links}} with the values from F',
+  '   - {{name}}, {{email}}, {{phone}}, {{address}}, {{portfolio}}, {{linkedin}}, {{github}}, {{website}}, {{links}} with the values from F ({{links}} is all the links together)',
   '   - {{company}} with the company name, {{position}} with the job title, {{location}} with the job location (all from D)',
   '   - {{date}} with today\'s date',
   '   - {{body}} with the text you write in the next steps',

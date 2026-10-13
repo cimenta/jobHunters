@@ -8,7 +8,8 @@ import { createApi, toFailure, type ApiResult } from './api';
 import { buildContainer, type Container } from './container';
 import { createHandlers } from './handlers';
 import { getRootFolderId, getSpreadsheetId } from './props';
-import { runSetup, runSetupColumnsTest } from './setup';
+import { checkSetup, checkSetupCached, rememberSetupDone, runFormulaTextTest, runSetup, runSetupColumnsTest, runSetupMarkTest, runSetupStatusTest } from './setup';
+import type { SetupResult } from './setup-report';
 import { runSmokeTest } from './smoke';
 
 /** Defined in Version.gs, which Apps Script loads into the same global scope. */
@@ -16,6 +17,29 @@ declare const APP_VERSION: string;
 
 let cachedContainer: Container | undefined;
 let cached: ReturnType<typeof createApi> | undefined;
+
+/** The Settings button: the same steps as setup(), with the log lines and the verdict handed to the page. */
+function runSetupForApp(): SetupResult {
+  const lines: string[] = [];
+  const verdict = runSetup((line) => {
+    lines.push(line);
+    Logger.log(line);
+  });
+  // The sheets may have changed shape; the next call builds a fresh container.
+  cachedContainer = undefined;
+  cached = undefined;
+  let ok = verdict === 'OK';
+  // Ask again, so a setup that did not fix everything says so instead of leaving the red mark unexplained.
+  try {
+    const after = checkSetup();
+    lines.push(after.needed ? `Still needed after setup: ${after.reasons.join('; ')}` : 'Check after setup: nothing is missing');
+    if (after.needed) ok = false;
+    else rememberSetupDone(APP_VERSION);
+  } catch (error) {
+    lines.push(`Check after setup failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  return { ok, lines };
+}
 
 function getContainer(): Container {
   if (cachedContainer === undefined) {
@@ -34,6 +58,8 @@ function getContainer(): Container {
       timeZone: () => Session.getScriptTimeZone(),
       schedulerState: new GasPropertyStore(PropertiesService.getScriptProperties()),
       appVersion: APP_VERSION,
+      runSetup: runSetupForApp,
+      setupStatus: () => checkSetupCached(APP_VERSION),
       fetcher: new GasPageFetcher(),
       drive: new GasDrive(),
       rootFolder: () => {
@@ -76,7 +102,9 @@ export function apiJson(method: string, args?: unknown): string {
  * what it did and ends with "Setup finished: OK" or "NOT OK"; the same verdict is the return value.
  */
 export function setup(): string {
-  return runSetup((line) => Logger.log(line));
+  const verdict = runSetup((line) => Logger.log(line));
+  if (verdict === 'OK' && !checkSetup().needed) rememberSetupDone(APP_VERSION);
+  return verdict;
 }
 
 /**
@@ -103,6 +131,33 @@ export function smokeTest(): string {
 /** Manual check of the column migration of setup(); run it from the editor and read the result. Leaves no data behind. */
 export function testSetupColumns(): string {
   const result = runSetupColumnsTest(getSpreadsheetId());
+  Logger.log(result);
+  return result;
+}
+
+/**
+ * Manual check of the red "setup needed" mark: reports what is missing, runs setup, checks again and returns OK only
+ * when nothing is missing afterwards. Run it from the editor and read the execution log.
+ */
+export function testSetupStatus(): string {
+  const result = runSetupStatusTest((line) => Logger.log(line));
+  Logger.log(result);
+  return result;
+}
+
+/**
+ * Manual test of the red exclamation mark in the web app: deletes the hourly trigger, so the next start of the web app
+ * shows the mark. Press Run setup in Settings > General (or run setup() here) and it disappears.
+ */
+export function testSetupMark(): string {
+  const result = runSetupMarkTest();
+  Logger.log(result);
+  return result;
+}
+
+/** Diagnostic: how Sheets stores a text like "+420 704 145 475"; run it from the editor and read the execution log. */
+export function testFormulaText(): string {
+  const result = runFormulaTextTest(getSpreadsheetId(), (line) => Logger.log(line));
   Logger.log(result);
   return result;
 }

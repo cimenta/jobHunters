@@ -2,6 +2,18 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.3] - 2026-10-13
+
+- New "Setup" card in Settings > General: the "Run setup" button runs setup (folder, spreadsheet, sheets, hourly trigger) and shows the verdict and every step in a window. Run it after every update; it never overwrites your data. New API method `runSetup`.
+- The job detail summary has two columns under the title: the details on the left and a narrow column on the right with the status drop-down above a two-column grid of icon buttons (Refresh, availability check, link to the ad, Drive folder), each with a hover explanation. On a phone this column comes first.
+- Profile has separate Portfolio, LinkedIn, GitHub and Personal website links; "Links" is now "Other links". Each has its own placeholder (`{{portfolio}}`, `{{linkedin}}`, `{{github}}`, `{{website}}`); `{{links}}` still works and now lists all filled links, one per line, followed by the other links. Use "Reset all to default" in Settings > AI prompts to get the new prompt wording.
+- When setup has something left to create (a missing column, sheet, Profile row, Drive folder or the hourly trigger), a red exclamation mark appears by Settings in the main menu and on the Setup card; it disappears after setup ran. New API method `getSetupStatus` (read-only). Setup now also adds the missing Profile rows (the new link keys) to an existing Profile sheet. The check is remembered for the app version, so the mark is decided at once on later starts. Fix: a phone number such as "+420 ..." (or a note that starts with - or @) was stored by older versions as "=+420 ...", because Sheets puts an = in front of rich text that starts with + or -. Such text is now written as plain text, and setup gives the damaged Profile values their original text back (the red mark reports them until then). New manual checks `testSetupStatus`, `testSetupMark` and `testFormulaText`.
+- "Application statuses" has two tabs, "Labels and colours" and "Allowed changes", and each AI prompt in Settings > AI prompts has its own tab.
+- Fix: saving a job from Add job downloaded the ad a second time, and LinkedIn answered that with HTTP 429, so the job was saved without its stored copy of the page. The preview now hands the page it downloaded to the save, so the ad is downloaded once. `previewJob` returns `html`; `saveJob` accepts it.
+- Settings > General is compact: small cards in a grid.
+- Status labels, Allowed status changes and Ad statuses are now one "Statuses" tab with two sub-tabs: "Ad (job) statuses" and "Application statuses", with headings that say which statuses they are about.
+- A "?" icon next to the settings that need an explanation: hover it for the description, or click or tap it to read it in a window, including the allowed values (menu refresh 0 or 5 to 3600, availability hours 0 to 23, prompt and experience length, status text length).
+
 ## [0.13.2] - 2026-10-13
 
 - The ad parser also reads the work mode (on-site, hybrid or remote) where the page states it.

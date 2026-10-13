@@ -21,6 +21,11 @@ export interface JobInput {
   url: string;
   /** Ad text pasted by the user when the page cannot be downloaded. */
   text?: string;
+  /**
+   * The page the preview already downloaded. Saving with it does not download the ad again: some servers (LinkedIn)
+   * answer the second request in a row with HTTP 429.
+   */
+  html?: string;
   overrides?: JobOverrides;
 }
 
@@ -30,6 +35,8 @@ export interface JobPreview {
   fetchStatus: number;
   parserId: string;
   parsed: ParsedJob;
+  /** The downloaded page, to be sent back with `saveJob` so the ad is not downloaded twice; empty when nothing was downloaded. */
+  html: string;
   /** Id of an existing job for the same ad, else empty. */
   duplicateOf: string;
 }
@@ -85,10 +92,11 @@ export class JobService {
     const url = normalizeJobUrl(input.url);
     const duplicate = this.findDuplicate(url);
     if (duplicate) {
-      return { url, fetched: false, fetchStatus: 0, parserId: '', parsed: finishParsedJob(emptyParsedJob()), duplicateOf: duplicate.id };
+      return { url, fetched: false, fetchStatus: 0, parserId: '', parsed: finishParsedJob(emptyParsedJob()), html: '', duplicateOf: duplicate.id };
     }
     const acquired = this.acquire(url, input);
-    return { url, fetched: acquired.fetched, fetchStatus: acquired.fetchStatus, parserId: acquired.parserId, parsed: acquired.parsed, duplicateOf: '' };
+    const html = acquired.fetched && acquired.content?.kind === 'html' ? acquired.content.body : '';
+    return { url, fetched: acquired.fetched, fetchStatus: acquired.fetchStatus, parserId: acquired.parserId, parsed: acquired.parsed, html, duplicateOf: '' };
   }
 
   save(input: JobInput): SaveResult {
@@ -238,11 +246,15 @@ export class JobService {
       return { fetched: false, fetchStatus: 0, content: { kind: 'text', body: text }, parserId: 'manual', parsed };
     }
     let page: FetchResult;
-    try {
-      page = this.deps.fetcher.fetch(url);
-    } catch (error) {
-      this.report('fetch', error);
-      page = { status: 0, finalUrl: url, html: '' };
+    if (input.html !== undefined && input.html.trim() !== '') {
+      page = { status: 200, finalUrl: url, html: input.html };
+    } else {
+      try {
+        page = this.deps.fetcher.fetch(url);
+      } catch (error) {
+        this.report('fetch', error);
+        page = { status: 0, finalUrl: url, html: '' };
+      }
     }
     if (page.status === 200 && page.html.trim() !== '') {
       const { parserId, job } = parseJobPage(page.html, url, { onError: (id, error) => this.report(`parser:${id}`, error) });

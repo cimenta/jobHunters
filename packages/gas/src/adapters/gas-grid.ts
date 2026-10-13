@@ -1,8 +1,9 @@
-import { isFormulaLike, type Cell, type SheetGrid } from '@jobhunters/core';
+import { needsLiteralWrite, type Cell, type SheetGrid } from '@jobhunters/core';
 
 /**
  * One spreadsheet tab. setValues() evaluates text such as "=IMPORTXML(...)" as a formula even in a
- * plain-text column, so formula-like cells are written afterwards as rich text, which is always literal.
+ * plain-text column, so cells that start with "=" are written afterwards as rich text, which keeps them literal there.
+ * Text that starts with + (a phone number), - or @ goes through setValues: rich text would turn "+420 ..." into "=+420 ...".
  */
 export class GasSheetGrid implements SheetGrid {
   constructor(private readonly sheet: GoogleAppsScript.Spreadsheet.Sheet) {}
@@ -15,9 +16,9 @@ export class GasSheetGrid implements SheetGrid {
   }
 
   private write(row: number, values: Cell[]): void {
-    this.sheet.getRange(row, 1, 1, values.length).setValues([values.map((cell) => (isFormulaLike(cell) ? '' : cell))]);
+    this.sheet.getRange(row, 1, 1, values.length).setValues([values.map((cell) => (needsLiteralWrite(cell) ? '' : cell))]);
     values.forEach((cell, index) => {
-      if (isFormulaLike(cell)) {
+      if (needsLiteralWrite(cell)) {
         const literal = SpreadsheetApp.newRichTextValue().setText(cell as string).build();
         this.sheet.getRange(row, index + 1).setRichTextValue(literal);
       }

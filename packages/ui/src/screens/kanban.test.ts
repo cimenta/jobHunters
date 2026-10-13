@@ -205,8 +205,10 @@ describe('Allowed status changes', () => {
     useDevBackend();
     await loadApp();
     render(Settings);
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Allowed status changes' }));
-    const matrix = (await screen.findByRole('heading', { name: 'Allowed status changes' })).closest('section')!;
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Statuses' }));
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Application statuses' }));
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Allowed changes' }));
+    const matrix = (await screen.findByRole('heading', { name: 'Allowed status changes of applications' })).closest('section')!;
     const cell = within(matrix).getByLabelText('Allow moving from Sent to Interview');
     expect(cell).toBeChecked();
     expect(within(matrix).getByLabelText('Allow moving from Sent to Sent')).toBeDisabled();
@@ -224,8 +226,10 @@ describe('Allowed status changes', () => {
     useDevBackend();
     await loadApp();
     render(Settings);
-    await fireEvent.click(await screen.findByRole('tab', { name: 'Allowed status changes' }));
-    const matrix = (await screen.findByRole('heading', { name: 'Allowed status changes' })).closest('section')!;
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Statuses' }));
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Application statuses' }));
+    await fireEvent.click(await screen.findByRole('tab', { name: 'Allowed changes' }));
+    const matrix = (await screen.findByRole('heading', { name: 'Allowed status changes of applications' })).closest('section')!;
     for (const to of ['Waiting', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn']) {
       await fireEvent.click(within(matrix).getByLabelText(`Allow moving from Sent to ${to}`));
     }

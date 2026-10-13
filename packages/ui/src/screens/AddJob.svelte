@@ -60,7 +60,9 @@
       return;
     }
     formError = undefined;
-    const result = await api.saveJob({ url: preview.url, text: usedText ? pasted : undefined, overrides });
+    // The page the preview downloaded travels with the save, so the ad is not downloaded again (LinkedIn answers 429 then).
+    const html = !usedText && preview.html !== '' ? preview.html : undefined;
+    const result = await api.saveJob({ url: preview.url, text: usedText ? pasted : undefined, html, overrides });
     invalidate();
     if (result.status === 'created') toast.success(tr('ui.addJob.saved', { title: result.job.title }));
     for (const warning of result.warnings) toast.warning(describeWarning(warning));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AppError } from './errors';
-import { cellToString, decodeSheet, encodeRow, isFormulaLike, type Cell } from './row-codec';
+import { cellToString, decodeSheet, encodeRow, isFormulaLike, needsLiteralWrite, type Cell } from './row-codec';
 import { SHEETS } from './schema';
 import type { Application, Company, Job } from './types';
 
@@ -144,5 +144,14 @@ describe('cellToString', () => {
     expect(cellToString(3)).toBe('3');
     expect(cellToString(false)).toBe('false');
     expect(cellToString(new Date('invalid'))).toBe('');
+  });
+});
+
+describe('needsLiteralWrite', () => {
+  it('is true only for text that starts with =, because +, - and @ stay literal with a plain setValues into a text column', () => {
+    expect(needsLiteralWrite('=IMPORTXML("x")')).toBe(true);
+    expect(needsLiteralWrite('=+420 111')).toBe(true);
+    for (const text of ['+420 704 145 475', '- a bullet', '@home', 'Acme', '', ' =1']) expect(needsLiteralWrite(text), text).toBe(false);
+    for (const cell of [5, true, null, undefined, new Date()]) expect(needsLiteralWrite(cell as never), String(cell)).toBe(false);
   });
 });

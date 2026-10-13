@@ -131,6 +131,16 @@ export function isFormulaLike(cell: Cell | undefined): boolean {
   return typeof cell === 'string' && /^[=+\-@]/.test(cell);
 }
 
+/**
+ * Text that setValues() would evaluate as a formula even in a plain-text column: it starts with "=". Such a cell is
+ * written as rich text, which keeps it literal in a plain-text column. Text that starts with +, - or @ is NOT written
+ * that way: Sheets turns rich text "+420 ..." into "=+420 ...", while a plain setValues() into a plain-text column keeps
+ * "+420 ..." as it is (measured with the testFormulaText function, see docs/deploy.md).
+ */
+export function needsLiteralWrite(cell: Cell | undefined): boolean {
+  return typeof cell === 'string' && cell.startsWith('=');
+}
+
 export function encodeCell(value: unknown): Cell {
   if (value === null || value === undefined) return '';
   if (typeof value === 'boolean' || typeof value === 'number') return value;

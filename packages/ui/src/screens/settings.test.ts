@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { ui } from '../lib/i18n.svelte';
@@ -14,6 +14,11 @@ async function open(tab?: string): Promise<void> {
   render(Settings);
   await screen.findByRole('heading', { name: 'Settings' });
   if (tab) await fireEvent.click(screen.getByRole('tab', { name: tab }));
+}
+
+async function openStatuses(kind: 'jobs' | 'applications'): Promise<void> {
+  await open('Statuses');
+  if (kind === 'applications') await fireEvent.click(screen.getByRole('tab', { name: 'Application statuses' }));
 }
 
 const section = (name: string): HTMLElement => screen.getByRole('heading', { name }).closest('section')!;
@@ -61,6 +66,18 @@ describe('Settings', () => {
     await waitFor(async () => expect(await api.getProfile()).toMatchObject({ name: 'Eva Changed', phone: '+420 111 222 333' }));
   });
 
+  it('has separate Portfolio, LinkedIn, GitHub and personal website fields next to the other links, and saves them', async () => {
+    await open('Profile');
+    const card = section('Profile');
+    await within(card).findByLabelText('Name');
+    for (const key of ['portfolio', 'linkedin', 'github', 'website', 'links']) expect(card.querySelector(`[data-ui="settings.profile.${key}"]`)).not.toBeNull();
+    expect(within(card).getByLabelText('Other links')).toBeInTheDocument();
+    await fireEvent.input(within(card).getByLabelText('GitHub'), { target: { value: 'github.com/eva' } });
+    await fireEvent.input(within(card).getByLabelText('Personal website'), { target: { value: 'eva.example.com' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect(await api.getProfile()).toMatchObject({ github: 'github.com/eva', website: 'eva.example.com' }));
+  });
+
   it('lists templates and registers a new one, refusing an address that is not a Google Doc', async () => {
     await open('Templates');
     const card = section('Templates');
@@ -77,8 +94,8 @@ describe('Settings', () => {
   });
 
   it('edits the text and colour of a status, applies it everywhere and can reset it', async () => {
-    await open('Status labels');
-    const card = section('Status labels');
+    await openStatuses('applications');
+    const card = section('Labels and colours of application statuses');
     const row = within(card).getByRole('group', { name: 'Sent' });
     await fireEvent.input(within(row).getByLabelText('Text for Sent'), { target: { value: 'Applied' } });
     await fireEvent.input(within(row).getByLabelText('Colour for Sent'), { target: { value: '#fde68a' } });
@@ -94,13 +111,30 @@ describe('Settings', () => {
     expect((await api.getSettings()).settings.status_styles).toEqual({});
   });
 
-  it('keeps status labels and allowed changes on separate tabs', async () => {
-    await open('Status labels');
-    expect(document.querySelector('[data-ui="settings.status-labels"]')).not.toBeNull();
-    expect(document.querySelector('[data-ui="transitions"]')).toBeNull();
-    await fireEvent.click(screen.getByRole('tab', { name: 'Allowed status changes' }));
-    expect(document.querySelector('[data-ui="transitions"]')).not.toBeNull();
+  it('has one Statuses tab with a sub-tab for ads (jobs) and one for applications, and says which statuses each card is about', async () => {
+    await open();
+    expect(screen.queryByRole('tab', { name: 'Status labels' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Allowed status changes' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'Ad statuses' })).toBeNull();
+    await fireEvent.click(screen.getByRole('tab', { name: 'Statuses' }));
+    const jobs = screen.getByRole('tab', { name: 'Ad (job) statuses' });
+    const applications = screen.getByRole('tab', { name: 'Application statuses' });
+    expect(jobs).toHaveAttribute('aria-selected', 'true');
+    expect(document.querySelector('[data-ui="settings.statuses.tabs"]')).not.toBeNull();
+    expect(document.querySelector('[data-ui="settings.job-statuses"]')).not.toBeNull();
     expect(document.querySelector('[data-ui="settings.status-labels"]')).toBeNull();
+    await fireEvent.click(applications);
+    expect(applications).toHaveAttribute('aria-selected', 'true');
+    expect(document.querySelector('[data-ui="settings.job-statuses"]')).toBeNull();
+    expect(document.querySelector('[data-ui="settings.statuses.applications.tabs"]')).not.toBeNull();
+    expect(screen.getByRole('tab', { name: 'Labels and colours' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Labels and colours of application statuses' })).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="settings.transitions"]')).toBeNull();
+    await fireEvent.click(screen.getByRole('tab', { name: 'Allowed changes' }));
+    expect(screen.getByRole('heading', { name: 'Allowed status changes of applications' })).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="settings.status-labels"]')).toBeNull();
+    await fireEvent.keyDown(applications, { key: 'ArrowLeft' });
+    expect(jobs).toHaveAttribute('aria-selected', 'true');
   });
 
   it('saves the colour mode and applies it at once', async () => {
@@ -127,7 +161,8 @@ describe('Settings', () => {
   it('edits the whole AI prompts and resets them to the defaults', async () => {
     await open('AI prompts');
     const card = section('AI prompts');
-    const letter = within(card).getByLabelText('Writing the cover letter');
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Cover letter' }));
+    const letter = card.querySelector('[data-ui="settings.prompt.cover_letter"]') as HTMLTextAreaElement;
     expect((letter as HTMLTextAreaElement).value).toContain('{{document_id}}');
     await fireEvent.input(letter, { target: { value: 'Write the letter into {{document_id}}.' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
@@ -140,7 +175,8 @@ describe('Settings', () => {
   it('edits the prompt for importing a job ad and resets it with the others', async () => {
     await open('AI prompts');
     const card = section('AI prompts');
-    const field = within(card).getByLabelText('Importing a job ad from a link') as HTMLTextAreaElement;
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Import' }));
+    const field = card.querySelector('[data-ui="settings.prompt.import_job"]') as HTMLTextAreaElement;
     expect(field.value.length).toBeGreaterThan(20);
     await fireEvent.input(field, { target: { value: 'Import {{url}} as job {{job_id}}.' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
@@ -196,8 +232,8 @@ describe('Settings availability', () => {
   });
 
   it('saves the availability flag of a status', async () => {
-    await open('Status labels');
-    const card = section('Status labels');
+    await openStatuses('applications');
+    const card = section('Labels and colours of application statuses');
     await fireEvent.click(within(card).getByLabelText('Check the availability of ads in status Sent'));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getSettings()).settings.status_styles).toEqual({ sent: { check: false } }));
@@ -206,8 +242,8 @@ describe('Settings availability', () => {
 
 describe('Settings ad statuses', () => {
   it('adds a status of its own and then refuses to delete it while an ad uses it', async () => {
-    await open('Ad statuses');
-    const card = section('Statuses of ads');
+    await openStatuses('jobs');
+    const card = section('Statuses of ads (jobs)');
     await fireEvent.input(within(card).getByLabelText('Name of a new status'), { target: { value: 'Maybe' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Add status' }));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
@@ -222,8 +258,8 @@ describe('Settings ad statuses', () => {
   });
 
   it('saves the availability flag of a built-in ad status', async () => {
-    await open('Ad statuses');
-    const card = section('Statuses of ads');
+    await openStatuses('jobs');
+    const card = section('Statuses of ads (jobs)');
     await fireEvent.click(within(card).getByLabelText('Check the availability of ads in status No'));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getSettings()).settings.job_status_styles.no?.check).toBe(true));
@@ -300,5 +336,85 @@ describe('Settings: menu numbers', () => {
     await fireEvent.input(busy(), { target: { value: '0' } });
     await fireEvent.click(save());
     await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Menu numbers refresh only when you return to the window'));
+  });
+});
+
+describe('Settings: setup', () => {
+  it('runs setup from a button and shows the verdict and the log lines in a dialog that closes', async () => {
+    await open();
+    expect(document.querySelector('[data-ui="settings.setup"]')).not.toBeNull();
+    await fireEvent.click(document.querySelector('[data-ui="settings.setup.run"]') as HTMLElement);
+    const dialog = await screen.findByRole('dialog', { name: 'Setup result' });
+    expect(within(dialog).getByText('Setup finished: everything is OK.')).toBeInTheDocument();
+    expect(dialog.querySelector('[data-ui="settings.setup-result.log"]')).toHaveTextContent('Setup started');
+    expect(dialog.querySelector('[data-ui="settings.setup-result.log"]')).toHaveTextContent('Setup finished: OK');
+    await fireEvent.click(dialog.querySelector('[data-ui="settings.setup-result.done"]') as HTMLElement);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+
+  it('shows a failed setup as a failure with its lines', async () => {
+    await open();
+    const { vi } = await import('vitest');
+    vi.spyOn(api, 'runSetup').mockResolvedValue({ ok: false, lines: ['Setup started', 'Setup failed: nope', 'Setup finished: NOT OK'] });
+    await fireEvent.click(document.querySelector('[data-ui="settings.setup.run"]') as HTMLElement);
+    const dialog = await screen.findByRole('dialog', { name: 'Setup result' });
+    expect(within(dialog).getByText('Setup failed. See the last lines below.')).toBeInTheDocument();
+    expect(dialog.querySelector('[data-ui="settings.setup-result.log"]')).toHaveTextContent('Setup failed: nope');
+    vi.restoreAllMocks();
+  });
+});
+
+describe('Settings: setup needed', () => {
+  const navMark = () => document.querySelector('[data-ui="nav.setup-needed"]');
+  const cardMark = () => document.querySelector('[data-ui="settings.setup.needed"]');
+
+  it('shows no red mark in the menu or on the Setup card when setup is not needed', async () => {
+    await open();
+    expect(cardMark()).toBeNull();
+    expect(navMark()).toBeNull();
+  });
+
+  it('shows a red exclamation mark by Settings in the menu and on the Setup card, and removes both after setup ran', async () => {
+    useDevBackend({ setupNeeded: true });
+    await loadApp();
+    const { default: Shell } = await import('../layout/Shell.svelte');
+    const { createRawSnippet } = await import('svelte');
+    render(Shell, { children: createRawSnippet(() => ({ render: () => '<div></div>' })) });
+    await waitFor(() => expect(navMark()).not.toBeNull());
+    expect(navMark()).toHaveTextContent('!');
+    expect(screen.getByRole('link', { name: 'Settings: setup needs to be run' })).toBeInTheDocument();
+    cleanup();
+
+    render(Settings);
+    await screen.findByRole('heading', { name: 'Settings' });
+    await waitFor(() => expect(cardMark()).not.toBeNull());
+    expect(cardMark()).toHaveAttribute('aria-label', 'Setup needs to be run');
+    expect(cardMark()!.getAttribute('title')).toContain('Sheet Jobs lacks the columns ai_salary');
+    expect(document.querySelector('[data-ui="settings.setup.reasons"]')).toHaveTextContent('Sheet Jobs lacks the columns ai_salary');
+    await fireEvent.click(document.querySelector('[data-ui="settings.setup.run"]') as HTMLElement);
+    await screen.findByRole('dialog', { name: 'Setup result' });
+    await waitFor(() => expect(cardMark()).toBeNull());
+    expect(app.setupNeeded).toBe(false);
+    expect(document.querySelector('[data-ui="settings.setup.reasons"]')).toBeNull();
+  });
+});
+
+describe('Settings: AI prompt tabs', () => {
+  it('has one sub-tab for each prompt, shows one prompt at a time, and keeps edits of the others when switching', async () => {
+    await open('AI prompts');
+    const card = section('AI prompts');
+    const tabs = within(card).getAllByRole('tab').map((tab) => tab.getAttribute('data-ui'));
+    expect(tabs).toEqual([
+      'tab.prompts.resume_tailor', 'tab.prompts.cover_letter', 'tab.prompts.answer_question', 'tab.prompts.match_job', 'tab.prompts.other', 'tab.prompts.import_job',
+    ]);
+    expect(within(card).getAllByRole('tab').map((tab) => tab.textContent?.trim())).toEqual(['Resume', 'Cover letter', 'Questions', 'Job match', 'Document', 'Import']);
+    expect(document.querySelectorAll('[data-ui^="settings.prompt."]:is(textarea)').length).toBe(1);
+    const first = card.querySelector('[data-ui="settings.prompt.resume_tailor"]') as HTMLTextAreaElement;
+    await fireEvent.input(first, { target: { value: 'My resume prompt {{document_id}}' } });
+    await fireEvent.click(within(card).getByRole('tab', { name: 'Cover letter' }));
+    expect(card.querySelector('[data-ui="settings.prompt.resume_tailor"]')).toBeNull();
+    expect(card.querySelector('[data-ui="settings.prompt.cover_letter"]')).not.toBeNull();
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ai_prompt_resume_tailor).toBe('My resume prompt {{document_id}}'));
   });
 });

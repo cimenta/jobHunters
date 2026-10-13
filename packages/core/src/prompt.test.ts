@@ -16,7 +16,7 @@ describe('default prompts', () => {
   it.each(DEFAULT_PROMPTS.map((p) => [p.type, p.instruction] as const))('%s uses only listed placeholders', (type, instruction) => {
     const used = [...instruction.matchAll(/\{\{\s*(\w+)\s*\}\}/g)].map((m) => m[1]!);
     // {{name}}, {{email}}, ... are placeholders of the document template, not of the prompt itself.
-    const documentFields = ['name', 'email', 'phone', 'address', 'links', 'company', 'position', 'location', 'date', 'body', 'placeholders'];
+    const documentFields = ['name', 'email', 'phone', 'address', 'portfolio', 'linkedin', 'github', 'website', 'links', 'company', 'position', 'location', 'date', 'body', 'placeholders'];
     for (const name of used.filter((n) => !documentFields.includes(n))) expect(PROMPT_PLACEHOLDERS[type]).toContain(name);
   });
 

@@ -30,7 +30,7 @@ describe('buildSetupPlan', () => {
   });
 
   it('seeds the Profile sheet with the profile keys and empty values', () => {
-    expect(sheet('Profile').seedRows).toEqual([['name', ''], ['email', ''], ['phone', ''], ['address', ''], ['links', '']]);
+    expect(sheet('Profile').seedRows).toEqual([['name', ''], ['email', ''], ['phone', ''], ['address', ''], ['portfolio', ''], ['linkedin', ''], ['github', ''], ['website', ''], ['links', '']]);
   });
 
   it('uses checkboxes for booleans', () => {

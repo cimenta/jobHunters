@@ -1,16 +1,19 @@
 <script lang="ts">
-  import { OFFLINE_RULES, parseRefreshSeconds, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, type PromptType } from '@jobhunters/core';
+  import { EXPERIENCE_MAX, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
+  import Dialog from '../components/Dialog.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
+  import HelpTip from '../components/HelpTip.svelte';
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { documentTypeLabel } from '../lib/labels';
   import { useResource } from '../lib/resource.svelte';
-  import { app, reloadSettings } from '../state/app.svelte';
+  import type { SetupResult } from '../api/types';
+  import { app, reloadSettings, reloadSetupStatus } from '../state/app.svelte';
   import { ids, setIdsVisible } from '../state/ids.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
@@ -18,9 +21,10 @@
   import StatusStylesEditor from './StatusStylesEditor.svelte';
   import TransitionsEditor from './TransitionsEditor.svelte';
 
-  const PROFILE_KEYS = ['name', 'email', 'phone', 'address', 'links'] as const;
+  /** The order of the prompt tabs; the tab names are short, the full name stays on the text field. */
+  const PROMPT_TAB_ORDER: PromptType[] = ['resume_tailor', 'cover_letter', 'answer_question', 'match_job', 'other', 'import_job'];
   const DOCUMENT_TYPES = ['resume', 'cover_letter', 'other'] as const;
-  const PLACEHOLDERS = ['{{name}}', '{{email}}', '{{phone}}', '{{address}}', '{{links}}', '{{company}}', '{{position}}', '{{location}}', '{{date}}', '{{body}}'];
+  const PLACEHOLDERS = ['{{name}}', '{{email}}', '{{phone}}', '{{address}}', '{{portfolio}}', '{{linkedin}}', '{{github}}', '{{website}}', '{{links}}', '{{company}}', '{{position}}', '{{location}}', '{{date}}', '{{body}}'];
 
   function profileLabel(key: (typeof PROFILE_KEYS)[number]): string {
     switch (key) {
@@ -32,6 +36,14 @@
         return tr('ui.profile.phone');
       case 'address':
         return tr('ui.profile.address');
+      case 'portfolio':
+        return tr('ui.profile.portfolio');
+      case 'linkedin':
+        return tr('ui.profile.linkedin');
+      case 'github':
+        return tr('ui.profile.github');
+      case 'website':
+        return tr('ui.profile.website');
       case 'links':
         return tr('ui.profile.links');
     }
@@ -41,6 +53,9 @@
   const templates = useResource(() => api.listTemplates());
 
   let tab = $state('general');
+  let statusesTab = $state('statuses.jobs');
+  let applicationStatusesTab = $state('statuses.applications.labels');
+  let promptTab = $state('prompts.resume_tailor');
   let experience = $state('');
   let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '', import_job: '' });
   let checkEnabled = $state(false);
@@ -56,11 +71,12 @@
   let menuBusyError = $state('');
   let docLanguage = $state('en');
   let documentSet = $state<string[]>([]);
-  let profileValues = $state<Record<string, string>>({ name: '', email: '', phone: '', address: '', links: '' });
+  let profileValues = $state<Record<string, string>>({ name: '', email: '', phone: '', address: '', portfolio: '', linkedin: '', github: '', website: '', links: '' });
   let templateType = $state('resume');
   let templateLanguage = $state('');
   let templateName = $state('');
   let templateUrl = $state('');
+  let setupResult = $state<SetupResult | undefined>();
 
   $effect(() => {
     const settings = app.settings;
@@ -181,6 +197,12 @@
     invalidate();
   }
 
+  async function runSetup(): Promise<void> {
+    setupResult = await api.runSetup();
+    await reloadSetupStatus();
+    if (setupResult.ok) invalidate();
+  }
+
   async function addTemplate(): Promise<void> {
     await api.addTemplate({ type: templateType, language: templateLanguage, name: templateName, docUrl: templateUrl });
     toast.success(tr('ui.template.added', { name: templateName }));
@@ -202,9 +224,7 @@
       { id: 'availability', label: tr('ui.settings.tab.availability') },
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
-      { id: 'statuslabels', label: tr('ui.settings.tab.statusLabels') },
-      { id: 'transitions', label: tr('ui.settings.tab.transitions') },
-      { id: 'jobstatuses', label: tr('ui.settings.tab.jobStatuses') },
+      { id: 'statuses', label: tr('ui.settings.tab.statuses') },
       { id: 'about', label: tr('ui.settings.tab.about') },
     ]}
     bind:active={tab}
@@ -213,6 +233,7 @@
 
   <div class="stack-lg" role="tabpanel" data-ui="settings.panel" id="panel-{tab}" aria-labelledby="tab-{tab}">
   {#if tab === 'general'}
+  <div class="general-grid" data-ui="settings.general.grid">
   <Card ui="settings.language">
     <h2>{tr('ui.settings.language')}</h2>
     <Field label={tr('ui.settings.uiLanguage')} for="set-ui-language">
@@ -243,27 +264,61 @@
   </Card>
 
   <Card ui="settings.notices">
-    <h2>{tr('ui.settings.notices')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.notices')}</h2>
+      <HelpTip ui="settings.help.notices" label={tr('ui.settings.notices')} text={tr('ui.settings.tip.notices')} />
+    </div>
     <label class="check"><input data-ui="settings.result-notices" type="checkbox" bind:checked={resultNotices} />{tr('ui.settings.resultNotices')}</label>
-    <p class="muted small">{tr('ui.settings.resultNoticesHint')}</p>
     <div><Button variant="primary" ui="settings.notices.save" onclick={saveNotices}>{tr('ui.save')}</Button></div>
   </Card>
 
   <Card ui="settings.menu-refresh">
-    <h2>{tr('ui.settings.menuRefresh')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.menuRefresh')}</h2>
+      <HelpTip ui="settings.help.menu-refresh" label={tr('ui.settings.menuRefresh')} text={tr('ui.settings.tip.menuRefresh', { normal: SETTINGS_DEFAULTS.menu_refresh_seconds, busy: SETTINGS_DEFAULTS.menu_refresh_busy_seconds })} />
+    </div>
     <Field label={tr('ui.settings.menuRefreshNormal')} for="set-menu-normal" error={menuNormalError}>
       <input data-ui="settings.menu-refresh.normal" id="set-menu-normal" class="input" type="number" min="0" max="3600" step="1" inputmode="numeric" bind:value={menuNormal} oninput={() => { menuNormalError = ''; menuBusyError = ''; }} />
     </Field>
     <Field label={tr('ui.settings.menuRefreshBusy')} for="set-menu-busy" error={menuBusyError}>
       <input data-ui="settings.menu-refresh.busy" id="set-menu-busy" class="input" type="number" min="0" max="3600" step="1" inputmode="numeric" bind:value={menuBusy} oninput={() => { menuNormalError = ''; menuBusyError = ''; }} />
     </Field>
-    <p class="muted small">{tr('ui.settings.menuRefreshHint')}</p>
     <div><Button variant="primary" ui="settings.menu-refresh.save" onclick={saveMenuRefresh}>{tr('ui.save')}</Button></div>
   </Card>
 
+  <Card ui="settings.setup">
+    <div class="head">
+      <h2>{tr('ui.settings.setup')}</h2>
+      <HelpTip ui="settings.help.setup" label={tr('ui.settings.setup')} text={tr('ui.settings.tip.setup')} />
+      {#if app.setupNeeded}
+        <span class="needed" data-ui="settings.setup.needed" role="img" aria-label={tr('ui.settings.setupNeeded')} title={[tr('ui.settings.setupNeeded'), ...app.setupReasons].join('\n')}>!</span>
+      {/if}
+    </div>
+    {#if app.setupNeeded && app.setupReasons.length > 0}
+      <ul class="reasons small" data-ui="settings.setup.reasons">
+        {#each app.setupReasons as reason (reason)}<li>{reason}</li>{/each}
+      </ul>
+    {/if}
+    <div><Button ui="settings.setup.run" onclick={runSetup}>{tr('ui.settings.setupRun')}</Button></div>
+  </Card>
+  </div>
+  <Dialog open={setupResult !== undefined} title={tr('ui.settings.setupResultTitle')} ui="settings.setup-result" onclose={() => (setupResult = undefined)}>
+    {#if setupResult}
+      <p class={setupResult.ok ? 'ok' : 'warn'} data-ui="settings.setup-result.verdict">{tr(setupResult.ok ? 'ui.settings.setupOk' : 'ui.settings.setupFailed')}</p>
+      <pre class="setup-log" data-ui="settings.setup-result.log">{setupResult.lines.join('\n')}</pre>
+    {/if}
+    {#snippet footer()}
+      <Button variant="primary" ui="settings.setup-result.done" onclick={() => (setupResult = undefined)}>{tr('ui.settings.setupClose')}</Button>
+    {/snippet}
+  </Dialog>
+
+
   {:else if tab === 'documents'}
   <Card ui="settings.documents">
-    <h2>{tr('ui.settings.documents')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.documents')}</h2>
+      <HelpTip ui="settings.help.documents" label={tr('ui.settings.documents')} text={tr('ui.settings.tip.documents')} />
+    </div>
     <fieldset class="checks">
       <legend>{tr('ui.settings.documentSet')}</legend>
       {#each DOCUMENT_TYPES as type (type)}
@@ -275,23 +330,37 @@
 
   {:else if tab === 'experience'}
   <Card ui="settings.experience">
-    <h2>{tr('ui.settings.experience')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.experience')}</h2>
+      <HelpTip ui="settings.help.experience" label={tr('ui.settings.experience')} text={tr('ui.settings.tip.experience', { max: EXPERIENCE_MAX })} />
+    </div>
     <p class="muted small">{tr('ui.settings.experienceHint')}</p>
     <Field label={tr('ui.settings.experience')} for="set-experience">
-      <textarea data-ui="settings.experience.text" id="set-experience" class="input" rows="14" maxlength="40000" bind:value={experience}></textarea>
+      <textarea data-ui="settings.experience.text" id="set-experience" class="input" rows="14" maxlength={EXPERIENCE_MAX} bind:value={experience}></textarea>
     </Field>
     <div><Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button></div>
   </Card>
   {:else if tab === 'prompts'}
   <Card ui="settings.prompts">
-    <h2>{tr('ui.settings.prompts')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.prompts')}</h2>
+      <HelpTip ui="settings.help.prompts" label={tr('ui.settings.prompts')} text={tr('ui.settings.tip.prompts', { max: PROMPT_MAX })} />
+    </div>
     <p class="muted small">{tr('ui.settings.promptsHint')}</p>
-    {#each PROMPT_TYPES as type (type)}
-      <Field label={promptLabel(type)} for="set-prompt-{type}">
-        <textarea data-ui="settings.prompt.{type}" id="set-prompt-{type}" class="input" rows="9" maxlength="10000" bind:value={prompts[type]}></textarea>
-      </Field>
-      <p class="muted small">{tr('ui.settings.promptPlaceholders')} {#each PROMPT_PLACEHOLDERS[type] as name (name)}<code>{'{{' + name + '}}'}</code>{' '}{/each}</p>
-    {/each}
+    <Tabs
+      items={PROMPT_TAB_ORDER.map((type) => ({ id: `prompts.${type}`, label: tr(`ui.settings.promptTab.${type}`) }))}
+      bind:active={promptTab}
+      label={tr('ui.settings.promptTabs')}
+      ui="settings.prompts.tabs"
+    />
+    <div class="stack" role="tabpanel" data-ui="settings.prompts.panel" id="panel-{promptTab}" aria-labelledby="tab-{promptTab}">
+      {#each PROMPT_TYPES.filter((type) => `prompts.${type}` === promptTab) as type (type)}
+        <Field label={promptLabel(type)} for="set-prompt-{type}">
+          <textarea data-ui="settings.prompt.{type}" id="set-prompt-{type}" class="input" rows="14" maxlength={PROMPT_MAX} bind:value={prompts[type]}></textarea>
+        </Field>
+        <p class="muted small">{tr('ui.settings.promptPlaceholders')} {#each PROMPT_PLACEHOLDERS[type] as name (name)}<code>{'{{' + name + '}}'}</code>{' '}{/each}</p>
+      {/each}
+    </div>
     <div class="actions">
       <Button variant="primary" ui="settings.prompts.save" onclick={savePrompts}>{tr('ui.save')}</Button>
       <Button variant="ghost" ui="settings.prompts.reset" onclick={resetPrompts}>{tr('ui.settings.promptsReset')}</Button>
@@ -299,7 +368,10 @@
   </Card>
   {:else if tab === 'availability'}
   <Card ui="settings.availability">
-    <h2>{tr('ui.settings.availability')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.availability')}</h2>
+      <HelpTip ui="settings.help.availability" label={tr('ui.settings.availability')} text={tr('ui.settings.tip.availability', { zone: app.timeZone })} />
+    </div>
     <p class="muted small">{tr('ui.settings.availabilityHint')}</p>
     <label class="check"><input data-ui="settings.check-enabled" type="checkbox" bind:checked={checkEnabled} />{tr('ui.settings.availabilityEnabled')}</label>
     <Field label={tr('ui.settings.availabilityHours')} for="set-check-hours">
@@ -320,7 +392,10 @@
   </Card>
   {:else if tab === 'profile'}
   <Card ui="settings.profile">
-    <h2>{tr('ui.settings.profile')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.profile')}</h2>
+      <HelpTip ui="settings.help.profile-links" label={tr('ui.settings.profile')} text={tr('ui.settings.tip.profileLinks')} />
+    </div>
     <p class="muted small">{tr('ui.settings.profileHint')}</p>
     {#if profile.status === 'error'}
       <ErrorBlock error={profile.error} onretry={invalidate} />
@@ -338,7 +413,10 @@
 
   {:else if tab === 'templates'}
   <Card ui="settings.templates">
-    <h2>{tr('ui.settings.templates')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.templates')}</h2>
+      <HelpTip ui="settings.help.templates" label={tr('ui.settings.templates')} text={tr('ui.settings.tip.templates')} />
+    </div>
     <p class="muted small">{tr('ui.settings.templatesHint')} {#each PLACEHOLDERS as placeholder (placeholder)}<code>{placeholder}</code>{' '}{/each}</p>
     {#if templates.status === 'error'}
       <ErrorBlock error={templates.error} onretry={invalidate} />
@@ -376,26 +454,59 @@
     <div><Button variant="primary" ui="settings.templates.add" onclick={addTemplate}>{tr('ui.template.add')}</Button></div>
   </Card>
 
-  {:else if tab === 'statuslabels'}
-  <Card ui="settings.status-labels">
-    <h2>{tr('ui.settings.statusLabels')}</h2>
-    <p class="muted small">{tr('ui.settings.statusLabelsHint')}</p>
-    <StatusStylesEditor />
-  </Card>
-
-  {:else if tab === 'transitions'}
-  <Card ui="settings.transitions">
-    <h2>{tr('ui.settings.transitions')}</h2>
-    <p class="muted small">{tr('ui.settings.transitionsHint')}</p>
-    <TransitionsEditor />
-  </Card>
-
-  {:else if tab === 'jobstatuses'}
+  {:else if tab === 'statuses'}
+  <Tabs
+    items={[
+      { id: 'statuses.jobs', label: tr('ui.settings.tab.statusesJobs') },
+      { id: 'statuses.applications', label: tr('ui.settings.tab.statusesApplications') },
+    ]}
+    bind:active={statusesTab}
+    label={tr('ui.settings.statusesTabs')}
+    ui="settings.statuses.tabs"
+  />
+  <div class="stack-lg" role="tabpanel" data-ui="settings.statuses.panel" id="panel-{statusesTab}" aria-labelledby="tab-{statusesTab}">
+  {#if statusesTab === 'statuses.jobs'}
   <Card ui="settings.job-statuses">
-    <h2>{tr('ui.settings.jobStatuses')}</h2>
+    <div class="head">
+      <h2>{tr('ui.settings.jobStatuses')}</h2>
+      <HelpTip ui="settings.help.job-statuses" label={tr('ui.settings.jobStatuses')} text={tr('ui.settings.tip.jobStatuses')} />
+    </div>
     <p class="muted small">{tr('ui.settings.jobStatusesHint')}</p>
     <JobStatusStylesEditor />
   </Card>
+  {:else}
+  <Tabs
+    items={[
+      { id: 'statuses.applications.labels', label: tr('ui.settings.tab.statusesLabels') },
+      { id: 'statuses.applications.transitions', label: tr('ui.settings.tab.statusesTransitions') },
+    ]}
+    bind:active={applicationStatusesTab}
+    label={tr('ui.settings.applicationStatusesTabs')}
+    ui="settings.statuses.applications.tabs"
+  />
+  <div class="stack-lg" role="tabpanel" data-ui="settings.statuses.applications.panel" id="panel-{applicationStatusesTab}" aria-labelledby="tab-{applicationStatusesTab}">
+  {#if applicationStatusesTab === 'statuses.applications.labels'}
+  <Card ui="settings.status-labels">
+    <div class="head">
+      <h2>{tr('ui.settings.statusLabels')}</h2>
+      <HelpTip ui="settings.help.status-labels" label={tr('ui.settings.statusLabels')} text={tr('ui.settings.tip.statusLabels', { max: STATUS_TEXT_MAX })} />
+    </div>
+    <p class="muted small">{tr('ui.settings.statusLabelsHint')}</p>
+    <StatusStylesEditor />
+  </Card>
+  {:else}
+  <Card ui="settings.transitions">
+    <div class="head">
+      <h2>{tr('ui.settings.transitions')}</h2>
+      <HelpTip ui="settings.help.transitions" label={tr('ui.settings.transitions')} text={tr('ui.settings.tip.transitions')} />
+    </div>
+    <p class="muted small">{tr('ui.settings.transitionsHint')}</p>
+    <TransitionsEditor />
+  </Card>
+  {/if}
+  </div>
+  {/if}
+  </div>
 
   {:else}
   <Card ui="settings.about">
@@ -412,10 +523,21 @@
 </div>
 
 <style>
+  /* Columns, not a grid: the cards stack under each other without gaps from rows of different heights. */
+  .general-grid { columns: 260px; column-gap: var(--space-2); }
+  .general-grid :global(.card) { gap: var(--space-2); padding: var(--space-3); margin-bottom: var(--space-2); break-inside: avoid; }
+  .general-grid :global(h2) { font-size: var(--text-m); margin: 0; }
+  .reasons { margin: 0; padding-left: var(--space-4); color: var(--danger); }
+  .head { display: flex; align-items: center; gap: var(--space-2); }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
   .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .checks { display: flex; flex-direction: column; gap: var(--space-1); padding: 0; margin: 0; border: 0; }
   legend { padding: 0; margin-bottom: var(--space-2); font-weight: 600; font-size: var(--text-s); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
+  .needed { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; color: #fff; background: var(--danger); border-radius: 50%; font-size: var(--text-s); font-weight: 800; cursor: help; }
+  .ok, .warn { margin: 0; padding: var(--space-2) var(--space-3); border-radius: var(--radius-s); font-weight: 600; }
+  .ok { color: var(--success); background: var(--success-soft); }
+  .warn { color: var(--danger); background: var(--danger-soft); }
+  .setup-log { margin: 0; padding: var(--space-2) var(--space-3); max-height: 260px; overflow: auto; font-size: var(--text-s); white-space: pre-wrap; overflow-wrap: anywhere; background: var(--surface-2); border-radius: var(--radius-s); }
   code { padding: 1px var(--space-1); background: var(--surface-2); border-radius: var(--radius-s); }
 </style>

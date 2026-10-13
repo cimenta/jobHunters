@@ -15,6 +15,10 @@ describe('buildPlaceholders', () => {
       email: 'eva@example.com',
       phone: '',
       address: 'Praha',
+      portfolio: '',
+      linkedin: '',
+      github: '',
+      website: '',
       links: 'example.com/eva',
       company: 'Example s.r.o.',
       position: 'Android Developer',
@@ -32,5 +36,24 @@ describe('buildPlaceholders', () => {
     expect(values.company).toBe('');
     for (const key of PROFILE_KEYS) expect(values[key]).toBe('');
     expect(Object.keys(values)).not.toContain('secret_note');
+  });
+
+  it('gives each link alone and lists every filled link in {{links}} in a fixed order without blank lines', () => {
+    const values = buildPlaceholders({
+      profile: { portfolio: 'example.com/p', linkedin: '', github: 'github.com/eva', website: 'eva.example.com', links: 'other.example.com' },
+      company: undefined,
+      job: makeJob(),
+      today: '2026-10-11',
+    });
+    expect(values.portfolio).toBe('example.com/p');
+    expect(values.linkedin).toBe('');
+    expect(values.github).toBe('github.com/eva');
+    expect(values.website).toBe('eva.example.com');
+    expect(values.links).toBe('example.com/p\ngithub.com/eva\neva.example.com\nother.example.com');
+  });
+
+  it('keeps {{links}} exactly as before for a profile that only has the other-links row', () => {
+    const values = buildPlaceholders({ profile: { links: 'example.com/a\nexample.com/b' }, company: undefined, job: makeJob(), today: '2026-10-11' });
+    expect(values.links).toBe('example.com/a\nexample.com/b');
   });
 });

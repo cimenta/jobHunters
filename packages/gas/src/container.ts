@@ -42,6 +42,7 @@ import {
   type Template,
 } from '@jobhunters/core';
 
+import type { SetupResult, SetupStatus } from './setup-report';
 export const LOG_MAX_ROWS = 1000;
 /** Time one scheduled availability run may take; Apps Script stops a run after 6 minutes. */
 export const AVAILABILITY_BUDGET_MS = 5 * 60 * 1000;
@@ -62,6 +63,10 @@ export interface ContainerDeps {
   clock?: () => number;
   /** Where the scheduler remembers when each task last ran. */
   schedulerState?: KeyValueStore;
+  /** Runs setup() and returns its log lines and verdict (the Settings button). Absent where setup cannot run. */
+  runSetup?: () => SetupResult;
+  /** Read-only check of whether setup() still has something to create. Absent where it cannot be asked. */
+  setupStatus?: () => SetupStatus;
 }
 
 export type Container = ReturnType<typeof buildContainer>;
@@ -168,6 +173,8 @@ export function buildContainer(deps: ContainerDeps) {
 
   return {
     appVersion: deps.appVersion,
+    runSetup: deps.runSetup,
+    setupStatus: deps.setupStatus,
     timeZone: deps.timeZone ?? (() => 'UTC'),
     now: deps.now,
     history,
