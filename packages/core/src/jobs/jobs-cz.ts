@@ -1,6 +1,6 @@
 import { GIG_TEXT } from './generic';
 import { elementsInnerHtml, foldDiacritics, htmlToText } from './html';
-import { emptyParsedJob, finishParsedJob, type JobParser } from './parsed-job';
+import { emptyParsedJob, finishParsedJob, type JobParser, type ParsedJob } from './parsed-job';
 import { parseSalaryText } from './salary';
 import { hostIs } from './url';
 
@@ -11,7 +11,20 @@ function employmentCode(folded: string): string {
   return '';
 }
 
-/** Modelled on the data-test attributes seen on Jobs.cz ad pages (2026-10-11); the page has no JSON-LD. */
+function applySalary(job: ParsedJob, text: string): void {
+  const salary = parseSalaryText(text);
+  if (!salary) return;
+  job.salary_min = salary.min;
+  job.salary_max = salary.max;
+  job.salary_currency = salary.currency;
+  job.salary_period = salary.period;
+}
+
+/**
+ * Modelled on the data-test attributes seen on Jobs.cz ad pages (2026-10-11, the salary block and the second place of
+ * work checked 2026-10-13); the page has no JSON-LD. The places of work are shown twice (above and below the facts), and
+ * the salary is a block of its own (data-test="jd-salary") besides the older "Mzda" item among the position facts.
+ */
 export const JOBS_CZ_PARSER: JobParser = {
   id: 'jobs-cz',
   matches: (url) => hostIs(url, 'jobs.cz'),
@@ -19,8 +32,10 @@ export const JOBS_CZ_PARSER: JobParser = {
     const job = emptyParsedJob();
     const heading = elementsInnerHtml(html, /^<h1\b/i)[0];
     job.title = heading === undefined ? '' : htmlToText(heading);
-    const location = elementsInnerHtml(html, /data-test="jd-info-location"/)[0];
-    job.location = location === undefined ? '' : htmlToText(location);
+    const places = elementsInnerHtml(html, /data-test="jd-info-location"/).map((place) => htmlToText(place)).filter((place) => place !== '');
+    job.location = [...new Set(places)].join(', ');
+    const salaryBlock = elementsInnerHtml(html, /data-test="jd-salary"/)[0];
+    if (salaryBlock !== undefined) applySalary(job, htmlToText(elementsInnerHtml(salaryBlock, /^<p/i)[0] ?? salaryBlock));
 
     let contract = '';
     for (const item of elementsInnerHtml(html, /data-test="jd-info-item"/)) {
@@ -29,15 +44,7 @@ export const JOBS_CZ_PARSER: JobParser = {
       if (label === 'spolecnost') job.company = value;
       else if (label.startsWith('typ pracovniho pomeru')) job.employment_type = employmentCode(foldDiacritics(value).toLowerCase());
       else if (label.startsWith('typ smluvniho vztahu')) contract = value;
-      else if (label.startsWith('mzda') || label.startsWith('plat')) {
-        const salary = parseSalaryText(value);
-        if (salary) {
-          job.salary_min = salary.min;
-          job.salary_max = salary.max;
-          job.salary_currency = salary.currency;
-          job.salary_period = salary.period;
-        }
-      }
+      else if ((label.startsWith('mzda') || label.startsWith('plat')) && job.salary_currency === '') applySalary(job, value);
     }
     job.is_gig = GIG_TEXT.test(`${job.employment_type} ${contract}`) || GIG_TEXT.test(foldDiacritics(contract));
 

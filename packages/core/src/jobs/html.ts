@@ -1,7 +1,7 @@
 import { hasOwn } from '../util';
 
 const NAMED_ENTITIES: Record<string, string> = {
-  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', hellip: '…', euro: '€',
+  amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', ndash: '–', mdash: '—', hellip: '…', euro: '€', zwj: '‍', zwnj: '‌',
 };
 
 export function decodeEntities(text: string): string {
