@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.15.5] - 2026-10-13
+
+- When adding several links ends, a block says so: green "Done: all 5 ads are saved", or orange with the exact numbers ("Done: 3 saved, 1 sent to the AI, 1 failed") when something was not saved, or "Stopped: 2 of 5 links processed." when you stopped it. It replaces the small summary line below the results, the page scrolls to it, and it has the buttons Close (closes the whole Add a job window), AI tasks (when ads were sent to the AI) and Add more (empties the links).
+
+## [0.15.4] - 2026-10-13
+
+- Adding several links shows that the app is working: from the moment you press "Add all" a block shows a turning wheel and the pulsing text "Processing ad 2 of 5…", a progress bar and the link being read; the button turns into "Adding…" and is disabled, a line under the results says it is waiting for the page, and everything disappears when the batch ends or is stopped. The wheel and the pulsing stop when the system asks for fewer animations.
+- On a job card the checkbox that asks the AI to evaluate the match has a visible label ("Evaluate match") like the other one, and its hover text explains why it is disabled when your experience is not described yet.
+
 ## [0.15.3] - 2026-10-13
 
 - Jobs.cz parser: an ad with several places of work now keeps all of them (for example "Brno, Olomouc"; the page shows each place twice, it is listed once), and the salary is read from the salary block that Jobs.cz now shows above the facts (for example 100 000 – 140 000 Kč per month), besides the older "Mzda" item. Refresh an ad that was saved before to get both.

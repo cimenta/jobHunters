@@ -217,9 +217,9 @@
                     {#if waiting}
                       <span class="pending" role="img" aria-label={tr('ui.match.pending')} title={tr('ui.match.pending')}><Icon name="clock" size={18} /></span>
                     {/if}
-                    <label class="check-box" title={tr('ui.match.request')} data-ui="job.{job.id}.match">
-                      <input data-ui="job.{job.id}.ai-match" type="checkbox" checked={active} disabled={running || busy.includes(job.id) || (!hasExperience && !active)} onchange={(event) => toggleMatch(job, event.currentTarget)} />
-                      <span class="sr-only">{tr('ui.match.request')}</span>
+                    <label class="check-box prepare" title={!hasExperience && !active ? tr('ui.jobs.card.matchNoExperience') : tr('ui.match.request')} data-ui="job.{job.id}.match">
+                      <input data-ui="job.{job.id}.ai-match" type="checkbox" aria-label={tr('ui.match.request')} checked={active} disabled={running || busy.includes(job.id) || (!hasExperience && !active)} onchange={(event) => toggleMatch(job, event.currentTarget)} />
+                      <span class="prepare-text">{tr('ui.match.requestShort')}</span>
                     </label>
                   </div>
                 {/if}

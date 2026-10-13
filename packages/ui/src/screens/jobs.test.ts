@@ -697,6 +697,25 @@ describe('JobsList card', () => {
     spy.mockRestore();
   });
 
+  it('labels the match checkbox with a visible text and a hover text', async () => {
+    const { plain } = await setup();
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const label = within(actionsOf(plain.id)).getByLabelText(MATCH).closest('label')!;
+    expect(label).toHaveTextContent('Evaluate match');
+    expect(label).toHaveAttribute('title', MATCH);
+  });
+
+  it('says on hover why the match checkbox is disabled when no experience is described', async () => {
+    const { plain } = await setup('');
+    render(JobsList);
+    await screen.findByText(plain.title);
+    const box = within(actionsOf(plain.id)).getByLabelText(MATCH);
+    expect(box).toBeDisabled();
+    expect(box.closest('label')).toHaveTextContent('Evaluate match');
+    expect(box.closest('label')).toHaveAttribute('title', 'Describe your experience in Settings to evaluate your match');
+  });
+
   it('shows the no-experience hint once in the list', async () => {
     await setup('');
     render(JobsList);

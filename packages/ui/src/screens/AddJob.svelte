@@ -109,7 +109,7 @@
 <div class="stack" data-ui="add-job">
   <Tabs items={[{ id: 'one', label: tr('ui.addJob.tab.one') }, { id: 'many', label: tr('ui.addJob.tab.many') }]} bind:active={mode} label={tr('ui.addJob.tabs')} />
 
-  <div id="panel-many" role="tabpanel" aria-labelledby="tab-many" hidden={mode !== 'many'}><BatchAdd /></div>
+  <div id="panel-many" role="tabpanel" aria-labelledby="tab-many" hidden={mode !== 'many'}><BatchAdd onclose={() => navigate(paths.jobs)} /></div>
   <div id="panel-one" class="stack" role="tabpanel" aria-labelledby="tab-one" hidden={mode !== 'one'}>
     <Card ui="add-job.form">
       <form
