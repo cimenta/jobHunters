@@ -3,7 +3,7 @@
   import { api } from '../api';
   import type { Application } from '../api/types';
   import Button from '../components/Button.svelte';
-  import Field from '../components/Field.svelte';
+  import Icon from '../components/Icon.svelte';
   import { formatDate, todayLocal } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
   import { statusStyle } from '../lib/status';
@@ -43,26 +43,30 @@
 </script>
 
 {#if options.length === 0}
-  <p class="muted">{tr('ui.app.noTransitions')}</p>
+  <p class="muted small" data-ui="status-control.none">{tr('ui.app.noTransitions')}</p>
 {:else}
   <div class="control" data-ui="status-control">
-    <Field label={tr('ui.app.newStatus')} for="status-target">
-      <select id="status-target" data-ui="status-control.target" class="input" bind:value={target}>
-        <option value=""></option>
-        {#each options as option (option)}
-          <option value={option}>{statusStyle(option).text}</option>
-        {/each}
-      </select>
-    </Field>
-    {#if needsDate}
-      <Field label={tr('ui.app.remindOn')} for="status-remind">
-        <input data-ui="status-control.remind-date" id="status-remind" class="input" type="date" min={today} bind:value={remindAt} />
-      </Field>
+    <select id="status-target" data-ui="status-control.target" class="input" aria-label={tr('ui.app.newStatus')} title={tr('ui.app.newStatus')} bind:value={target}>
+      <option value="">{tr('ui.app.newStatusPlaceholder')}</option>
+      {#each options as option (option)}
+        <option value={option}>{statusStyle(option).text}</option>
+      {/each}
+    </select>
+    {#if target !== ''}
+      {#if needsDate}
+        <input data-ui="status-control.remind-date" id="status-remind" class="input" type="date" min={today} aria-label={tr('ui.app.remindOn')} title={tr('ui.app.remindOn')} bind:value={remindAt} />
+      {/if}
+      <div class="buttons">
+        <Button variant="primary" label={tr('ui.app.changeStatus')} ui="status-control.change" disabled={!ready} onclick={change}><Icon name="check" size={18} /></Button>
+        <Button label={tr('ui.cancel')} ui="status-control.cancel" onclick={() => { target = ''; remindAt = ''; }}><Icon name="close" size={18} /></Button>
+      </div>
     {/if}
-    <Button variant="primary" ui="status-control.change" disabled={!ready} onclick={change}>{tr('ui.app.changeStatus')}</Button>
   </div>
 {/if}
 
 <style>
-  .control { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--space-3); align-items: end; }
+  .control { display: flex; flex-direction: column; gap: var(--space-2); }
+  .control select, .control input { width: var(--icons-w, 96px); max-width: 100%; }
+  .buttons { display: grid; grid-template-columns: repeat(2, var(--tap)); gap: var(--space-2); }
+  .buttons :global(.btn) { min-width: var(--tap); width: var(--tap); padding: 0; }
 </style>

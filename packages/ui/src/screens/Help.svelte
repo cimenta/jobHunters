@@ -75,6 +75,7 @@
       <li>{tr('ui.help.jobs.i19')}</li>
       <li>{tr('ui.help.jobs.i20')}</li>
       <li>{tr('ui.help.jobs.i21')}</li>
+      <li>{tr('ui.help.jobs.i22')}</li>
     </ul>
     <p><a data-ui="help.open.jobs" href={paths.jobs}>{tr('ui.help.open', { name: tr('ui.help.jobs.title') })}</a></p>
   </Card>
@@ -91,6 +92,7 @@
       <li>{tr('ui.help.applications.i6')}</li>
       <li>{tr('ui.help.applications.i7')}</li>
       <li>{tr('ui.help.applications.i8')}</li>
+      <li>{tr('ui.help.applications.i9')}</li>
     </ul>
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>
   </Card>

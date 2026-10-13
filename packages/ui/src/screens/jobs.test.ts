@@ -95,6 +95,79 @@ describe('AddJob', () => {
     spy.mockRestore();
   });
 
+  async function reviewForm(experience: string): Promise<void> {
+    useDevBackend({ seed: false });
+    await api.updateSettings({ candidate_experience: experience });
+    await loadApp();
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByDisplayValue('Demo Engineer');
+  }
+  const matchBox = () => document.querySelector('[data-ui="add-job.ai-match"]') as HTMLInputElement;
+  const documentsBox = () => document.querySelector('[data-ui="add-job.ai-documents"]') as HTMLInputElement;
+
+  it('has two unticked AI checkboxes above Save job; only one can be ticked at a time, or none', async () => {
+    await reviewForm('Ten years of Kotlin');
+    expect(matchBox()).toBeEnabled();
+    expect(documentsBox()).toBeEnabled();
+    expect(matchBox().checked).toBe(false);
+    expect(documentsBox().checked).toBe(false);
+    await fireEvent.click(matchBox());
+    expect(matchBox().checked).toBe(true);
+    expect(documentsBox().checked).toBe(false);
+    await fireEvent.click(documentsBox());
+    expect(documentsBox().checked).toBe(true);
+    await waitFor(() => expect(matchBox().checked).toBe(false));
+    await fireEvent.click(documentsBox());
+    expect(documentsBox().checked).toBe(false);
+    expect(matchBox().checked).toBe(false);
+    const save = document.querySelector('[data-ui="add-job.save"]') as HTMLElement;
+    expect(matchBox().compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('saves the job without any AI work when no checkbox is ticked', async () => {
+    await reviewForm('Ten years of Kotlin');
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    expect(await api.listAiTasks()).toHaveLength(0);
+    expect((await api.listApplications())).toHaveLength(0);
+  });
+
+  it('"Perform job match" queues one match task as soon as the job is saved', async () => {
+    await reviewForm('Ten years of Kotlin');
+    await fireEvent.click(matchBox());
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const tasks = await api.listAiTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ type: 'match_job', status: 'pending' });
+    expect(await api.listApplications()).toHaveLength(0);
+    expect(toasts.map((x) => x.text).some((text) => /1 AI task queued for .*\(job match\)/.test(text))).toBe(true);
+  });
+
+  it('"Create resume and cover letter" creates the application and queues the document tasks', async () => {
+    await reviewForm('Ten years of Kotlin');
+    await fireEvent.click(documentsBox());
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    expect(await api.listApplications()).toHaveLength(1);
+    const types = (await api.listAiTasks()).map((task) => task.type).sort();
+    expect(types).toEqual(['cover_letter', 'resume_tailor']);
+    expect(toasts.map((x) => x.text).some((text) => /Application created and 2 AI tasks queued/.test(text))).toBe(true);
+  });
+
+  it('disables both AI checkboxes without a described experience and says why', async () => {
+    await reviewForm('');
+    expect(matchBox()).toBeDisabled();
+    expect(documentsBox()).toBeDisabled();
+    expect(document.querySelector('[data-ui="add-job.ai-match.hint"]')).toHaveTextContent('Describe your experience first');
+    expect(document.querySelector('[data-ui="add-job.ai-documents.settings"]')).toHaveAttribute('href', '#/settings');
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    expect(await api.listAiTasks()).toHaveLength(0);
+  });
+
   async function failedDownload(experience: string): Promise<void> {
     useDevBackend({ seed: false });
     await api.updateSettings({ candidate_experience: experience });

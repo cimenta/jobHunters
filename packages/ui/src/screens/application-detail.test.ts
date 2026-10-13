@@ -67,7 +67,7 @@ describe('ApplicationDetail', () => {
     render(ApplicationDetail, { id });
     const text = await screen.findByText(/build and run services/);
     expect(text).toHaveStyle({ 'white-space': 'pre-wrap' });
-    expect(screen.getByRole('link', { name: /Open the ad/ })).toHaveAttribute('href', 'https://example.com/jobs/android');
+    expect(document.querySelector('[data-ui="ad.link"]')).toHaveAttribute('href', 'https://example.com/jobs/android');
     expect(screen.queryByText('The text of the ad was not saved.')).toBeNull();
   });
 
@@ -78,7 +78,7 @@ describe('ApplicationDetail', () => {
     backend.container.jobs.update(jobId, { description: '' });
     render(ApplicationDetail, { id });
     expect(await screen.findByText('The text of the ad was not saved.')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Open the ad/ })).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="ad.link"]')).not.toBeNull();
   });
 
   it('changes the status and requires a date for "waiting"', async () => {
@@ -157,5 +157,69 @@ describe('ApplicationsScreen', () => {
     render(ApplicationsScreen);
     const dialog = await screen.findByRole('dialog', { name: 'Application' });
     expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+  });
+});
+
+describe('ApplicationDetail summary', () => {
+  const ui = (id: string) => document.querySelector(`[data-ui="${id}"]`) as HTMLElement | null;
+
+  it('shows the facts of the job, the match in percent and the status badge on the left', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    backend.container.jobs.update(jobId, { match_percent: 82 });
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const info = await waitFor(() => {
+      const found = ui('application-detail.info');
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(info).toHaveTextContent('60,000 – 80,000 CZK / month');
+    expect(info).toHaveTextContent('Hybrid');
+    expect(info).toHaveTextContent('Praha');
+    expect(info).toHaveTextContent('Full-time');
+    expect(ui('application-detail.header')).toHaveTextContent('Match 82 %');
+    expect(ui('application-detail.header')).toHaveTextContent('Sent');
+  });
+
+  it('has the status control and four icon buttons with a hover name in the right column', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await screen.findByLabelText('New status');
+    const actions = ui('application-detail.actions')!;
+    expect(['job-link', 'company-link', 'ad-link', 'folder-link'].map((name) => actions.querySelector(`[data-ui="application-detail.${name}"]`) !== null)).toEqual([true, true, true, true]);
+    expect(actions.querySelector('[data-ui="application-detail.ad-link"]')).toHaveAttribute('href', 'https://example.com/jobs/android');
+    expect(actions.querySelector('[data-ui="application-detail.ad-link"]')).toHaveAttribute('title', 'Open the ad on its website');
+    expect(actions.querySelector('[data-ui="application-detail.job-link"]')).toHaveAttribute('title', 'Open the job');
+    expect(actions.textContent?.trim()).toBe('');
+    const target = ui('status-control.target')!;
+    expect(target.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('confirms a new status with a check mark that appears only after choosing one, and can cancel', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    const select = await screen.findByLabelText('New status');
+    expect(ui('status-control.change')).toBeNull();
+    await fireEvent.change(select, { target: { value: 'interview' } });
+    expect(ui('status-control.change')).toBeEnabled();
+    await fireEvent.click(ui('status-control.cancel')!);
+    expect(ui('status-control.change')).toBeNull();
+    await fireEvent.change(select, { target: { value: 'interview' } });
+    await fireEvent.click(ui('status-control.change')!);
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('interview'));
+  });
+
+  it('leaves the delete button on the Timeline tab, not among the icons', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await screen.findByLabelText('New status');
+    expect(ui('application-detail.actions')!.querySelector('[data-ui*="delete"]')).toBeNull();
+    await fireEvent.click(screen.getByRole('tab', { name: /Timeline/ }));
+    expect(await screen.findByRole('button', { name: /Delete/ })).toBeInTheDocument();
   });
 });

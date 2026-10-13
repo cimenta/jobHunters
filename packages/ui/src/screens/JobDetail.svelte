@@ -10,7 +10,8 @@
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import ConfirmDialog from '../components/ConfirmDialog.svelte';
-  import { formatAiSalary, formatDate, formatEmploymentType, formatSalary, formatWorkMode, safeHttpUrl, shorten } from '../lib/format';
+  import { formatDate, safeHttpUrl, shorten } from '../lib/format';
+  import { jobFacts } from '../lib/job-facts';
   import { tr } from '../lib/i18n.svelte';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
   import { reportAvailability, reportRefresh } from '../lib/job-notices';
@@ -74,17 +75,7 @@
   }
 
   /** The labelled facts of the ad; only the filled ones are listed. */
-  const facts = $derived.by(() => {
-    const job = detail.data?.job;
-    if (!job) return [];
-    return [
-      { key: 'salary', label: tr('ui.job.info.salary'), value: formatSalary(job) },
-      { key: 'work-mode', label: tr('ui.job.info.workMode'), value: formatWorkMode(job.remote) },
-      { key: 'location', label: tr('ui.job.info.location'), value: job.location },
-      { key: 'type', label: tr('ui.job.info.type'), value: formatEmploymentType(job.employment_type) },
-      { key: 'ai-salary', label: tr('ui.job.info.aiSalary'), value: formatAiSalary(job.ai_salary, job.salary_currency) },
-    ].filter((fact) => fact.value !== '');
-  });
+  const facts = $derived(detail.data ? jobFacts(detail.data.job) : []);
 </script>
 
 <div class="stack" data-ui="job-detail">

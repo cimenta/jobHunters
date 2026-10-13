@@ -35,7 +35,7 @@ describe('element identifiers', () => {
       ['#/jobs/new', 'add-job.read', ['add-job', 'add-job.url']],
       [`#/jobs/${jobId}`, 'job-detail.create-application', ['job-detail', 'job-detail.summary', 'job-detail.tabs', 'job-detail.panel', 'job-detail.applications', 'tab.applications', 'tab.notes', 'tab.description', 'tab.match']],
       ['#/applications', 'applications.list', ['applications', `application.${applicationId}`]],
-      [`#/applications/${applicationId}`, 'status-control.change', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.ad', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'ad']],
+      [`#/applications/${applicationId}`, 'status-control.target', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.ad', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'ad']],
       ['#/companies', 'companies.list', ['companies', `company.${companyId}`]],
       [`#/companies/${companyId}`, 'company-detail.save', ['company-detail', 'company-detail.jobs', 'company-detail.applications']],
       ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.prompts', 'tab.availability', 'tab.profile', 'tab.templates', 'tab.statuses', 'tab.about']],
@@ -53,7 +53,7 @@ describe('element identifiers', () => {
   it('marks the tab contents and dialogs', async () => {
     await start();
     const applicationId = (await api.listApplications())[0]!.id;
-    await visit(`#/applications/${applicationId}`, 'status-control.change');
+    await visit(`#/applications/${applicationId}`, 'status-control.target');
     for (const [tab, id] of [['questions', 'questions'], ['communications', 'communications'], ['reminders', 'reminders'], ['timeline', 'timeline']] as const) {
       await fireEvent.click(document.querySelector(`[data-ui="tab.${tab}"]`)!);
       await waitFor(() => expect(present()).toContain(id));

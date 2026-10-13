@@ -4,9 +4,11 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import Badge from '../components/Badge.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import Tabs from '../components/Tabs.svelte';
-  import { formatDate } from '../lib/format';
+  import { formatDate, safeHttpUrl } from '../lib/format';
+  import { jobFacts, matchColor } from '../lib/job-facts';
   import { tr } from '../lib/i18n.svelte';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
@@ -45,23 +47,52 @@
     <ErrorBlock error={detail.error} onretry={invalidate} />
   {:else if detail.data}
     {@const application = detail.data.application}
+    {@const job = detail.data.job}
+    {@const adUrl = job ? safeHttpUrl(job.url) : ''}
+    {@const facts = job ? jobFacts(job) : []}
     <Card ui="application-detail.header">
       <div class="page-title">
         <h1>{application.label}</h1>
-        <StatusBadge status={application.status} />
       </div>
-      <div class="row wrap small">
-        {#if detail.data.job}<a data-ui="application-detail.job-link" href={paths.job(detail.data.job.id)}>{tr('ui.app.job')}: {detail.data.job.title}</a>{/if}
-        {#if detail.data.company}<a data-ui="application-detail.company-link" href={paths.company(detail.data.company.id)}>{tr('ui.app.company')}: {detail.data.company.name}</a>{/if}
-        {#if application.folder_url !== ''}
-          <a data-ui="application-detail.folder-link" href={application.folder_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.app.folder')}</a>
-        {/if}
-        {#if application.language === 'en' || application.language === 'cs'}
-          <span class="muted" data-ui="application-detail.language">{tr('ui.app.language', { language: tr(`ui.language.${application.language}`) })}</span>
-        {/if}
-        {#if application.applied_at !== ''}<span class="muted">{tr('ui.app.appliedAt', { date: formatDate(application.applied_at) })}</span>{/if}
+      <div class="summary">
+        <div class="side">
+          <StatusControl {application} />
+          <div class="actions" role="group" aria-label={tr('ui.job.actions')} data-ui="application-detail.actions">
+            {#if job}
+              <a class="btn tool" data-ui="application-detail.job-link" href={paths.job(job.id)} aria-label={tr('ui.app.openJob')} title={tr('ui.app.openJob')}><Icon name="briefcase" size={18} /></a>
+            {/if}
+            {#if detail.data.company}
+              <a class="btn tool" data-ui="application-detail.company-link" href={paths.company(detail.data.company.id)} aria-label={tr('ui.app.openCompany')} title={tr('ui.app.openCompany')}><Icon name="building" size={18} /></a>
+            {/if}
+            {#if adUrl !== ''}
+              <a class="btn tool" data-ui="application-detail.ad-link" href={adUrl} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.app.openAdWeb')} title={tr('ui.app.openAdWeb')}><Icon name="external" size={18} /></a>
+            {/if}
+            {#if application.folder_url !== ''}
+              <a class="btn tool" data-ui="application-detail.folder-link" href={application.folder_url} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.app.folder')} title={tr('ui.app.folder')}><Icon name="folder" size={18} /></a>
+            {/if}
+          </div>
+        </div>
+        <div class="main stack">
+          {#if detail.data.company}<p class="muted">{detail.data.company.name}</p>{/if}
+          <div class="row wrap">
+            <StatusBadge status={application.status} />
+            {#if job && typeof job.match_percent === 'number'}
+              <Badge text={tr('jobStatus.match', { percent: job.match_percent })} color={matchColor(job.match_percent)} textColor="var(--text)" />
+            {/if}
+            {#if application.applied_at !== ''}<span class="muted small">{tr('ui.app.appliedAt', { date: formatDate(application.applied_at) })}</span>{/if}
+            {#if application.language === 'en' || application.language === 'cs'}
+              <span class="muted small" data-ui="application-detail.language">{tr('ui.app.language', { language: tr(`ui.language.${application.language}`) })}</span>
+            {/if}
+          </div>
+          {#if facts.length > 0}
+            <dl class="facts" data-ui="application-detail.info">
+              {#each facts as fact (fact.key)}
+                <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+              {/each}
+            </dl>
+          {/if}
+        </div>
       </div>
-      <StatusControl {application} />
     </Card>
 
     <Card ui="application-detail.tabs">
@@ -84,3 +115,20 @@
     </Card>
   {/if}
 </div>
+
+<style>
+  .summary { display: grid; --icons-w: calc(2 * var(--tap) + var(--space-2)); grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main side'; gap: var(--space-4); align-items: start; }
+  .main { grid-area: main; min-width: 0; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding-left: var(--space-4); border-left: 1px solid var(--border); }
+  .actions { display: grid; grid-template-columns: repeat(2, var(--tap)); gap: var(--space-2); }
+  .tool { display: inline-flex; align-items: center; justify-content: center; width: var(--tap); min-height: var(--tap); color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); text-decoration: none; }
+  .tool:hover { border-color: var(--accent); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
+  .fact { min-width: 0; overflow-wrap: anywhere; }
+  .fact dd { margin: 0; }
+  .fact.wide { grid-column: 1 / -1; }
+  @media (max-width: 600px) {
+    .summary { grid-template-columns: 1fr; grid-template-areas: 'side' 'main'; }
+    .side { padding-left: 0; border-left: 0; }
+  }
+</style>

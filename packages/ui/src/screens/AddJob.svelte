@@ -26,6 +26,8 @@
   let usedText = $state(false);
   /** The ad could not be downloaded: let the AI read it, fill in the job and evaluate the match in one task. */
   let aiJob = $state(false);
+  /** What the AI does as soon as the job is saved: nothing, a match evaluation, or the application with its documents. Only one. */
+  let afterSave = $state<'' | 'match' | 'documents'>('');
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   const hasPastedText = $derived(pasted.trim() !== '');
   let draft = $state<JobDraft>(emptyDraft());
@@ -36,6 +38,7 @@
   async function read(text?: string): Promise<void> {
     loading = true;
     formError = undefined;
+    afterSave = '';
     try {
       const result = await api.previewJob(text === undefined ? { url } : { url, text });
       preview = result;
@@ -81,7 +84,23 @@
     const html = !usedText && preview.html !== '' ? preview.html : undefined;
     const result = await api.saveJob({ url: preview.url, text: usedText ? pasted : undefined, html, overrides });
     invalidate();
-    if (result.status === 'created') toast.success(tr('ui.addJob.saved', { title: result.job.title }));
+    if (result.status === 'created') {
+      const title = result.job.title;
+      toast.success(tr('ui.addJob.saved', { title }));
+      // The job is saved first; a failing AI step must not undo it.
+      try {
+        if (afterSave === 'match') {
+          await api.requestJobMatch(result.job.id);
+          toast.success(tr('ui.addJob.matchQueued', { title }));
+        } else if (afterSave === 'documents') {
+          const prepared = await api.prepareApplication(result.job.id);
+          toast.success(prepared.tasks.length > 0 ? tr('ui.addJob.documentsQueued', { count: prepared.tasks.length }) : tr('ui.addJob.documentsNoTasks'));
+          for (const warning of prepared.warnings) toast.warning(describeWarning(warning));
+        }
+      } catch (error) {
+        notifyError(error);
+      }
+    }
     for (const warning of result.warnings) toast.warning(describeWarning(warning));
     navigate(paths.job(result.job.id));
   }
@@ -186,6 +205,20 @@
         </Field>
         <Field label={tr('ui.job.notes')} for="draft-notes"><textarea data-ui="add-job.notes" id="draft-notes" class="input" rows="3" bind:value={draft.notes}></textarea></Field>
         {#if formError}<p class="error" role="alert">{formError}</p>{/if}
+        <label class="check">
+          <input data-ui="add-job.ai-match" type="checkbox" checked={afterSave === 'match'} disabled={!hasExperience} onchange={(event) => (afterSave = event.currentTarget.checked ? 'match' : '')} />
+          <span>
+            {tr('ui.addJob.afterMatch')}
+            <small class={hasExperience ? 'muted' : 'warn'} data-ui="add-job.ai-match.hint">{hasExperience ? tr('ui.addJob.afterMatchHint') : tr('ui.addJob.aiJobNeedsExperience')}{#if !hasExperience}{' '}<a data-ui="add-job.ai-match.settings" href={paths.settings}>{tr('ui.nav.settings')}</a>{/if}</small>
+          </span>
+        </label>
+        <label class="check">
+          <input data-ui="add-job.ai-documents" type="checkbox" checked={afterSave === 'documents'} disabled={!hasExperience} onchange={(event) => (afterSave = event.currentTarget.checked ? 'documents' : '')} />
+          <span>
+            {tr('ui.addJob.afterDocuments')}
+            <small class={hasExperience ? 'muted' : 'warn'} data-ui="add-job.ai-documents.hint">{hasExperience ? tr('ui.addJob.afterDocumentsHint') : tr('ui.addJob.aiJobNeedsExperience')}{#if !hasExperience}{' '}<a data-ui="add-job.ai-documents.settings" href={paths.settings}>{tr('ui.nav.settings')}</a>{/if}</small>
+          </span>
+        </label>
         <div><Button variant="primary" ui="add-job.save" onclick={save}>{tr('ui.addJob.save')}</Button></div>
       </Card>
     {/if}

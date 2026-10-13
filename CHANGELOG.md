@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.13.6] - 2026-10-13
+
+- The application detail looks like the job detail: under the title the details (company, status, match in percent, salary, work mode, location, type, AI salary) on the left, and a narrow column on the right with the status drop-down above icon buttons (open the job, the company, the ad on its website, the folder in Drive), each with a hover explanation. A new status is confirmed with a check mark (Waiting also asks for a date), a cross cancels. On a phone this column comes first. The job detail and the application detail share the same facts.
+
+## [0.13.5] - 2026-10-13
+
+- Add job has two checkboxes above "Save job": "Perform job match" and "Create resume and cover letter". Only one of them can be ticked (or none). Saving the job then queues the AI work at once: a match evaluation, or the application with the documents of your default set (the same as "Prepare with AI" on the card). Both need your experience described in Settings. If the AI step fails, the job stays saved.
+
 ## [0.13.4] - 2026-10-13
 
 - When Add job cannot download an ad (LinkedIn answers HTTP 429), next to pasting the text there is the checkbox "Create AI job to import" (only while no text is pasted, and only when your experience is described in Settings). "Create AI job" saves a placeholder job and queues one AI task that reads the ad, fills in the job and evaluates your match in one go. New API method `importAiJob`, new AI task type `import_match_job`, new prompt tab "Import + match" in Settings > AI prompts. The two import prompts now tell the AI what to do when a site blocks it (HTTP 429, login wall): try the one address ONCE in the candidate's own browser through the Chrome extension, where the candidate is already signed in, and stop at any further obstacle. The longest allowed AI prompt is now 15000 characters (was 10000).
