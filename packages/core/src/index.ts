@@ -4,6 +4,7 @@ export * from './applications';
 export * from './catalog';
 export * from './drive';
 export * from './errors';
+export * from './history';
 export * from './i18n';
 export * from './job-status';
 export * from './job-status-service';

@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.15.0] - 2026-10-13
+
+- History of texts: every saved change of your experience is kept as a version. The new History button next to Save opens a window with the versions on the left (date, source, comment, pin) and the text of the selected one on the right. A version can have a comment and can be pinned; "Use This" restores it (after a confirmation) as a new version, so nothing is lost. The first version (the text before your first change) is always kept.
+- Saving without a change creates no version. Pinned versions and the first version do not count towards the limit and are never deleted. The limit of unpinned versions is a new setting in General (default 50); when it is reached, saving is refused with an explanation until you delete versions in the History window.
+- The history lives in a new sheet, History. Run "Setup" after the update to create it; until then the Experience text cannot be saved and the History window is empty.
+- The mechanism is generic: the AI prompts and other texts will get the same History button in later releases.
+- Fix: the red exclamation mark by Settings is no longer shown later than the numbers next to Jobs and AI tasks; the menu numbers wait for the setup check, so the mark comes first.
+
 ## [0.14.1] - 2026-10-13
 
 - The Help screen has screenshots (Dashboard, Jobs, job detail, Add job, Applications, application detail, Kanban, AI tasks, Settings), each with a caption; a click on a screenshot enlarges it in a window. The screenshots are English in both languages and are part of the single-file build (JPEG, about 340 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB).

@@ -1,9 +1,11 @@
 import { ValidationError } from './errors';
+import { isHistoryKey, type SettingsHistory } from './history';
 import { isLocale, type Locale } from './i18n';
 import type { KeyValueStore } from './key-value';
 import { NO_LOCK, type Lock } from './lock';
 import type { AppWarning } from './row-codec';
 import { DEFAULT_PROMPTS, type PromptType } from './seed';
+import type { HistorySource } from './types';
 import { parseJobStatusStyles, type JobStatusStyles } from './job-status';
 import { parseStatusTransitions, type StatusTransitions } from './status';
 import { parseUiState, type UiState } from './ui-state';
@@ -30,6 +32,7 @@ export const SETTING_KEYS = [
   'job_status_styles',
   'status_transitions',
   'ui_state',
+  'history_max_versions',
   'ai_prompt_resume_tailor',
   'ai_prompt_cover_letter',
   'ai_prompt_other',
@@ -78,6 +81,8 @@ export interface Settings {
   status_transitions: StatusTransitions;
   /** What the interface remembers: Kanban on or off and the selected statuses. */
   ui_state: UiState;
+  /** Most unpinned versions kept per tracked text; at the limit saves are refused. */
+  history_max_versions: number;
   /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
   ai_prompt_resume_tailor: string;
   ai_prompt_cover_letter: string;
@@ -113,6 +118,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   job_status_styles: '{}',
   status_transitions: '{}',
   ui_state: '{}',
+  history_max_versions: '50',
   ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
   ai_prompt_cover_letter: defaultPrompt('cover_letter'),
   ai_prompt_other: defaultPrompt('other'),
@@ -176,6 +182,12 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   job_status_styles: (raw) => parseJobStatusStyles(raw),
   status_transitions: (raw) => parseStatusTransitions(raw),
   ui_state: (raw) => parseUiState(raw),
+  history_max_versions: (raw) => {
+    const text = raw.trim();
+    if (!/^\d{1,4}$/.test(text)) return undefined;
+    const count = Number(text);
+    return count >= 1 && count <= 1000 ? count : undefined;
+  },
   ai_prompt_resume_tailor: parsePrompt,
   ai_prompt_cover_letter: parsePrompt,
   ai_prompt_other: parsePrompt,
@@ -205,18 +217,26 @@ export function parseSettings(stored: Readonly<Record<string, string>>): { setti
   return { settings: settings as unknown as Settings, warnings };
 }
 
+export interface SettingsUpdateOptions {
+  /** What the history says caused the change; saved by default. */
+  source?: HistorySource;
+  /** The version number a restore came from. */
+  restoredFrom?: string;
+}
+
 export class SettingsService {
   constructor(
     private readonly store: KeyValueStore,
     private readonly lock: Lock = NO_LOCK,
+    private readonly history?: SettingsHistory,
   ) {}
 
   get(): { settings: Settings; warnings: AppWarning[] } {
     return parseSettings(this.store.getAll());
   }
 
-  /** Validates every entry first; writes nothing when one is invalid. */
-  update(patch: Readonly<Record<string, string>>): Settings {
+  /** Validates every entry first; writes nothing when one is invalid or when the history of a changed text is full. */
+  update(patch: Readonly<Record<string, string>>, options: SettingsUpdateOptions = {}): Settings {
     for (const [key, value] of Object.entries(patch)) {
       if (!isSettingKey(key)) throw new ValidationError('settings_unknown_key', `Unknown setting ${key}`, { key });
       if (PARSERS[key](value) === undefined) {
@@ -224,7 +244,15 @@ export class SettingsService {
       }
     }
     this.lock.run(() => {
-      for (const [key, value] of Object.entries(patch)) this.store.set(key, value);
+      const history = this.history;
+      const stored = history ? this.store.getAll() : {};
+      const before = (key: string): string => (hasOwn(stored, key) ? stored[key]! : SETTINGS_DEFAULTS[key as SettingKey]);
+      const changed = history ? Object.entries(patch).filter(([key, value]) => isHistoryKey(key) && value !== before(key)) : [];
+      for (const [key] of changed) history!.assertRoom(key);
+      for (const [key, value] of Object.entries(patch)) {
+        if (history && changed.some(([changedKey]) => changedKey === key)) history.record(key, before(key), value, options.source ?? 'saved', options.restoredFrom);
+        this.store.set(key, value);
+      }
     });
     return this.get().settings;
   }

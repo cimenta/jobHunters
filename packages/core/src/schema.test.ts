@@ -7,7 +7,7 @@ describe('sheet schema', () => {
   it('defines every sheet of the spec, in order', () => {
     expect(Object.keys(SHEETS)).toEqual([
       'Companies', 'Jobs', 'Applications', 'Documents', 'Questions', 'Communications', 'Reminders',
-      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log',
+      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log', 'History',
     ]);
   });
 
@@ -27,6 +27,14 @@ describe('sheet schema', () => {
       'employment_type', 'remote', 'posted_at', 'valid_until', 'description', 'language', 'availability',
       'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes', 'status', 'match_percent', 'ai_salary',
     ]);
+  });
+
+  it('types the History columns', () => {
+    expect(SHEETS.History).toEqual(['id', 'key', 'version', 'saved_at', 'source', 'restored_from', 'pinned', 'comment', 'text']);
+    expect(columnType('version')).toBe('number');
+    expect(columnType('pinned')).toBe('boolean');
+    expect(columnType('text')).toBe('string');
+    expect(ALLOWED_VALUES['History.source']).toEqual(['initial', 'saved', 'reset', 'restored']);
   });
 
   it('puts the document language on applications', () => {

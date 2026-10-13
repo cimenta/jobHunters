@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { ui } from '../lib/i18n.svelte';
 import { statusStyle } from '../lib/status';
@@ -469,5 +469,104 @@ describe('Settings: prompts outdated', () => {
     render(Shell, { children: createRawSnippet(() => ({ render: () => '<div></div>' })) });
     await waitFor(() => expect(navMark()).not.toBeNull());
     expect(screen.getByRole('link', { name: 'Settings: something needs your attention' })).toBeInTheDocument();
+  });
+});
+
+const byUi = (root: ParentNode, id: string): HTMLElement => root.querySelector<HTMLElement>(`[data-ui="${id}"]`)!;
+const DIALOG = 'settings.experience.history.dialog';
+
+describe('Settings: text history', () => {
+  async function saveExperience(card: HTMLElement, text: string, count: number): Promise<void> {
+    await fireEvent.input(within(card).getByLabelText('My experience'), { target: { value: text } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(within(card).getByRole('button', { name: `History (${count})` })).toBeInTheDocument());
+  }
+
+  it('counts the versions, shows them in two columns and restores an earlier one after a confirmation', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    expect(within(card).getByRole('button', { name: 'History (0)' })).toBeInTheDocument();
+    await saveExperience(card, 'Version A', 2);
+    await saveExperience(card, 'Version B', 3);
+
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+    expect(byUi(dialog, `${DIALOG}.text`).textContent).toBe('Version B');
+    expect(within(dialog).getByRole('button', { name: 'Use This' })).toBeDisabled();
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    expect(byUi(dialog, `${DIALOG}.text`).textContent).toBe('Version A');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Use This' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Use this version?' });
+    await fireEvent.click(within(confirm).getByRole('button', { name: 'Use this version' }));
+
+    await waitFor(async () => expect((await api.getSettings()).settings.candidate_experience).toBe('Version A'));
+    await waitFor(() => expect((within(card).getByLabelText('My experience') as HTMLTextAreaElement).value).toBe('Version A'));
+    await waitFor(() => expect(within(card).getByRole('button', { name: 'History (4)' })).toBeInTheDocument());
+  });
+
+  it('saves a comment and a pin, and deletes an unpinned version after a confirmation', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    await saveExperience(card, 'Version A', 2);
+    await saveExperience(card, 'Version B', 3);
+    await saveExperience(card, 'Version C', 4);
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (4)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.3`));
+    await fireEvent.input(byUi(dialog, `${DIALOG}.comment`), { target: { value: 'Sent to Acme' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save comment' }));
+    await waitFor(() => expect(byUi(dialog, `${DIALOG}.item.3`).textContent).toContain('Sent to Acme'));
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.pin`));
+    await waitFor(() => expect(byUi(dialog, `${DIALOG}.item.3`).textContent).toContain('Pinned'));
+    expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    const confirm = await screen.findByText('Delete version #2 permanently?');
+    await fireEvent.click(within(confirm.closest('[role="dialog"]') as HTMLElement).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(byUi(dialog, `${DIALOG}.item.2`)).toBeNull());
+    expect(byUi(dialog, `${DIALOG}.item.1`)).not.toBeNull();
+  });
+
+  it('explains why a save is refused when the history is full, and keeps the typed text', async () => {
+    await open();
+    await api.updateSettings({ history_max_versions: '1' });
+    await api.updateSettings({ candidate_experience: 'Version A' });
+    await reloadSettings();
+    await fireEvent.click(screen.getByRole('tab', { name: 'Experience' }));
+    const card = section('My experience');
+    await fireEvent.input(within(card).getByLabelText('My experience'), { target: { value: 'Version B' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(toasts.map((t) => t.text).join(' ')).toContain('History is full (1 of 1 unpinned versions)'));
+    expect((within(card).getByLabelText('My experience') as HTMLTextAreaElement).value).toBe('Version B');
+    expect((await api.getSettings()).settings.candidate_experience).toBe('Version A');
+  });
+
+  it('saves the history limit in General settings and rejects an invalid one', async () => {
+    await open();
+    const card = section('Text history');
+    const field = within(card).getByLabelText('Most unpinned versions kept per text');
+    await fireEvent.input(field, { target: { value: '0' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    expect(await within(card).findByText('Enter a whole number from 1 to 1000.')).toBeInTheDocument();
+    await fireEvent.input(field, { target: { value: '20' } });
+    await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.history_max_versions).toBe(20));
+  });
+  it('does not call the newest version current when the live text was edited outside the app, and lets the user restore it', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    await saveExperience(card, 'Version A', 2);
+    await saveExperience(card, 'Version B', 3);
+    const real = await api.listHistory('candidate_experience');
+    vi.spyOn(api, 'listHistory').mockResolvedValue({ ...real, live: 'Edited in the sheet' });
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+    expect(within(dialog).queryByText('Current')).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Use This' })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeDisabled();
   });
 });

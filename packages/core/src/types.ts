@@ -151,3 +151,21 @@ export interface Template {
   name: string;
   doc_url: string;
 }
+
+export type HistorySource = 'initial' | 'saved' | 'reset' | 'restored';
+
+/** One saved version of a tracked text (see history.ts). */
+export interface HistoryEntry {
+  id: string;
+  /** The tracked setting key, for example candidate_experience. */
+  key: string;
+  /** 1, 2, 3 ... per key; never reused, so "restored from #3" stays true. */
+  version: number;
+  saved_at: string;
+  source: HistorySource;
+  /** The version number this entry was restored from, as text; empty otherwise. */
+  restored_from: string;
+  pinned: boolean;
+  comment: string;
+  text: string;
+}

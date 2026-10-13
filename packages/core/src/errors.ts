@@ -50,6 +50,10 @@ export const ERROR_CODES = [
   'job_awaiting',
   'application_exists',
   'refresh_unreadable',
+  'history_full',
+  'history_entry_not_found',
+  'history_entry_locked',
+  'history_comment_too_long',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

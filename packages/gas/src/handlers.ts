@@ -1,6 +1,6 @@
-import { EDITABLE_JOB_FIELDS, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
+import { AppError, EDITABLE_JOB_FIELDS, isHistoryKey, NotFoundError, type HistoryKey, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
 import type { Handler } from './api';
-import { asRecord, requireString, stringRecord } from './args';
+import { asRecord, invalidArguments, optionalBoolean, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
 import { createApplicationHandlers } from './handlers-applications';
 
@@ -35,6 +35,12 @@ function parseJobInput(args: unknown, method: string) {
   return { url, text: text as string | undefined, html: html as string | undefined, overrides };
 }
 
+function historyKey(input: Record<string, unknown>, method: string): HistoryKey {
+  const key = requireString(input, 'key', method);
+  if (!isHistoryKey(key)) invalidArguments(method);
+  return key;
+}
+
 export function createHandlers(c: Container): Record<string, Handler> {
   return {
     ...createApplicationHandlers(c),
@@ -47,6 +53,45 @@ export function createHandlers(c: Container): Record<string, Handler> {
     },
 
     updateSettings: (args) => c.lock.run(() => c.settings.update(stringRecord(args, 'updateSettings'))),
+
+    listHistory: (args) => {
+      const key = historyKey(asRecord(args, 'listHistory'), 'listHistory');
+      try {
+        return c.historyService.list(key);
+      } catch (error) {
+        // The sheet is created by setup; until then there is simply nothing to show.
+        if (error instanceof AppError && error.code === 'sheet_missing') return { entries: [], used: 0, max: c.settings.get().settings.history_max_versions, live: c.settings.get().settings[key] };
+        throw error;
+      }
+    },
+
+    updateHistoryEntry: (args) => {
+      const input = asRecord(args, 'updateHistoryEntry');
+      const id = requireString(input, 'id', 'updateHistoryEntry');
+      const patch: { comment?: string; pinned?: boolean } = {};
+      const comment = optionalString(input, 'comment', 'updateHistoryEntry');
+      const pinned = optionalBoolean(input, 'pinned', 'updateHistoryEntry');
+      if (comment !== undefined) patch.comment = comment;
+      if (pinned !== undefined) patch.pinned = pinned;
+      return c.lock.run(() => c.historyService.update(id, patch));
+    },
+
+    deleteHistoryEntry: (args) => {
+      const id = requireString(asRecord(args, 'deleteHistoryEntry'), 'id', 'deleteHistoryEntry');
+      c.lock.run(() => c.historyService.remove(id));
+      return null;
+    },
+
+    restoreHistory: (args) => {
+      const input = asRecord(args, 'restoreHistory');
+      const key = historyKey(input, 'restoreHistory');
+      const id = requireString(input, 'id', 'restoreHistory');
+      return c.lock.run(() => {
+        const entry = c.historyService.get(id);
+        if (entry.key !== key) throw new NotFoundError('history_entry_not_found', `History version ${id} not found`, { id });
+        return c.settings.update({ [key]: entry.text }, { source: 'restored', restoredFrom: String(entry.version) });
+      });
+    },
 
     getWarnings: () => c.collectWarnings(),
 

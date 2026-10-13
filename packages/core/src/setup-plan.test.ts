@@ -60,6 +60,15 @@ describe('buildSetupPlan', () => {
     for (const p of plan) for (const row of p.seedRows) expect(row).toHaveLength(p.headers.length);
   });
 
+  it('creates the History sheet with plain-text columns, a checkbox for pinned and a dropdown for the source', () => {
+    const history = sheet('History');
+    expect(history.headers).toEqual(['id', 'key', 'version', 'saved_at', 'source', 'restored_from', 'pinned', 'comment', 'text']);
+    expect(history.checkboxColumns).toEqual([7]);
+    expect(history.textColumns).toEqual([1, 2, 4, 5, 6, 8, 9]);
+    expect(history.dropdowns).toEqual([{ column: 5, values: ['initial', 'saved', 'reset', 'restored'] }]);
+    expect(history.seedRows).toEqual([]);
+  });
+
   it('seeds no data into entity sheets', () => {
     for (const name of ['Companies', 'Jobs', 'Applications', 'Reminders', 'Log']) expect(sheet(name).seedRows).toEqual([]);
   });

@@ -193,3 +193,19 @@ describe('menu refresh settings', () => {
     expect(service.update({ menu_refresh_seconds: '0' }).menu_refresh_seconds).toBe(0);
   });
 });
+
+describe('history_max_versions', () => {
+  it('defaults to 50', () => {
+    expect(parseSettings({}).settings.history_max_versions).toBe(50);
+    expect(SETTINGS_DEFAULTS.history_max_versions).toBe('50');
+  });
+
+  it.each(['1', '50', '1000'])('accepts %s', (value) => {
+    expect(new SettingsService(new InMemoryKeyValueStore()).update({ history_max_versions: value }).history_max_versions).toBe(Number(value));
+  });
+
+  it.each(['0', '1001', 'abc', '5.5', '', '-3'])('rejects %s', (value) => {
+    const error = errorOf(() => new SettingsService(new InMemoryKeyValueStore()).update({ history_max_versions: value }));
+    expect(error).toMatchObject({ code: 'settings_invalid', params: { key: 'history_max_versions', value } });
+  });
+});

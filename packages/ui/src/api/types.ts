@@ -1,6 +1,6 @@
 export type {
   AiTask, AiTaskRow, AppWarning, Application, ApplicationDocument, ApplicationRow, Communication, Company, CompanyRow, CreateApplicationResult, PrepareResult,
-  Dashboard, DashboardReminder, DocumentView, Job, JobPreview, JobRow, Question, Reminder, RefreshResult, SaveResult, Settings, Template,
+  Dashboard, DashboardReminder, DocumentView, HistoryEntry, HistoryList, Job, JobPreview, JobRow, Question, Reminder, RefreshResult, SaveResult, Settings, Template,
   TimelineEvent,
 } from '@jobhunters/core';
 import type { AiTask, AiTaskRow, Application, ApplicationRow, Communication, Company, DocumentView, Job, JobRow, Question, Reminder, TimelineEvent } from '@jobhunters/core';

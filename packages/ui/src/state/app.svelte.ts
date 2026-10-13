@@ -13,10 +13,13 @@ export const app = $state<{
   /** Setup has something left to create (the red mark in the menu and on the Setup card), and why. */
   setupNeeded: boolean;
   setupReasons: string[];
-}>({ phase: 'loading', error: undefined, version: '', timeZone: '', settings: undefined, warnings: [], setupNeeded: false, setupReasons: [] });
+  /** The question to the server is still open; the menu holds back its numbers so the mark is never shown after them. */
+  setupChecking: boolean;
+}>({ phase: 'loading', error: undefined, version: '', timeZone: '', settings: undefined, warnings: [], setupNeeded: false, setupReasons: [], setupChecking: false });
 
 /** Asks the server whether setup is needed. A failed question leaves the mark off: it must never block the app. */
 export async function reloadSetupStatus(): Promise<void> {
+  app.setupChecking = true;
   try {
     const status = await api.getSetupStatus();
     app.setupNeeded = status.needed;
@@ -24,6 +27,8 @@ export async function reloadSetupStatus(): Promise<void> {
   } catch {
     app.setupNeeded = false;
     app.setupReasons = [];
+  } finally {
+    app.setupChecking = false;
   }
 }
 

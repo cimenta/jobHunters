@@ -14,7 +14,7 @@ import { api } from '../api';
 import { invalidate, invalidation } from '../state/invalidate.svelte';
 import { useDevBackend } from '../test/transport';
 import { createRawSnippet, tick } from 'svelte';
-import { app } from '../state/app.svelte';
+import { app, reloadSetupStatus } from '../state/app.svelte';
 import Shell from './Shell.svelte';
 
 it('shows the version in small text next to the application name', () => {
@@ -345,5 +345,32 @@ describe('menu counts auto-refresh', () => {
     spy.mockResolvedValue(nums(3));
     await advance(60_000);
     expect(count('jobs')).toHaveTextContent('3');
+  });
+  it('shows the menu numbers only after the setup check answered, so the red mark is never shown later than them', async () => {
+    useDevBackend({ setupNeeded: true });
+    const expected = (await api.listJobs()).filter((job) => job.status === 'new').length;
+    app.setupChecking = true;
+    render(Shell, { children: body() });
+    await api.getMenuCounts();
+    await tick();
+    expect(count('jobs')).toBeNull();
+    app.setupNeeded = true;
+    app.setupChecking = false;
+    await waitFor(() => expect(count('jobs')).toHaveTextContent(String(expected)));
+    expect(document.querySelector('[data-ui="nav.action-needed"]')).not.toBeNull();
+    app.setupNeeded = false;
+  });
+
+  it('keeps the setup check flag on while the question is open and off when it answered or failed', async () => {
+    useDevBackend({ setupNeeded: true });
+    const pending = reloadSetupStatus();
+    expect(app.setupChecking).toBe(true);
+    await pending;
+    expect(app.setupChecking).toBe(false);
+    expect(app.setupNeeded).toBe(true);
+    vi.spyOn(api, 'getSetupStatus').mockRejectedValue(new Error('down'));
+    await reloadSetupStatus();
+    expect(app.setupChecking).toBe(false);
+    expect(app.setupNeeded).toBe(false);
   });
 });

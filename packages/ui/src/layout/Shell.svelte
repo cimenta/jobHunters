@@ -25,9 +25,11 @@
   const current = $derived(sectionOf(router.current));
   const version = $derived(formatVersion(app.version));
   const counts = useResource(() => api.getMenuCounts());
-  const newJobs = $derived(counts.status === 'ready' ? (counts.data?.newJobs ?? 0) : 0);
-  const waiting = $derived(counts.status === 'ready' ? (counts.data?.aiTasksWaiting ?? 0) : 0);
-  const drafts = $derived(counts.status === 'ready' ? (counts.data?.draftApplications ?? 0) : 0);
+  // The numbers wait for the setup check: the red mark must be on screen first, never after them.
+  const showCounts = $derived(counts.status === 'ready' && !app.setupChecking);
+  const newJobs = $derived(showCounts ? (counts.data?.newJobs ?? 0) : 0);
+  const waiting = $derived(showCounts ? (counts.data?.aiTasksWaiting ?? 0) : 0);
+  const drafts = $derived(showCounts ? (counts.data?.draftApplications ?? 0) : 0);
 
   // Keeps the menu numbers fresh (the AI works in the sheet): 15 s while AI tasks wait, else 60 s, only while visible.
   const poller = createMenuPoller({

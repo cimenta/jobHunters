@@ -1,4 +1,4 @@
-import type { AiTask, AiTaskRow, ImportResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
+import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
@@ -23,6 +23,10 @@ export const api = {
   getAppInfo: () => call<AppInfo>('getAppInfo'),
   getSettings: () => call<{ settings: Settings; warnings: AppWarning[] }>('getSettings'),
   updateSettings: (patch: Record<string, string>) => call<Settings>('updateSettings', patch),
+  listHistory: (key: string) => call<HistoryList>('listHistory', { key }),
+  updateHistoryEntry: (id: string, patch: { comment?: string; pinned?: boolean }) => call<HistoryEntry>('updateHistoryEntry', { id, ...patch }),
+  deleteHistoryEntry: (id: string) => call<null>('deleteHistoryEntry', { id }),
+  restoreHistory: (key: string, id: string) => call<Settings>('restoreHistory', { key, id }),
   getSetupStatus: () => call<SetupStatus>('getSetupStatus'),
   runSetup: () => call<SetupResult>('runSetup'),
   getProfile: () => call<Profile>('getProfile'),

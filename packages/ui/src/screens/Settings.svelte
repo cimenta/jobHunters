@@ -7,6 +7,7 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
   import HelpTip from '../components/HelpTip.svelte';
+  import HistoryButton from '../components/HistoryButton.svelte';
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { tr } from '../lib/i18n.svelte';
@@ -57,6 +58,9 @@
   let applicationStatusesTab = $state('statuses.applications.labels');
   let promptTab = $state('prompts.resume_tailor');
   let experience = $state('');
+  let historyRevision = $state(0);
+  let historyMax = $state('50');
+  let historyMaxError = $state('');
   let prompts = $state<Record<PromptType, string>>({ resume_tailor: '', cover_letter: '', other: '', answer_question: '', match_job: '', import_job: '', import_match_job: '' });
   let checkEnabled = $state(false);
   let checkHours = $state('18');
@@ -85,6 +89,8 @@
       uiTheme = settings.ui_theme;
       resultNotices = settings.result_notices;
       experience = settings.candidate_experience;
+      historyMax = String(settings.history_max_versions);
+      historyMaxError = '';
       checkEnabled = settings.availability_check_enabled;
       checkHours = settings.availability_check_hours.join(', ');
       immediateRules = [...settings.availability_immediate_rules];
@@ -142,7 +148,18 @@
   async function saveExperience(): Promise<void> {
     await api.updateSettings({ candidate_experience: experience });
     await reloadSettings();
+    historyRevision += 1;
     toast.success(tr('ui.settings.savedExperience'));
+  }
+
+  async function saveHistoryMax(): Promise<void> {
+    const text = String(historyMax).trim();
+    const valid = /^\d{1,4}$/.test(text) && Number(text) >= 1 && Number(text) <= 1000;
+    historyMaxError = valid ? '' : tr('ui.settings.historyMaxInvalid');
+    if (!valid) return;
+    await api.updateSettings({ history_max_versions: text });
+    await reloadSettings();
+    toast.success(tr('ui.settings.savedHistoryMax'));
   }
 
   async function savePrompts(): Promise<void> {
@@ -295,6 +312,17 @@
     <div><Button variant="primary" ui="settings.menu-refresh.save" onclick={saveMenuRefresh}>{tr('ui.save')}</Button></div>
   </Card>
 
+  <Card ui="settings.history">
+    <div class="head">
+      <h2>{tr('ui.settings.history')}</h2>
+      <HelpTip ui="settings.help.history" label={tr('ui.settings.history')} text={tr('ui.settings.tip.history', { default: SETTINGS_DEFAULTS.history_max_versions })} />
+    </div>
+    <Field label={tr('ui.settings.historyMax')} for="set-history-max" error={historyMaxError}>
+      <input data-ui="settings.history.max" id="set-history-max" class="input" type="number" min="1" max="1000" step="1" inputmode="numeric" bind:value={historyMax} oninput={() => (historyMaxError = '')} />
+    </Field>
+    <div><Button variant="primary" ui="settings.history.save" onclick={saveHistoryMax}>{tr('ui.save')}</Button></div>
+  </Card>
+
   <Card ui="settings.setup">
     <div class="head">
       <h2>{tr('ui.settings.setup')}</h2>
@@ -347,7 +375,10 @@
     <Field label={tr('ui.settings.experience')} for="set-experience">
       <textarea data-ui="settings.experience.text" id="set-experience" class="input" rows="14" maxlength={EXPERIENCE_MAX} bind:value={experience}></textarea>
     </Field>
-    <div><Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button></div>
+    <div class="actions">
+      <Button variant="primary" ui="settings.experience.save" onclick={saveExperience}>{tr('ui.save')}</Button>
+      <HistoryButton historyKey="candidate_experience" name={tr('ui.settings.experience')} ui="settings.experience.history" refreshKey={historyRevision} onrestored={reloadSettings} />
+    </div>
   </Card>
   {:else if tab === 'prompts'}
   <Card ui="settings.prompts">

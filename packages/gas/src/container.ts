@@ -8,6 +8,7 @@ import {
   CatalogService,
   CommunicationService,
   DocumentService,
+  HistoryService,
   InMemoryKeyValueStore,
   JobImportService,
   JobService,
@@ -29,6 +30,8 @@ import {
   type Company,
   type DriveGateway,
   type FolderRef,
+  type HistoryEntry,
+  type HistoryKey,
   type Job,
   type KeyValueStore,
   type Lock,
@@ -92,7 +95,22 @@ export function buildContainer(deps: ContainerDeps) {
   const profile = new SheetKeyValueStore('Profile', deps.grid('Profile'), lock, collect);
   const history = new SheetAppendLog<StatusHistoryEntry>('StatusHistory', SHEETS.StatusHistory, deps.grid('StatusHistory'), lock);
   const logSheet = new SheetAppendLog<LogEntry>('Log', SHEETS.Log, deps.grid('Log'), lock, LOG_MAX_ROWS);
-  const settings = new SettingsService(new SheetKeyValueStore('Settings', deps.grid('Settings'), lock, collect), lock);
+  /** A grid that asks for the sheet only when it is used, so a missing optional sheet fails only its own operations. */
+  const lazyGrid = (sheet: SheetName): SheetGrid => ({
+    readAll: () => deps.grid(sheet).readAll(),
+    writeRow: (row, values) => deps.grid(sheet).writeRow(row, values),
+    appendRow: (values) => deps.grid(sheet).appendRow(values),
+    deleteRows: (start, count) => deps.grid(sheet).deleteRows(start, count),
+  });
+  const historyEntries = new SheetRepository<HistoryEntry>('History', SHEETS.History, lazyGrid('History'), lock, collect);
+  const historyService = new HistoryService({
+    entries: historyEntries,
+    maxVersions: (): number => settings.get().settings.history_max_versions,
+    current: (key: string): string => settings.get().settings[key as HistoryKey],
+    newId: deps.newId,
+    now: deps.now,
+  });
+  const settings: SettingsService = new SettingsService(new SheetKeyValueStore('Settings', deps.grid('Settings'), lock, collect), lock, historyService);
 
   const applicationService = new ApplicationService({
     transitions: () => settings.get().settings.status_transitions,
@@ -189,6 +207,7 @@ export function buildContainer(deps: ContainerDeps) {
     templates,
     profile,
     settings,
+    historyService,
     applicationService,
     jobService,
     applicationFactory,

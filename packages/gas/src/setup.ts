@@ -99,8 +99,22 @@ function brokenProfileValues(sheet: GoogleAppsScript.Spreadsheet.Sheet): { row: 
 function missingHeaders(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan: SheetSetup): string[] {
   const sheet = spreadsheet.getSheetByName(plan.name);
   if (sheet === null) return [...plan.headers];
-  const have = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 1)).getValues()[0] as string[];
+  return headersMissingIn(sheet, plan);
+}
+
+/** The first row is read in ONE call ('1:1'); asking for the last column first made every sheet cost three calls. */
+function headersMissingIn(sheet: GoogleAppsScript.Spreadsheet.Sheet, plan: SheetSetup): string[] {
+  const have = sheet.getRange('1:1').getValues()[0] as string[];
   return plan.headers.filter((header) => !have.includes(header));
+}
+
+/** The names among `names` that are not child folders of `root`: one query instead of one call per name. */
+function missingChildFolders(root: GoogleAppsScript.Drive.Folder, names: readonly string[]): string[] {
+  const query = `trashed = false and (${names.map((name) => `title = '${name}'`).join(' or ')})`;
+  const found = new Set<string>();
+  const folders = root.searchFolders(query);
+  while (folders.hasNext()) found.add(folders.next().getName());
+  return names.filter((name) => !found.has(name));
 }
 
 /**
@@ -115,13 +129,15 @@ export function checkSetup(): SetupStatus {
   if (!rootId || !sheetId) return { needed: true, reasons: ['The folder or the spreadsheet has not been created yet'] };
 
   const spreadsheet = SpreadsheetApp.openById(sheetId);
+  // Every sheet is asked for once, here, not by name one at a time: each call to Google costs a few hundred milliseconds.
+  const sheets = new Map(spreadsheet.getSheets().map((candidate) => [candidate.getName(), candidate]));
   for (const plan of buildSetupPlan()) {
-    const sheet = spreadsheet.getSheetByName(plan.name);
-    if (sheet === null) {
+    const sheet = sheets.get(plan.name);
+    if (sheet === undefined) {
       reasons.push(`Sheet ${plan.name} is missing`);
       continue;
     }
-    const missing = missingHeaders(spreadsheet, plan);
+    const missing = headersMissingIn(sheet, plan);
     if (missing.length > 0) reasons.push(`Sheet ${plan.name} lacks the columns ${missing.join(', ')}`);
     if (plan.name === 'Profile') {
       const absent = missingProfileKeys(sheet, plan);
@@ -132,9 +148,7 @@ export function checkSetup(): SetupStatus {
   }
 
   const root = DriveApp.getFolderById(rootId);
-  for (const name of ['Profile', 'Templates', 'Companies']) {
-    if (!root.getFoldersByName(name).hasNext()) reasons.push(`Drive folder ${name} is missing`);
-  }
+  for (const name of missingChildFolders(root, ['Profile', 'Templates', 'Companies'])) reasons.push(`Drive folder ${name} is missing`);
   if (!hasHourlyTrigger()) reasons.push('The hourly trigger is missing');
   return { needed: reasons.length > 0, reasons };
 }
@@ -155,6 +169,69 @@ export function checkSetupCached(version: string): SetupStatus {
 /** Remembers that setup has nothing left to do for this version (used after a setup run that ended OK). */
 export function rememberSetupDone(version: string): void {
   PropertiesService.getScriptProperties().setProperty(SETUP_OK_VERSION_KEY, version);
+}
+
+/**
+ * Timing diagnostic for the setup check, which makes the red mark late at start. Read-only: times every part of
+ * checkSetup() (stored ids, opening the spreadsheet, the sheets and their headers by the current way and by one batched
+ * way, Profile, Drive, triggers) and the whole check twice, and changes nothing. Run it from the editor and read the log.
+ */
+export function runSetupTimingTest(write: (line: string) => void): string {
+  const time = <T>(label: string, fn: () => T): T => {
+    const started = Date.now();
+    const result = fn();
+    write(`${label}: ${Date.now() - started} ms`);
+    return result;
+  };
+  const props = PropertiesService.getScriptProperties();
+  const rootId = time('Stored ids', () => props.getProperty(ROOT_FOLDER_ID_KEY));
+  const sheetId = props.getProperty(SPREADSHEET_ID_KEY);
+  if (!rootId || !sheetId) return 'FAILED: the folder or the spreadsheet has not been created yet';
+
+  const spreadsheet = time('Open the spreadsheet', () => SpreadsheetApp.openById(sheetId));
+  const plans = buildSetupPlan();
+
+  const perSheet: { name: string; ms: number }[] = [];
+  const currentStarted = Date.now();
+  for (const plan of plans) {
+    const started = Date.now();
+    missingHeaders(spreadsheet, plan);
+    perSheet.push({ name: plan.name, ms: Date.now() - started });
+  }
+  write(`Headers, one sheet at a time by name (${plans.length} sheets, now also one read each): ${Date.now() - currentStarted} ms`);
+  const slowest = [...perSheet].sort((a, b) => b.ms - a.ms).slice(0, 3);
+  write(`  slowest sheets: ${slowest.map((sheet) => `${sheet.name} ${sheet.ms} ms`).join(', ')}`);
+
+  time('Headers, new way (getSheets once, first row of each sheet in one call)', () => {
+    const byName = new Map(spreadsheet.getSheets().map((sheet) => [sheet.getName(), sheet]));
+    for (const plan of plans) {
+      const sheet = byName.get(plan.name);
+      if (sheet !== undefined) headersMissingIn(sheet, plan);
+    }
+  });
+
+  time('Profile rows and values', () => {
+    const profile = spreadsheet.getSheetByName('Profile');
+    const plan = plans.find((candidate) => candidate.name === 'Profile');
+    if (profile !== null && plan !== undefined) {
+      missingProfileKeys(profile, plan);
+      brokenProfileValues(profile);
+    }
+  });
+
+  const root = time('Drive: open the root folder', () => DriveApp.getFolderById(rootId));
+  time('Drive folders, old way (one call per name)', () => {
+    for (const name of ['Profile', 'Templates', 'Companies']) root.getFoldersByName(name).hasNext();
+  });
+  time('Drive folders, new way (one query)', () => missingChildFolders(root, ['Profile', 'Templates', 'Companies']));
+  time('Drive folders, new way again', () => missingChildFolders(root, ['Profile', 'Templates', 'Companies']));
+  time('Triggers', () => hasHourlyTrigger());
+
+  time('Whole check, first run', () => checkSetup());
+  time('Whole check, second run', () => checkSetup());
+  const remembered = time('Remembered answer (what a normal start costs)', () => props.getProperty(SETUP_OK_VERSION_KEY));
+  write(`Remembered version: ${remembered === null ? 'none' : remembered}`);
+  return 'OK';
 }
 
 /**

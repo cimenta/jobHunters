@@ -8,7 +8,7 @@ import { createApi, toFailure, type ApiResult } from './api';
 import { buildContainer, type Container } from './container';
 import { createHandlers } from './handlers';
 import { getRootFolderId, getSpreadsheetId } from './props';
-import { checkSetup, checkSetupCached, rememberSetupDone, runFormulaTextTest, runSetup, runSetupColumnsTest, runSetupMarkTest, runSetupStatusTest } from './setup';
+import { checkSetup, checkSetupCached, rememberSetupDone, runFormulaTextTest, runSetup, runSetupColumnsTest, runSetupMarkTest, runSetupStatusTest, runSetupTimingTest } from './setup';
 import type { SetupResult } from './setup-report';
 import { runSmokeTest } from './smoke';
 
@@ -151,6 +151,31 @@ export function testSetupStatus(): string {
  */
 export function testSetupMark(): string {
   const result = runSetupMarkTest();
+  Logger.log(result);
+  return result;
+}
+
+/**
+ * Diagnostic of the start of the web app: times every part of the setup check (it makes the red mark late), then the
+ * building of the app and one call for the menu numbers. Read-only; run it from the editor and read the execution log.
+ */
+export function testStartupTiming(): string {
+  const write = (line: string): void => {
+    Logger.log(line);
+  };
+  const result = runSetupTimingTest(write);
+  const time = <T>(label: string, fn: () => T): T => {
+    const started = Date.now();
+    const value = fn();
+    write(`${label}: ${Date.now() - started} ms`);
+    return value;
+  };
+  cachedContainer = undefined;
+  cached = undefined;
+  time('Build the app (first call)', () => getApi());
+  time('Menu numbers, first call', () => api('getMenuCounts'));
+  time('Menu numbers, second call', () => api('getMenuCounts'));
+  time('Settings', () => api('getSettings'));
   Logger.log(result);
   return result;
 }

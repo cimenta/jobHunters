@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import type { HistoryList } from '@jobhunters/core';
 import type { FakePage } from '@jobhunters/core/testing';
 import { makeApplication } from '@jobhunters/core/testing';
 import { createApi } from './api';
 import { createHandlers } from './handlers';
 import { makeTestContainer } from './test-container';
 
-function setup(pages: Record<string, FakePage> = {}) {
-  const { container, grid, drive } = makeTestContainer(pages);
+function setup(pages: Record<string, FakePage> = {}, options: Parameters<typeof makeTestContainer>[1] = {}) {
+  const { container, grid, drive } = makeTestContainer(pages, options);
   const api = createApi({ handlers: createHandlers(container), log: container.log });
   return { api, container, grid, drive };
 }
@@ -505,5 +506,76 @@ describe('job import api', () => {
     const saved = api('saveJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
     fetched[CLEAN_URL] = { status: 429, html: '' };
     expect(api('refreshJob', { id: saved.data.job.id })).toMatchObject({ ok: false, error: { code: 'refresh_unreadable', params: { status: 429 } } });
+  });
+});
+
+type Ok<T> = { ok: true; data: T };
+const HKEY = 'candidate_experience';
+
+describe('history', () => {
+  it('records the saves of the experience and lists them newest first', () => {
+    const { api } = setup();
+    api('updateSettings', { [HKEY]: 'First' });
+    api('updateSettings', { [HKEY]: 'Second' });
+    const { data } = api('listHistory', { key: HKEY }) as Ok<HistoryList>;
+    expect(data.entries.map((e) => [e.version, e.source, e.text])).toEqual([[3, 'saved', 'Second'], [2, 'saved', 'First'], [1, 'initial', '']]);
+    expect(data).toMatchObject({ used: 2, max: 50, live: 'Second' });
+    expect(JSON.parse(JSON.stringify(data))).toEqual(data);
+  });
+
+  it('keeps a text that starts with = as text', () => {
+    const { api } = setup();
+    api('updateSettings', { [HKEY]: '=SUM(1,1)\n"quoted"' });
+    const { data } = api('listHistory', { key: HKEY }) as Ok<HistoryList>;
+    expect(data.entries[0]!.text).toBe('=SUM(1,1)\n"quoted"');
+  });
+
+  it('restores a version by saving it again as a new version', () => {
+    const { api } = setup();
+    api('updateSettings', { [HKEY]: 'First' });
+    api('updateSettings', { [HKEY]: 'Second' });
+    const first = (api('listHistory', { key: HKEY }) as Ok<HistoryList>).data.entries.find((e) => e.text === 'First')!;
+    expect(api('restoreHistory', { key: HKEY, id: first.id })).toMatchObject({ ok: true, data: { candidate_experience: 'First' } });
+    const after = (api('listHistory', { key: HKEY }) as Ok<HistoryList>).data.entries[0]!;
+    expect(after).toMatchObject({ version: 4, source: 'restored', restored_from: String(first.version), text: 'First' });
+  });
+
+  it('refuses to restore a version of another text or an unknown one', () => {
+    const { api } = setup();
+    expect(api('restoreHistory', { key: HKEY, id: 'nope' })).toMatchObject({ ok: false, error: { code: 'history_entry_not_found' } });
+    expect(api('restoreHistory', { key: 'ui_language', id: 'x' })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('listHistory', { key: 'ui_language' })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('updates the comment and the pin, and deletes an old unpinned version', () => {
+    const { api } = setup();
+    for (const text of ['A', 'B', 'C']) api('updateSettings', { [HKEY]: text });
+    const entries = (api('listHistory', { key: HKEY }) as Ok<HistoryList>).data.entries;
+    const b = entries.find((e) => e.text === 'B')!;
+    expect(api('updateHistoryEntry', { id: b.id, comment: 'Sent to Acme', pinned: true })).toMatchObject({ ok: true, data: { comment: 'Sent to Acme', pinned: true } });
+    expect(api('deleteHistoryEntry', { id: b.id })).toMatchObject({ ok: false, error: { code: 'history_entry_locked' } });
+    const a = entries.find((e) => e.text === 'A')!;
+    expect(api('deleteHistoryEntry', { id: a.id })).toEqual({ ok: true, data: null });
+    expect(api('updateHistoryEntry', { id: b.id, comment: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('updateHistoryEntry', { id: b.id, pinned: 'yes' })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('refuses to save at the limit, explains it, and works again after the user pins or deletes', () => {
+    const { api } = setup();
+    api('updateSettings', { history_max_versions: '1' });
+    api('updateSettings', { [HKEY]: 'A' });
+    expect(api('updateSettings', { [HKEY]: 'B' })).toMatchObject({ ok: false, error: { code: 'history_full', params: { used: 1, max: 1 } } });
+    expect(api('getSettings')).toMatchObject({ ok: true, data: { settings: { candidate_experience: 'A' } } });
+    const a = (api('listHistory', { key: HKEY }) as Ok<HistoryList>).data.entries.find((e) => e.text === 'A')!;
+    api('updateHistoryEntry', { id: a.id, pinned: true });
+    expect(api('updateSettings', { [HKEY]: 'B' })).toMatchObject({ ok: true });
+  });
+
+  it('keeps the app working and answers an empty history while the History sheet is missing; saving the experience asks for setup', () => {
+    const { api } = setup({}, { missingSheets: ['History'] });
+    expect(api('listHistory', { key: HKEY })).toEqual({ ok: true, data: { entries: [], used: 0, max: 50, live: '' } });
+    expect(api('getSettings')).toMatchObject({ ok: true });
+    expect(api('updateSettings', { ui_language: 'cs' })).toMatchObject({ ok: true });
+    expect(api('updateSettings', { [HKEY]: 'Text' })).toMatchObject({ ok: false, error: { code: 'sheet_missing', params: { sheet: 'History' } } });
   });
 });

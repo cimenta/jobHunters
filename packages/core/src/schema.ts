@@ -1,5 +1,5 @@
 import { APPLICATION_STATUSES } from './status';
-import type { Application, ApplicationDocument, Communication, Company, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
+import type { Application, ApplicationDocument, Communication, Company, HistoryEntry, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
 
 /** Resolves to `true` when every key of T appears in the column list C, otherwise to `never`. */
 type Complete<T, C extends readonly string[]> = Exclude<keyof T, C[number]> extends never ? true : never;
@@ -35,6 +35,7 @@ const COMMUNICATION_COLUMNS = [
 ] as const satisfies readonly (keyof Communication)[];
 const TEMPLATE_COLUMNS = ['id', 'type', 'language', 'name', 'doc_url'] as const satisfies readonly (keyof Template)[];
 const LOG_COLUMNS = ['time', 'flow', 'entity', 'message'] as const satisfies readonly (keyof LogEntry)[];
+const HISTORY_COLUMNS = ['id', 'key', 'version', 'saved_at', 'source', 'restored_from', 'pinned', 'comment', 'text'] as const satisfies readonly (keyof HistoryEntry)[];
 
 // Compile-time guards: fail `npm run typecheck` when an entity gains a field that is not a sheet column.
 export const _companyComplete: Complete<Company, typeof COMPANY_COLUMNS> = true;
@@ -47,6 +48,7 @@ export const _questionComplete: Complete<Question, typeof QUESTION_COLUMNS> = tr
 export const _communicationComplete: Complete<Communication, typeof COMMUNICATION_COLUMNS> = true;
 export const _templateComplete: Complete<Template, typeof TEMPLATE_COLUMNS> = true;
 export const _logComplete: Complete<LogEntry, typeof LOG_COLUMNS> = true;
+export const _historyComplete: Complete<HistoryEntry, typeof HISTORY_COLUMNS> = true;
 
 // Sheets whose entity interfaces arrive with the plan that first uses them are listed by columns only.
 export const SHEETS = {
@@ -65,15 +67,16 @@ export const SHEETS = {
   Settings: ['key', 'value'],
   INSTRUCTIONS: ['text'],
   Log: LOG_COLUMNS,
+  History: HISTORY_COLUMNS,
 } as const satisfies Record<string, readonly string[]>;
 
 export type SheetName = keyof typeof SHEETS;
 
 export type ColumnType = 'string' | 'number' | 'boolean';
 
-const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent', 'board_position']);
+const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent', 'board_position', 'version']);
 const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences', 'match_percent', 'board_position']);
-const BOOLEAN_COLUMNS = new Set(['is_gig']);
+const BOOLEAN_COLUMNS = new Set(['is_gig', 'pinned']);
 
 export function columnType(column: string): ColumnType {
   if (NUMBER_COLUMNS.has(column)) return 'number';
@@ -100,4 +103,5 @@ export const ALLOWED_VALUES: Readonly<Record<string, readonly string[]>> = {
   'Tasks.target_type': ['document', 'question', 'job'],
   'Tasks.status': ['pending', 'in_progress', 'done', 'needs_input', 'failed'],
   'Templates.type': ['resume', 'cover_letter', 'other'],
+  'History.source': ['initial', 'saved', 'reset', 'restored'],
 };
