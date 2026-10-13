@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { collapseDiff, diffTexts } from '@jobhunters/core';
   import { api } from '../api';
   import type { HistoryEntry, HistoryList } from '../api/types';
   import { formatDate } from '../lib/format';
@@ -8,6 +9,7 @@
   import Button from './Button.svelte';
   import ConfirmDialog from './ConfirmDialog.svelte';
   import Dialog from './Dialog.svelte';
+  import Tabs from './Tabs.svelte';
 
   interface Props {
     open: boolean;
@@ -27,6 +29,8 @@
   let comment = $state('');
   let confirmUse = $state(false);
   let confirmDelete = $state(false);
+  let view = $state('history-changes');
+  let showAllLines = $state(false);
 
   const entries = $derived(list?.entries ?? []);
   const selected = $derived<HistoryEntry | undefined>(entries.find((entry) => entry.id === selectedId) ?? entries[0]);
@@ -39,6 +43,19 @@
   $effect(() => {
     comment = selected?.comment ?? '';
   });
+
+  // Another version opens on its changes against the live text; the live text itself has nothing to compare with.
+  const selectedKey = $derived(selected?.id ?? '');
+  $effect(() => {
+    void selectedKey;
+    view = isCurrent ? 'history-text' : 'history-changes';
+    showAllLines = false;
+  });
+
+  const diff = $derived(selected && list ? diffTexts(list.live, selected.text) : undefined);
+  const diffItems = $derived(diff ? collapseDiff(diff, { all: showAllLines }) : []);
+  const hasFolds = $derived(diff !== undefined && collapseDiff(diff).some((item) => item.type === 'fold'));
+  const diffSign = { added: '+', removed: '−', same: ' ' } as const;
 
   const sourceLabel = (entry: HistoryEntry): string => tr(`ui.history.source.${entry.source}`, { from: entry.restored_from });
 
@@ -116,8 +133,48 @@
         </div>
       </div>
       <div class="text-pane" data-ui="{ui}.dialog.text-pane">
-        <strong>{tr('ui.history.textOf', { version: selected.version })}</strong>
-        <div class="text" data-ui="{ui}.dialog.text">{selected.text}</div>
+        {#if !isCurrent}
+          <Tabs
+            items={[
+              { id: 'history-changes', label: tr('ui.history.tab.changes') },
+              { id: 'history-text', label: tr('ui.history.tab.text') },
+            ]}
+            bind:active={view}
+            label={tr('ui.history.tabs')}
+            ui="{ui}.dialog.view"
+          />
+        {/if}
+        {#if !isCurrent && view === 'history-changes' && diff}
+          <div role="tabpanel" id="panel-history-changes" aria-labelledby="tab-history-changes" class="diff-pane">
+            <p class="legend small">
+              <span class="chip removed">{tr('ui.history.diffRemoved')}</span>
+              <span class="chip added">{tr('ui.history.diffAdded')}</span>
+            </p>
+            {#if diff.added === 0 && diff.removed === 0}
+              <p class="muted" data-ui="{ui}.dialog.diff.none">{tr('ui.history.diffNone')}</p>
+            {:else}
+              <p class="summary" data-ui="{ui}.dialog.diff.summary">{tr('ui.history.diffSummary', { added: diff.added, removed: diff.removed })}</p>
+              {#if hasFolds}
+                <div><Button ui="{ui}.dialog.diff.show-all" onclick={() => (showAllLines = !showAllLines)}>{tr(showAllLines ? 'ui.history.diffHideEqual' : 'ui.history.diffShowAll')}</Button></div>
+              {/if}
+              <div class="diff" data-ui="{ui}.dialog.diff">
+                {#each diffItems as item, index (index)}
+                  {#if item.type === 'fold'}
+                    <div class="line fold">{tr('ui.history.diffFold', { count: item.count })}</div>
+                  {:else}
+                    <div class="line {item.row.kind}" data-kind={item.row.kind}>
+                      <span class="sign" aria-hidden="true">{diffSign[item.row.kind]}</span>
+                      <span class="words">{#each item.row.segments as segment, at (at)}{#if segment.changed}{#if item.row.kind === 'added'}<ins>{segment.text}</ins>{:else}<del>{segment.text}</del>{/if}{:else}{segment.text}{/if}{/each}</span>
+                    </div>
+                  {/if}
+                {/each}
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <strong>{tr('ui.history.textOf', { version: selected.version })}</strong>
+          <div class="text" data-ui="{ui}.dialog.text" role={isCurrent ? undefined : 'tabpanel'} id={isCurrent ? undefined : 'panel-history-text'} aria-labelledby={isCurrent ? undefined : 'tab-history-text'}>{selected.text}</div>
+        {/if}
       </div>
     </div>
   {:else}
@@ -152,5 +209,19 @@
   .actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
   .text-pane { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
   .text { white-space: pre-wrap; overflow-wrap: anywhere; min-height: 300px; max-height: 60dvh; overflow-y: auto; padding: var(--space-3); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-s); }
+  .diff-pane { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: 0; }
+  .chip { padding: 0 var(--space-2); border-radius: var(--radius-s); }
+  .chip.removed { background: var(--danger-soft); text-decoration: line-through; }
+  .chip.added { background: var(--success-soft); }
+  .summary { margin: 0; font-weight: 600; }
+  .diff { border: 1px solid var(--border); border-radius: var(--radius-s); max-height: 60dvh; overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: var(--text-s); }
+  .line { display: flex; gap: var(--space-2); padding: 2px var(--space-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .line.removed { background: var(--danger-soft); }
+  .line.added { background: var(--success-soft); }
+  .line.fold { justify-content: center; color: var(--text-muted); background: var(--surface-2); font-family: inherit; }
+  .sign { flex: none; width: 1ch; color: var(--text-muted); }
+  ins { background: var(--success); color: var(--on-accent); text-decoration: none; border-radius: 2px; }
+  del { background: var(--danger); color: var(--on-accent); border-radius: 2px; }
   @media (max-width: 760px) { .columns { grid-template-columns: 1fr; } }
 </style>

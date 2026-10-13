@@ -157,6 +157,7 @@
       <li>{tr('ui.help.settings.i9')}</li>
       <li>{tr('ui.help.settings.i10')}</li>
       <li>{tr('ui.help.settings.i11')}</li>
+      <li>{tr('ui.help.settings.i12')}</li>
     </ul>
     <p><a data-ui="help.open.settings" href={paths.settings}>{tr('ui.help.open', { name: tr('ui.help.settings.title') })}</a></p>
   </Card>

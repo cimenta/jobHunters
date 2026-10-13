@@ -20,6 +20,7 @@ export * from './settings';
 export * from './setup-plan';
 export * from './sheet-grid';
 export * from './sheet-repository';
+export * from './text-diff';
 export * from './board';
 export * from './status';
 export * from './ui-state';

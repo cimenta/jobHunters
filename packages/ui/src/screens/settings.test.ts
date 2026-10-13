@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { ui } from '../lib/i18n.svelte';
 import { statusStyle } from '../lib/status';
@@ -476,6 +476,8 @@ const byUi = (root: ParentNode, id: string): HTMLElement => root.querySelector<H
 const DIALOG = 'settings.experience.history.dialog';
 
 describe('Settings: text history', () => {
+  afterEach(() => vi.restoreAllMocks());
+
   async function saveExperience(card: HTMLElement, text: string, count: number): Promise<void> {
     await fireEvent.input(within(card).getByLabelText('My experience'), { target: { value: text } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
@@ -495,6 +497,7 @@ describe('Settings: text history', () => {
     expect(within(dialog).getByRole('button', { name: 'Use This' })).toBeDisabled();
 
     await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    await fireEvent.click(within(dialog).getByRole('tab', { name: 'Text' }));
     expect(byUi(dialog, `${DIALOG}.text`).textContent).toBe('Version A');
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Use This' }));
     const confirm = await screen.findByRole('dialog', { name: 'Use this version?' });
@@ -568,5 +571,58 @@ describe('Settings: text history', () => {
     expect(within(dialog).queryByText('Current')).toBeNull();
     expect(within(dialog).getByRole('button', { name: 'Use This' })).toBeEnabled();
     expect(within(dialog).getByRole('button', { name: 'Delete' })).toBeDisabled();
+  });
+  it('shows what changes against the current text when an older version is selected, and the whole text on the other tab', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    await saveExperience(card, 'Line one\nLine two', 2);
+    await saveExperience(card, 'Line one\nLine three', 3);
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+
+    expect(within(dialog).queryByRole('tab', { name: 'Changes' })).toBeNull();
+    expect(byUi(dialog, `${DIALOG}.text`).textContent).toBe('Line one\nLine three');
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    const diff = byUi(dialog, `${DIALOG}.diff`);
+    expect(diff.querySelector('[data-kind="removed"]')!.textContent).toContain('Line three');
+    expect(diff.querySelector('[data-kind="added"]')!.textContent).toContain('Line two');
+    expect(byUi(dialog, `${DIALOG}.diff.summary`).textContent).toBe('Lines added: 1, removed: 1 (compared with the current text)');
+    expect(byUi(dialog, `${DIALOG}.text`)).toBeNull();
+
+    await fireEvent.click(within(dialog).getByRole('tab', { name: 'Text' }));
+    expect(byUi(dialog, `${DIALOG}.text`).textContent).toBe('Line one\nLine two');
+    expect(byUi(dialog, `${DIALOG}.diff`)).toBeNull();
+
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.3`));
+    expect(within(dialog).queryByRole('tab', { name: 'Changes' })).toBeNull();
+  });
+
+  it('folds long runs of equal lines and shows them on request', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    const same = Array.from({ length: 8 }, (_, i) => `Same ${i}`).join('\n');
+    await saveExperience(card, `${same}\nOld`, 2);
+    await saveExperience(card, `${same}\nNew`, 3);
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (3)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    expect(within(dialog).getByText('7 equal lines')).toBeInTheDocument();
+    expect(dialog.textContent).not.toContain('Same 0');
+    await fireEvent.click(byUi(dialog, `${DIALOG}.diff.show-all`));
+    expect(dialog.textContent).toContain('Same 0');
+    expect(within(dialog).queryByText('7 equal lines')).toBeNull();
+  });
+
+  it('says so when the selected version has no difference from the current text', async () => {
+    await open('Experience');
+    const card = section('My experience');
+    await saveExperience(card, 'Same text', 2);
+    await saveExperience(card, 'Other text', 3);
+    await saveExperience(card, 'Same text', 4);
+    await fireEvent.click(within(card).getByRole('button', { name: 'History (4)' }));
+    const dialog = await screen.findByRole('dialog', { name: 'History: My experience' });
+    await fireEvent.click(byUi(dialog, `${DIALOG}.item.2`));
+    expect(within(dialog).getByText('No difference from the current text.')).toBeInTheDocument();
   });
 });

@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.15.1] - 2026-10-13
+
+- History of texts shows what changes: when you select an older version, the right column opens on a new Changes tab that compares it with the current text. Lines that disappear from the current text are red, lines that appear when you use the version are green, and inside a changed line only the changed words are marked. A summary gives the number of added and removed lines, long runs of equal lines are folded (one button shows them), and the Text tab still shows the whole text. The current version has nothing to compare with and shows its text.
+- The Help screen (topic Settings) explains the history of texts and the comparison.
+- The README says that the AI is optional and needs no API key or vendor (tried with Claude.ai and Google AI Studio), mentions other documents such as an interview preparation, and describes the history of texts and the comparison.
+
 ## [0.15.0] - 2026-10-13
 
 - History of texts: every saved change of your experience is kept as a version. The new History button next to Save opens a window with the versions on the left (date, source, comment, pin) and the text of the selected one on the right. A version can have a comment and can be pinned; "Use This" restores it (after a confirmation) as a new version, so nothing is lost. The first version (the text before your first change) is always kept.

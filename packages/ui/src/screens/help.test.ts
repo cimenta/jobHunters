@@ -68,3 +68,13 @@ it('shows captioned screenshots in the topics, and a click enlarges one in a dia
   await fireEvent.keyDown(dialog, { key: 'Escape' });
   await vi.waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 });
+
+it('explains the history of texts and the comparison in the Settings topic', async () => {
+  useDevBackend();
+  render(Help);
+  await fireEvent.click(screen.getByRole('tab', { name: 'Settings' }));
+  const topic = document.querySelector('[data-ui="help.settings"]')!.textContent!;
+  expect(topic).toContain('History');
+  expect(topic).toContain('Changes');
+  expect(topic).toContain('Use This');
+});
