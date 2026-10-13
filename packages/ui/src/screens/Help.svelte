@@ -1,8 +1,18 @@
 <script lang="ts">
   import Card from '../components/Card.svelte';
+  import Screenshot from '../components/Screenshot.svelte';
   import Tabs from '../components/Tabs.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { paths } from '../lib/route';
+  import dashboardShot from '../assets/help/dashboard.jpg';
+  import jobsShot from '../assets/help/jobs.jpg';
+  import job_detailShot from '../assets/help/job-detail.jpg';
+  import add_jobShot from '../assets/help/add-job.jpg';
+  import applicationsShot from '../assets/help/applications.jpg';
+  import application_detailShot from '../assets/help/application-detail.jpg';
+  import kanbanShot from '../assets/help/kanban.jpg';
+  import tasksShot from '../assets/help/tasks.jpg';
+  import settingsShot from '../assets/help/settings.jpg';
 
   let tab = $state('how');
 </script>
@@ -35,12 +45,14 @@
       <li>{tr('ui.help.how.i4')}</li>
       <li>{tr('ui.help.how.i5')}</li>
       <li>{tr('ui.help.how.i6')}</li>
+      <li>{tr('ui.help.how.i7')}</li>
     </ol>
   </Card>
   {:else if tab === 'dashboard'}
   <Card ui="help.dashboard">
     <h2>{tr('ui.help.dashboard.title')}</h2>
     <p>{tr('ui.help.dashboard.intro')}</p>
+    <Screenshot ui="help.shot.dashboard" src={dashboardShot} caption={tr('ui.help.shot.dashboard')} />
     <ul>
       <li>{tr('ui.help.dashboard.i1')}</li>
       <li>{tr('ui.help.dashboard.i2')}</li>
@@ -53,6 +65,7 @@
   <Card ui="help.jobs">
     <h2>{tr('ui.help.jobs.title')}</h2>
     <p>{tr('ui.help.jobs.intro')}</p>
+    <Screenshot ui="help.shot.jobs" src={jobsShot} caption={tr('ui.help.shot.jobs')} />
     <ul>
       <li>{tr('ui.help.jobs.i1')}</li>
       <li>{tr('ui.help.jobs.i2')}</li>
@@ -77,12 +90,20 @@
       <li>{tr('ui.help.jobs.i21')}</li>
       <li>{tr('ui.help.jobs.i22')}</li>
     </ul>
+    <div class="pair">
+    <Screenshot ui="help.shot.job-detail" src={job_detailShot} caption={tr('ui.help.shot.job-detail')} />
+    <Screenshot ui="help.shot.add-job" src={add_jobShot} caption={tr('ui.help.shot.add-job')} />
+    </div>
     <p><a data-ui="help.open.jobs" href={paths.jobs}>{tr('ui.help.open', { name: tr('ui.help.jobs.title') })}</a></p>
   </Card>
   {:else if tab === 'applications'}
   <Card ui="help.applications">
     <h2>{tr('ui.help.applications.title')}</h2>
     <p>{tr('ui.help.applications.intro')}</p>
+    <div class="pair">
+    <Screenshot ui="help.shot.application-detail" src={application_detailShot} caption={tr('ui.help.shot.application-detail')} />
+    <Screenshot ui="help.shot.kanban" src={kanbanShot} caption={tr('ui.help.shot.kanban')} />
+    </div>
     <ul>
       <li>{tr('ui.help.applications.i1')}</li>
       <li>{tr('ui.help.applications.i2')}</li>
@@ -94,6 +115,7 @@
       <li>{tr('ui.help.applications.i8')}</li>
       <li>{tr('ui.help.applications.i9')}</li>
     </ul>
+    <Screenshot ui="help.shot.applications" src={applicationsShot} caption={tr('ui.help.shot.applications')} />
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>
   </Card>
   {:else if tab === 'companies'}
@@ -109,6 +131,7 @@
   <Card ui="help.tasks">
     <h2>{tr('ui.help.tasks.title')}</h2>
     <p>{tr('ui.help.tasks.intro')}</p>
+    <Screenshot ui="help.shot.tasks" src={tasksShot} caption={tr('ui.help.shot.tasks')} />
     <ul>
       <li>{tr('ui.help.tasks.i1')}</li>
       <li>{tr('ui.help.tasks.i2')}</li>
@@ -121,6 +144,7 @@
   <Card ui="help.settings">
     <h2>{tr('ui.help.settings.title')}</h2>
     <p>{tr('ui.help.settings.intro')}</p>
+    <Screenshot ui="help.shot.settings" src={settingsShot} caption={tr('ui.help.shot.settings')} />
     <ul>
       <li>{tr('ui.help.settings.i1')}</li>
       <li>{tr('ui.help.settings.i2')}</li>
@@ -144,6 +168,7 @@
       <li>{tr('ui.help.tips.i2')}</li>
       <li>{tr('ui.help.tips.i3')}</li>
       <li>{tr('ui.help.tips.i4')}</li>
+      <li>{tr('ui.help.tips.i5')}</li>
     </ul>
   </Card>
   {/if}
@@ -151,5 +176,7 @@
 </div>
 
 <style>
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
+  @media (max-width: 640px) { .pair { grid-template-columns: 1fr; } }
   ul, ol { margin: 0; padding-inline-start: var(--space-5); display: flex; flex-direction: column; gap: var(--space-1); }
 </style>

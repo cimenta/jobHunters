@@ -46,7 +46,7 @@ function addDays(isoDate: string, days: number): string {
 }
 
 /** The real handlers over in-memory sheets and Drive: what the UI talks to during development and in tests. */
-export function createDevBackend(options: { seed?: boolean; now?: () => string; setupNeeded?: boolean; promptsOutdated?: boolean } = {}): DevBackend {
+export function createDevBackend(options: { seed?: boolean; showcase?: boolean; now?: () => string; setupNeeded?: boolean; promptsOutdated?: boolean } = {}): DevBackend {
   const now = options.now ?? (() => new Date().toISOString());
   const grids = new Map<SheetName, FakeGrid>();
   const grid = (sheet: SheetName): FakeGrid => {
@@ -91,8 +91,67 @@ export function createDevBackend(options: { seed?: boolean; now?: () => string; 
   const api = createApi({ handlers: createHandlers(container), log: container.log });
   container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION) });
   const backend: DevBackend = { call: (method, args) => api(method, args), container, drive };
-  if (options.seed) seed(backend, now);
+  if (options.showcase) seedShowcase(backend, now);
+  else if (options.seed) seed(backend, now);
   return backend;
+}
+
+/**
+ * Fictional data for screenshots and demos (open the dev page with ?demo): a handful of jobs at made-up companies with
+ * match percentages, applications in several statuses, a reminder, a question and AI tasks. Nothing here is real.
+ */
+function seedShowcase(backend: DevBackend, now: () => string): void {
+  const call = <T>(method: string, args?: unknown): T => {
+    const result = backend.call(method, args);
+    if (!result.ok) throw new Error(`Seeding ${method} failed: ${result.error.code}`);
+    return result.data as T;
+  };
+  const today = now().slice(0, 10);
+
+  call('updateProfile', { name: 'Eva Example', email: 'eva@example.com', phone: '+420 111 222 333', github: 'github.com/eva-example' });
+  call('updateSettings', {
+    candidate_experience:
+      'Eva Example. Ten years of Android and Kotlin development, five of them leading a small team. Built payment and banking apps, strong in Jetpack Compose, testing and CI. Looking for a hybrid senior role in Prague.',
+  });
+  for (const [type, name] of [['resume', 'Resume'], ['cover_letter', 'Cover letter']] as const) {
+    const docId = backend.drive.addTemplate(TEMPLATE_TEXT);
+    call('addTemplate', { type, language: '', name, docUrl: `https://docs.google.com/document/d/${docId}/edit` });
+  }
+
+  const lorem = 'We are looking for a colleague to join our team. You will build and run services together with us, review code and mentor others.';
+  const save = (slug: string, title: string, overrides: Record<string, unknown>, match: number | null, aiSalary = ''): string => {
+    const id = call<{ job: { id: string } }>('saveJob', { url: `https://example.com/jobs/${slug}`, text: `${title}\n\n${lorem}`, overrides: { title, ...overrides } }).job.id;
+    backend.container.jobs.update(id, { match_percent: match, ai_salary: aiSalary });
+    return id;
+  };
+  const jobs = {
+    android: save('android', 'Android Developer', { company: 'Example s.r.o.', location: 'Praha', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, 82, '75000 (65000-90000)'),
+    kotlin: save('kotlin', 'Senior Kotlin Engineer', { company: 'Northwind Apps', location: 'Brno', salary_min: 90000, salary_max: 120000, salary_currency: 'CZK', salary_period: 'month', remote: 'yes', employment_type: 'full_time' }, 91, '110000 (95000-125000)'),
+    lead: save('lead', 'Mobile Team Lead', { company: 'Globex Studio', location: 'Praha', salary_min: 110000, salary_max: 140000, salary_currency: 'CZK', salary_period: 'month', remote: 'no', employment_type: 'full_time' }, 64, '120000 (105000-145000)'),
+    backend: save('backend', 'Backend Developer (Kotlin)', { company: 'Initech Mobile', location: 'Ostrava', salary_min: 70000, salary_max: 95000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, 48),
+    flutter: save('flutter', 'Flutter Developer', { company: 'Acme Labs', location: 'Remote', salary_min: 55000, salary_max: 75000, salary_currency: 'CZK', salary_period: 'month', remote: 'yes', employment_type: 'full_time' }, 35),
+    analyst: save('analyst', 'Data Analyst (part time)', { company: 'Sample GmbH', location: 'Brno', is_gig: true, salary_min: 250, salary_max: 300, salary_currency: 'CZK', salary_period: 'hour', employment_type: 'part_time' }, 58),
+    qa: save('qa', 'QA Automation Engineer', { company: 'Umbrella Digital', location: 'Plzeň', salary_min: 65000, salary_max: 85000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, null),
+  };
+
+  const apply = (jobId: string, steps: string[]): string => {
+    const id = call<{ application: { id: string } }>('createApplication', { jobId }).application.id;
+    for (const to of steps) call('setApplicationStatus', { id, to, ...(to === 'waiting' ? { remindAt: addDays(today, 9) } : {}) });
+    return id;
+  };
+  const sent = apply(jobs.android, ['sent']);
+  apply(jobs.kotlin, ['sent', 'interview']);
+  apply(jobs.lead, ['sent', 'waiting']);
+  apply(jobs.backend, []);
+  apply(jobs.flutter, ['sent', 'rejected']);
+  apply(jobs.analyst, ['sent', 'interview', 'offer']);
+
+  call('addQuestion', { applicationId: sent, question: 'Why do you want to work with us?', maxSentences: 3 });
+  call('addCommunication', { applicationId: sent, direction: 'outgoing', channel: 'email', summary: 'Sent the application with the resume and the cover letter' });
+  call('addReminder', { applicationId: sent, dueAt: addDays(today, 3), text: 'Ask about the status' });
+
+  call('requestJobMatch', { id: jobs.qa });
+  call('importAiJob', { url: 'https://www.linkedin.com/jobs/view/1234567890' });
 }
 
 function seed(backend: DevBackend, now: () => string): void {

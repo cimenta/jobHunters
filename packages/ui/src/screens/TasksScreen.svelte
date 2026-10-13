@@ -149,6 +149,7 @@
   th { font-size: var(--text-s); color: var(--text-muted); white-space: nowrap; }
   tbody tr:last-child td { border-bottom: 0; }
   .nowrap { white-space: nowrap; }
+  td :global(.btn) { white-space: nowrap; }
   .job { min-width: 10rem; overflow-wrap: anywhere; }
   .text { white-space: pre-wrap; overflow-wrap: anywhere; }
   h3 { margin: 0 0 var(--space-1); font-size: var(--text-s); color: var(--text-muted); }

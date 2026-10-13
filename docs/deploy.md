@@ -33,7 +33,7 @@
 
 After `npm run build` and `clasp push`, deploy the project as a web app (execute as you, access only you) and open its URL. The page loads `ui.html`. Open it on your phone as well and add it to the home screen.
 
-Developing the interface without Google: `npm run dev -w @jobhunters/ui` and open the printed address. The page runs against demo data held in memory; reload resets it.
+Developing the interface without Google: `npm run dev -w @jobhunters/ui` and open the printed address. The page runs against demo data held in memory; reload resets it. Open it with `?demo` (for example `http://localhost:5173/?demo#/jobs`) for a larger set of fictional jobs and applications, and with `?demo=kanban` for the applications as a board.
 
 First look in the real app:
 
@@ -41,4 +41,4 @@ First look in the real app:
 2. Jobs → Add job: paste the link to an ad, check the details, save. If the portal blocks the download, paste the text of the ad.
 3. Open the job → Create application. Open the application: preview a document, open it in Google Docs, export the PDF.
 4. Change the status (Waiting asks for a reminder date), add a question, a note and a reminder, and look at the Timeline.
-5. Settings → Status labels: change the text and colour of a status and check that lists and detail pages follow.
+5. Settings → Statuses → Application statuses: change the text and colour of a status and check that lists and detail pages follow.

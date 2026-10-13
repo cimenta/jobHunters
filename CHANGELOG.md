@@ -2,6 +2,17 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.14.1] - 2026-10-13
+
+- The Help screen has screenshots (Dashboard, Jobs, job detail, Add job, Applications, application detail, Kanban, AI tasks, Settings), each with a caption; a click on a screenshot enlarges it in a window. The screenshots are English in both languages and are part of the single-file build (JPEG, about 340 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB)(JPEG, about 58 kB).
+- The Help texts were reviewed: the first steps mention the AI import and the match, the AI tasks topic mentions "Job import and match", and the tips and the first steps explain the red exclamation mark by Settings and "Run setup" after an update.
+
+## [0.14.0] - 2026-10-13
+
+- The README describes the application in detail (what it does, how it works, the screens with screenshots, how the AI assistant is used, where the data lives, privacy and safety, getting started and development). The screenshots are in `docs/screenshots` and show fictional data.
+- The development page has a showcase mode: open it with `?demo` for a larger set of fictional jobs and applications without the "action needed" marks, or with `?demo=kanban` for the applications as a board.
+- Fix: the "Detail" button of the AI tasks table no longer breaks into two lines.
+
 ## [0.13.6] - 2026-10-13
 
 - The application detail looks like the job detail: under the title the details (company, status, match in percent, salary, work mode, location, type, AI salary) on the left, and a narrow column on the right with the status drop-down above icon buttons (open the job, the company, the ad on its website, the folder in Drive), each with a hover explanation. A new status is confirmed with a check mark (Waiting also asks for a date), a cross cancels. On a phone this column comes first. The job detail and the application detail share the same facts.
