@@ -89,6 +89,7 @@
       <li>{tr('ui.help.jobs.i20')}</li>
       <li>{tr('ui.help.jobs.i21')}</li>
       <li>{tr('ui.help.jobs.i22')}</li>
+      <li>{tr('ui.help.jobs.i23')}</li>
     </ul>
     <div class="pair">
     <Screenshot ui="help.shot.job-detail" src={job_detailShot} caption={tr('ui.help.shot.job-detail')} />

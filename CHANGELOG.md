@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.2] - 2026-10-14
+
+- A job that has no application can now be deleted, whatever its status: with the trash icon on its card in Jobs, with the trash icon under the status in its detail, or with the red "Delete job" button at the bottom of its detail. A job that has an application cannot be deleted; delete the application first. Companies stay.
+- The window can also move the folder with the saved ad to the Drive trash. That happens only when the folder holds nothing but saved ads and no other job uses it; otherwise the folder stays and a notice says why. The job is deleted in every case.
+- Fix: a folder that is in the Drive trash is no longer reused when the app saves an ad or creates an application; a new folder is made instead (before, the new files could end up in the trash and be lost after about 30 days).
+- The Help texts about the job card and the job detail mention the delete icon.
+- No Setup is needed for this update.
+
 ## [0.16.1] - 2026-10-14
 
 - Every Kanban column has a menu by its name to sort its cards by match score, date created or salary, and for the columns after Draft also by date sent, and for Waiting by days waiting; an arrow button reverses the order. "Manual" is the order you set by dragging and is kept: while a column is sorted by a field, dragging inside it is off (moving a card in from another column still changes its status), and choosing Manual brings your own order back. Cards without a value are always last.

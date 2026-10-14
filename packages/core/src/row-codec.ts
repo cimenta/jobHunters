@@ -18,6 +18,9 @@ export const WARNING_CODES = [
   'document_create_failed',
   'ai_task_failed',
   'folder_trash_failed',
+  'job_folder_shared',
+  'job_folder_has_other_items',
+  'job_folder_trash_failed',
 ] as const;
 export type WarningCode = (typeof WARNING_CODES)[number];
 

@@ -143,11 +143,10 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
     },
 
     deleteJob: (args) => {
-      const id = requireString(asRecord(args, 'deleteJob'), 'id', 'deleteJob');
-      return c.lock.run(() => {
-        c.jobImportService.deleteAwaiting(id);
-        return null;
-      });
+      const input = asRecord(args, 'deleteJob');
+      const id = requireString(input, 'id', 'deleteJob');
+      const trashFolder = optionalBoolean(input, 'trashFolder', 'deleteJob') ?? false;
+      return c.lock.run(() => c.jobRemover.remove(id, { trashFolder }));
     },
 
     listAiTasks: () => c.aiTaskService.list(),

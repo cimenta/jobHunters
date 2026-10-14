@@ -456,13 +456,24 @@ describe('job import api', () => {
     expect(api('importJob', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
   });
 
-  it('deleteJob deletes an awaiting job, refuses a normal one', () => {
+  it('deleteJob deletes a job without an application, refuses one with an application and checks the arguments', () => {
     const { api, container } = setup(pages());
     const saved = api('importJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
     const queued = api('importJob', { url: BLOCKED }) as { data: { job: { id: string } } };
+    container.applications.insert(makeApplication({ id: 'a-guard', job_id: saved.data.job.id }));
     expect(api('deleteJob', { id: saved.data.job.id })).toMatchObject({ ok: false, error: { code: 'job_not_deletable' } });
-    expect(api('deleteJob', { id: queued.data.job.id })).toEqual({ ok: true, data: null });
+    expect(api('deleteJob', { id: queued.data.job.id })).toEqual({ ok: true, data: { removedTasks: 1, folderTrashed: false, warnings: [] } });
     expect(container.jobs.list().map((j) => j.id)).toEqual([saved.data.job.id]);
+    expect(api('deleteJob', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('deleteJob', { id: saved.data.job.id, trashFolder: 'yes' })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('deleteJob moves the saved ad folder to the trash when asked and when it is safe', () => {
+    const { api, container } = setup(pages());
+    const saved = api('importJob', { url: CLEAN_URL }) as { data: { job: { id: string } } };
+    expect(container.jobs.get(saved.data.job.id)!.folder_url).not.toBe('');
+    expect(api('deleteJob', { id: saved.data.job.id, trashFolder: true })).toEqual({ ok: true, data: { removedTasks: 0, folderTrashed: true, warnings: [] } });
+    expect(container.jobs.list()).toEqual([]);
   });
 
   it('removeAiTask of an import task removes the awaiting job', () => {

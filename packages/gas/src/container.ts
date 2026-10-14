@@ -11,6 +11,7 @@ import {
   HistoryService,
   InMemoryKeyValueStore,
   JobImportService,
+  JobRemover,
   JobService,
   JobStatusService,
   QuestionService,
@@ -167,7 +168,12 @@ export function buildContainer(deps: ContainerDeps) {
     experience: () => settings.get().settings.candidate_experience,
     defaultLanguage: () => settings.get().settings.default_document_language,
   });
-  const jobImportService = new JobImportService({ jobService, aiTasks: aiTaskService, jobs, tasks, companies, applications });
+  const jobImportService = new JobImportService({ jobService, aiTasks: aiTaskService });
+  const jobRemover = new JobRemover({
+    jobs, tasks, applications,
+    drive: deps.drive,
+    onError: (where, error) => log('jobs', where, error instanceof Error ? error.message : String(error)),
+  });
   const availabilityService = new AvailabilityService({
     jobs, applications, fetcher: deps.fetcher, now: deps.now, clock: deps.clock ?? Date.now, log,
     settings: () => {
@@ -221,6 +227,7 @@ export function buildContainer(deps: ContainerDeps) {
     aiTaskService,
     applicationPreparer,
     jobImportService,
+    jobRemover,
     tasks,
     availabilityService,
     scheduler,

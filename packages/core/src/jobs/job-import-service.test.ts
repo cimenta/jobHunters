@@ -34,7 +34,7 @@ function setup(pages: Record<string, FakePage> = {}, experience = '') {
     newId, now: () => NOW, experience: () => experience, language: () => 'en',
     prompt: (type) => DEFAULT_PROMPTS.find((p) => p.type === type)!.instruction,
   });
-  const service = new JobImportService({ jobService, aiTasks, jobs, tasks, companies, applications });
+  const service = new JobImportService({ jobService, aiTasks });
   return { service, jobs, tasks, fetcher, applications, aiTasks };
 }
 
@@ -74,29 +74,6 @@ describe('JobImportService', () => {
     expect(service.importOne('hello world')).toEqual({ status: 'invalid' });
     expect(service.importOne('ftp://example.com/x')).toEqual({ status: 'invalid' });
     expect(fetcher.calls).toEqual([]);
-  });
-
-  it('deleteAwaiting removes the job and its tasks; refuses other statuses', () => {
-    const { service, jobs, tasks } = setup({ [URL1]: { status: 200, html: AD }, [URL2]: { status: 429, html: '' } });
-    const saved = service.importOne(URL1);
-    const queued = service.importOne(URL2);
-    if (saved.status !== 'saved' || queued.status !== 'queued') throw new Error('unexpected');
-    expect(errorOf(() => service.deleteAwaiting(saved.job.id)).code).toBe('job_not_deletable');
-    expect(errorOf(() => service.deleteAwaiting('nope')).code).toBe('job_not_found');
-    tasks.update(queued.task.id, { status: 'in_progress' });
-    service.deleteAwaiting(queued.job.id);
-    expect(jobs.get(queued.job.id)).toBeUndefined();
-    expect(tasks.list()).toHaveLength(0);
-    expect(jobs.get(saved.job.id)).toBeDefined();
-  });
-
-  it('refuses to delete a job that has an application', () => {
-    const { service, jobs, applications } = setup({ [URL2]: { status: 429, html: '' } });
-    const queued = service.importOne(URL2);
-    if (queued.status !== 'queued') throw new Error('unexpected');
-    applications.insert(makeApplication({ id: 'a1', job_id: queued.job.id }));
-    expect(errorOf(() => service.deleteAwaiting(queued.job.id)).code).toBe('job_not_deletable');
-    expect(jobs.get(queued.job.id)).toBeDefined();
   });
 });
 

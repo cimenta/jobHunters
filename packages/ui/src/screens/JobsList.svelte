@@ -3,7 +3,6 @@
   import { api } from '../api';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
-  import ConfirmDialog from '../components/ConfirmDialog.svelte';
   import EmptyState from '../components/EmptyState.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
@@ -44,7 +43,7 @@
   let busy = $state<string[]>([]);
   /** Jobs just prepared: the box stays ticked and locked until the refreshed list drops it. */
   let prepared = $state<string[]>([]);
-  let deleting = $state<{ id: string; title: string } | undefined>();
+  let deleting = $state<{ id: string; title: string; folder_url: string } | undefined>();
 
   /** The checkbox is offered only for an ad that was never evaluated and has no application. */
   function canEvaluate(job: JobRow): boolean {
@@ -110,12 +109,6 @@
     invalidate();
   }
 
-  async function remove(target: { id: string; title: string }): Promise<void> {
-    await api.deleteJob(target.id);
-    toast.success(tr('ui.job.deleted', { title: shorten(target.title, 60) }));
-    invalidate();
-  }
-
   function clear(): void {
     text = '';
     availability = '';
@@ -124,6 +117,7 @@
     saveUiState({ jobs_hide_applied: false });
     document.getElementById('job-search')?.focus();
   }
+  import DeleteJobDialog from './DeleteJobDialog.svelte';
 </script>
 
 <div class="stack" data-ui="jobs">
@@ -205,8 +199,9 @@
                   {/if}
                   {#if job.status !== 'awaiting'}
                     <Button variant="ghost" label={tr('ui.jobs.card.check')} ui="job.{job.id}.check" onclick={() => check(job)}><Icon name="check" size={18} /></Button>
-                  {:else}
-                    <Button variant="ghost" label={tr('ui.jobs.card.delete')} ui="job.{job.id}.delete" onclick={() => (deleting = { id: job.id, title: job.title })}><Icon name="trash" size={18} /></Button>
+                  {/if}
+                  {#if job.application_count === 0}
+                    <Button variant="ghost" label={tr('ui.jobs.card.delete')} ui="job.{job.id}.delete" onclick={() => (deleting = { id: job.id, title: job.title, folder_url: job.folder_url })}><Icon name="trash" size={18} /></Button>
                   {/if}
                 </div>
                 {#if canEvaluate(job)}
@@ -243,7 +238,9 @@
   {/if}
 </div>
 
-<ConfirmDialog open={deleting !== undefined} text={tr('ui.job.deleteConfirm', { title: deleting?.title ?? '' })} onconfirm={() => (deleting ? remove(deleting) : undefined)} onclose={() => (deleting = undefined)} />
+{#if deleting !== undefined}
+  <DeleteJobDialog open={true} job={deleting} onclose={() => (deleting = undefined)} />
+{/if}
 
 <style>
   .filters-wrap { container-type: inline-size; }

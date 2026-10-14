@@ -9,8 +9,7 @@
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
-  import ConfirmDialog from '../components/ConfirmDialog.svelte';
-  import { formatDate, safeHttpUrl, shorten } from '../lib/format';
+  import { formatDate, safeHttpUrl } from '../lib/format';
   import { jobFacts } from '../lib/job-facts';
   import { tr } from '../lib/i18n.svelte';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
@@ -22,6 +21,7 @@
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
   import CreateApplicationDialog from './CreateApplicationDialog.svelte';
+  import DeleteJobDialog from './DeleteJobDialog.svelte';
   import MatchTab from './tabs/MatchTab.svelte';
 
   let { id }: { id: string } = $props();
@@ -66,14 +66,6 @@
     invalidate();
   }
 
-  async function remove(): Promise<void> {
-    const job = detail.data?.job;
-    await api.deleteJob(id);
-    toast.success(tr('ui.job.deleted', { title: shorten(job?.title ?? '', 60) }));
-    invalidate();
-    navigate(paths.jobs);
-  }
-
   /** The labelled facts of the ad; only the filled ones are listed. */
   const facts = $derived(detail.data ? jobFacts(detail.data.job) : []);
 </script>
@@ -87,6 +79,7 @@
     {@const job = detail.data.job}
     {@const current = jobStatus(job)}
     {@const jobUrl = safeHttpUrl(job.url)}
+    {@const canDelete = detail.data.applications.length === 0}
     <Card ui="job-detail.summary">
       <div class="page-title">
         <h1>{job.title}</h1>
@@ -101,7 +94,7 @@
               {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
             </select>
           {/if}
-          {#if job.status !== 'awaiting' || jobUrl !== '' || job.folder_url !== ''}
+          {#if job.status !== 'awaiting' || jobUrl !== '' || job.folder_url !== '' || canDelete}
             <div class="actions" role="group" aria-label={tr('ui.job.actions')} data-ui="job-detail.actions">
               {#if job.status !== 'awaiting'}
                 <Button label={tr('ui.job.refresh')} ui="job-detail.refresh" onclick={refresh}><Icon name="refresh" size={18} /></Button>
@@ -112,6 +105,9 @@
               {/if}
               {#if job.folder_url !== ''}
                 <a class="btn tool" data-ui="job-detail.folder-link" href={job.folder_url} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.job.folder')} title={tr('ui.job.folder')}><Icon name="folder" size={18} /></a>
+              {/if}
+              {#if canDelete && job.status !== 'awaiting'}
+                <Button label={tr('ui.job.deleteIcon')} ui="job-detail.delete-icon" onclick={() => (deleting = true)}><Icon name="trash" size={18} /></Button>
               {/if}
             </div>
           {/if}
@@ -143,7 +139,13 @@
         <p>{tr('ui.job.awaitingNotice')}</p>
         <div><Button variant="danger" ui="job-detail.delete" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button></div>
       </Card>
-      <ConfirmDialog open={deleting} text={tr('ui.job.deleteConfirm', { title: job.title })} onconfirm={remove} onclose={() => (deleting = false)} />
+    {:else if canDelete}
+      <div class="danger-zone" data-ui="job-detail.danger-zone">
+        <Button variant="danger" ui="job-detail.delete-button" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button>
+      </div>
+    {/if}
+    {#if canDelete}
+      <DeleteJobDialog open={deleting} job={{ id: job.id, title: job.title, folder_url: job.folder_url }} onclose={() => (deleting = false)} ondeleted={() => navigate(paths.jobs)} />
     {/if}
 
     <Card ui="job-detail.tabs">
@@ -197,6 +199,7 @@
 
 <style>
   .description { white-space: pre-wrap; }
+  .danger-zone { padding-top: var(--space-4); border-top: 1px solid var(--border); }
   .summary { display: grid; --icons-w: calc(2 * var(--tap) + var(--space-2)); grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main side'; gap: var(--space-4); align-items: start; }
   .main { grid-area: main; min-width: 0; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding-left: var(--space-4); border-left: 1px solid var(--border); }

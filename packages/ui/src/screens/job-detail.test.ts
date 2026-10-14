@@ -277,8 +277,9 @@ describe('JobDetail awaiting the AI', () => {
     expect(screen.queryByRole('button', { name: 'Create application' })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'Match' })).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Delete job' }));
-    const dialog = await screen.findByRole('dialog', { name: 'Are you sure?' });
-    expect(within(dialog).getByText(/waiting for the AI and has no data yet/)).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog', { name: 'Delete job' });
+    expect(within(dialog).getByText(/will be deleted together with its AI tasks/)).toBeInTheDocument();
+    expect(document.querySelector('[data-ui="delete-job.trash-folder"]')).toBeNull();
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
     await waitFor(async () => expect((await api.listJobs()).some((j) => j.id === job.id)).toBe(false));
     expect(toasts.some((t) => t.text.startsWith('Job "') && t.text.endsWith('" deleted'))).toBe(true);
@@ -301,5 +302,36 @@ describe('JobDetail awaiting the AI', () => {
     await screen.findByRole('heading', { name: 'Android Developer' });
     expect(screen.queryByRole('button', { name: 'Delete job' })).toBeNull();
     expect(screen.getByRole('button', { name: 'Create application' })).toBeInTheDocument();
+  });
+});
+
+describe('Delete job (detail)', () => {
+  it('offers the trash icon under the status and the red button only for a job without an application', async () => {
+    useDevBackend();
+    const jobs = await api.listJobs();
+    const free = jobs.find((j) => j.application_count === 0 && j.status !== 'awaiting')!;
+    const used = jobs.find((j) => j.application_count > 0)!;
+    const first = render(JobDetail, { id: used.id });
+    await first.findByLabelText('Status of the ad');
+    expect(document.querySelector('[data-ui="job-detail.delete-icon"]')).toBeNull();
+    expect(document.querySelector('[data-ui="job-detail.delete-button"]')).toBeNull();
+    first.unmount();
+    const second = render(JobDetail, { id: free.id });
+    await second.findByLabelText('Status of the ad');
+    const icon = document.querySelector('[data-ui="job-detail.delete-icon"]')!;
+    expect(icon.closest('[data-ui="job-detail.actions"]')).not.toBeNull();
+    expect(document.querySelector('[data-ui="job-detail.delete-button"]')).not.toBeNull();
+  });
+
+  it('deletes the job from the icon and goes back to the list', async () => {
+    useDevBackend();
+    const free = (await api.listJobs()).find((j) => j.application_count === 0 && j.status !== 'awaiting')!;
+    render(JobDetail, { id: free.id });
+    await screen.findByLabelText('Status of the ad');
+    await fireEvent.click(document.querySelector('[data-ui="job-detail.delete-icon"]')!);
+    const dialog = await screen.findByRole('dialog', { name: 'Delete job' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(async () => expect((await api.listJobs()).some((j) => j.id === free.id)).toBe(false));
+    await waitFor(() => expect(router.current.name).toBe('jobs'));
   });
 });

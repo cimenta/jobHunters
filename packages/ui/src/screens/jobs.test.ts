@@ -752,13 +752,13 @@ describe('JobsList card', () => {
     const open = within(actions).getByRole('link', { name: 'Open original ad' });
     expect(open).toHaveAttribute('target', '_blank');
     expect(open).toHaveAttribute('rel', 'noopener noreferrer');
-    expect(within(actions).queryByRole('button', { name: 'Delete job' })).toBeNull();
+    expect(within(actions).getByRole('button', { name: 'Delete job' })).toBeInTheDocument();
     await fireEvent.click(within(actions).getByRole('button', { name: 'Check availability' }));
     await waitFor(() => expect(toasts.some((t) => t.text.includes(`"${plain.title}"`) && /ad/.test(t.text))).toBe(true));
     expect(router.current.name).not.toBe('job');
   });
 
-  it('shows the trash icon only for an awaiting job, confirms, and deletes it', async () => {
+  it('confirms and deletes an awaiting job with the trash icon of its card', async () => {
     await setup();
     await api.importJob('https://blocked.example/job/1');
     render(JobsList);
@@ -894,5 +894,54 @@ describe('JobsList card', () => {
       await waitFor(() => expect(toasts.some((t) => t.kind === 'warning' && t.text.includes('resume'))).toBe(true));
       spy.mockRestore();
     });
+  });
+});
+
+describe('Delete job (list)', () => {
+  it('shows the trash icon only on jobs without an application', async () => {
+    useDevBackend();
+    render(JobsList);
+    await screen.findByText('Android Developer');
+    const rows = await api.listJobs();
+    expect(rows.some((job) => job.application_count > 0)).toBe(true);
+    for (const job of rows) {
+      const icon = document.querySelector(`[data-ui="job.${job.id}.delete"]`);
+      if (job.application_count === 0) expect(icon).not.toBeNull();
+      else expect(icon).toBeNull();
+    }
+  });
+
+  it('deletes a job without an application after the confirmation and shows a notice', async () => {
+    const backend = useDevBackend();
+    const created = await api.saveJob({ url: 'https://example.com/jobs/delete-me', text: 'Delete me\n\nA short ad text for the test.', overrides: { title: 'Delete me', company: 'Test Co' } });
+    render(JobsList);
+    await screen.findByText('Delete me');
+    await fireEvent.click(document.querySelector(`[data-ui="job.${created.job.id}.delete"]`)!);
+    const dialog = await screen.findByRole('dialog', { name: 'Delete job' });
+    expect(within(dialog).getByText(/will be deleted together with its AI tasks/)).toBeInTheDocument();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(backend.container.jobs.get(created.job.id)).toBeUndefined());
+    expect(toasts.some((t) => t.kind === 'success' && t.text.startsWith('Job "Delete me" deleted'))).toBe(true);
+  });
+
+  it('moves the saved ad folder to the trash when the box is ticked, and keeps it when the box is cleared', async () => {
+    const backend = useDevBackend();
+    const first = await api.saveJob({ url: 'https://example.com/jobs/trash-me', text: 'Trash me\n\nA short ad text for the test.', overrides: { title: 'Trash me', company: 'Test Co' } });
+    const second = await api.saveJob({ url: 'https://example.com/jobs/keep-me', text: 'Keep me\n\nA short ad text for the test.', overrides: { title: 'Keep me', company: 'Test Co' } });
+    expect(backend.container.jobs.get(first.job.id)!.folder_url).not.toBe('');
+    render(JobsList);
+    await screen.findByText('Trash me');
+    await fireEvent.click(document.querySelector(`[data-ui="job.${first.job.id}.delete"]`)!);
+    let dialog = await screen.findByRole('dialog', { name: 'Delete job' });
+    const box = within(dialog).getByLabelText(/Also move the folder with the saved ad/) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(toasts.some((t) => t.text === 'Job "Trash me" deleted. The ad folder was moved to the Drive trash.')).toBe(true));
+
+    await fireEvent.click(document.querySelector(`[data-ui="job.${second.job.id}.delete"]`)!);
+    dialog = await screen.findByRole('dialog', { name: 'Delete job' });
+    await fireEvent.click(within(dialog).getByLabelText(/Also move the folder with the saved ad/));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    await waitFor(() => expect(toasts.some((t) => t.text === 'Job "Keep me" deleted')).toBe(true));
   });
 });

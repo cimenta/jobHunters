@@ -18,6 +18,8 @@ export interface DriveGateway {
   createDocument(name: string, folderId: string): FileRef;
   /** Moves a folder (with its content) to the Drive trash, where it can still be restored. */
   trashFolder(folderId: string): void;
+  /** The names of the direct subfolders of a folder and the number of files directly in it. */
+  listChildren(folderId: string): { folders: string[]; files: number };
   /** Replaces every {{key}} with the value, literally. */
   replaceInDocument(docId: string, values: Record<string, string>): void;
   exportPdf(docId: string, folderId: string, name: string): FileRef;

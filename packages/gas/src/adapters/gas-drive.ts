@@ -7,8 +7,14 @@ function escapeRegExp(text: string): string {
 export class GasDrive implements DriveGateway {
   ensureFolder(parentId: string | null, name: string): FolderRef {
     const parent = parentId === null ? DriveApp.getRootFolder() : DriveApp.getFolderById(parentId);
+    // DriveApp also lists folders that are in the trash; reusing one would put new data into the trash.
     const existing = parent.getFoldersByName(name);
-    const folder = existing.hasNext() ? existing.next() : parent.createFolder(name);
+    let folder: GoogleAppsScript.Drive.Folder | undefined;
+    while (folder === undefined && existing.hasNext()) {
+      const candidate = existing.next();
+      if (!candidate.isTrashed()) folder = candidate;
+    }
+    folder ??= parent.createFolder(name);
     return { id: folder.getId(), url: folder.getUrl() };
   }
 
@@ -19,6 +25,22 @@ export class GasDrive implements DriveGateway {
 
   trashFolder(folderId: string): void {
     DriveApp.getFolderById(folderId).setTrashed(true);
+  }
+
+  listChildren(folderId: string): { folders: string[]; files: number } {
+    const folder = DriveApp.getFolderById(folderId);
+    const folders: string[] = [];
+    const subfolders = folder.getFolders();
+    while (subfolders.hasNext()) {
+      const child = subfolders.next();
+      if (!child.isTrashed()) folders.push(child.getName());
+    }
+    let files = 0;
+    const children = folder.getFiles();
+    while (children.hasNext()) {
+      if (!children.next().isTrashed()) files += 1;
+    }
+    return { folders, files };
   }
 
   createDocument(name: string, folderId: string): FileRef {

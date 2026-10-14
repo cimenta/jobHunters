@@ -1,8 +1,6 @@
-import { NotFoundError, ValidationError } from '../errors';
 import type { AiTaskService } from '../applications/ai-task-service';
-import type { Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
-import type { AiTask, Application, Company, Job } from '../types';
+import type { AiTask, Company, Job } from '../types';
 import type { JobService } from './job-service';
 import { parseUrl } from './url';
 
@@ -15,10 +13,6 @@ export type ImportResult =
 export interface JobImportDeps {
   jobService: JobService;
   aiTasks: AiTaskService;
-  jobs: Repository<Job>;
-  tasks: Repository<AiTask>;
-  companies: Repository<Company>;
-  applications: Repository<Application>;
 }
 
 export class JobImportService {
@@ -53,18 +47,5 @@ export class JobImportService {
     const job = this.deps.jobService.createPlaceholder(url);
     const task = this.deps.aiTasks.requestImportAndMatch(job.id);
     return { status: 'queued', job, task, fetchStatus: 0 };
-  }
-
-  /** Deletes a job that still waits for the AI together with its tasks. */
-  deleteAwaiting(id: string): void {
-    const { jobs, tasks, applications } = this.deps;
-    const job = jobs.get(id);
-    if (!job) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
-    if (job.status !== 'awaiting') throw new ValidationError('job_not_deletable', `Job ${id} is not awaiting`, { id });
-    if (applications.list().some((application) => application.job_id === id)) {
-      throw new ValidationError('job_not_deletable', `Job ${id} has an application`, { id });
-    }
-    for (const task of tasks.list().filter((t) => t.job_id === id)) tasks.remove(task.id);
-    jobs.remove(id);
   }
 }
