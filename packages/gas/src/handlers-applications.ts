@@ -86,7 +86,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.applicationFactory.addDocument(applicationId, templateId));
     },
 
-    listApplications: () => applicationRows(c.applications.list(), c.jobs.list(), c.companies.list()),
+    listApplications: () => applicationRows(c.applications.list(), c.jobs.list(), c.companies.list(), c.history.list()),
 
     listJobs: () => jobRows(c.jobs.list(), c.companies.list(), c.applications.list(), c.tasks.list()),
 

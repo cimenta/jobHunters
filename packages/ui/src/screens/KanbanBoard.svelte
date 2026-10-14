@@ -1,13 +1,15 @@
 <script lang="ts">
-  import { canTransition, isApplicationStatus, sortBoard, type ApplicationStatus, type StatusTransitions } from '@jobhunters/core';
+  import { canTransition, isApplicationStatus, sortApplications, sortBoard, sortKeysFor, type ApplicationSortKey, type ApplicationStatus, type SortChoice, type StatusTransitions } from '@jobhunters/core';
   import { api } from '../api';
   import type { ApplicationRow } from '../api/types';
+  import ApplicationFacts from '../components/ApplicationFacts.svelte';
   import Button from '../components/Button.svelte';
   import Dialog from '../components/Dialog.svelte';
   import Field from '../components/Field.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, todayLocal } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
+  import { sortLabel } from '../lib/labels';
   import { notifyError } from '../lib/notify';
   import { paths } from '../lib/route';
   import { statusStyle } from '../lib/status';
@@ -20,9 +22,12 @@
     /** Whether columns without cards are left out. */
     hideEmpty: boolean;
     transitions: StatusTransitions;
+    /** How each column is ordered; a status without an entry is ordered by hand. */
+    sorts: Record<string, SortChoice>;
+    onsort: (status: ApplicationStatus, choice: SortChoice) => void;
     onmoved: () => void;
   }
-  let { rows, statuses, hideEmpty, transitions, onmoved }: Props = $props();
+  let { rows, statuses, hideEmpty, transitions, sorts, onsort, onmoved }: Props = $props();
 
   let dragging = $state<ApplicationRow>();
   let over = $state<string>();
@@ -30,7 +35,16 @@
   let remindAt = $state('');
   const today = todayLocal();
 
-  const columns = $derived(statuses.map((status) => ({ status, cards: sortBoard(rows.filter((row) => row.status === status)) })));
+  const now = Date.now();
+  const choiceOf = (status: string): SortChoice => sorts[status] ?? { by: 'manual', up: false };
+
+  const columns = $derived(
+    statuses.map((status) => {
+      const choice = choiceOf(status);
+      const own = rows.filter((row) => row.status === status);
+      return { status, choice, cards: choice.by === 'manual' ? sortBoard(own) : sortApplications(own, choice.by, choice.up) };
+    }),
+  );
   const shown = $derived(hideEmpty ? columns.filter((column) => column.cards.length > 0) : columns);
 
   /** Whether a card may be put into the column: the same column (a reorder) or a move the rules allow. */
@@ -54,6 +68,8 @@
   }
 
   async function place(card: ApplicationRow, to: ApplicationStatus, index: number): Promise<void> {
+    // A column ordered by a field has no hand-placed order: a drop inside it changes nothing.
+    if (card.status === to && choiceOf(to).by !== 'manual') return;
     if (!allows(card, to)) {
       toast.warning(tr('ui.kanban.notAllowed', { label: card.label, from: statusStyle(card.status).text, to: statusStyle(to).text }));
       return;
@@ -90,7 +106,8 @@
     if (!card) return;
     const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
     const after = targetId !== undefined && rect.height > 0 && event.clientY > rect.top + rect.height / 2;
-    void place(card, status, indexAt(cards, card, targetId, after));
+    const sorted = choiceOf(status).by !== 'manual';
+    void place(card, status, sorted ? 0 : indexAt(cards, card, targetId, after));
   }
 </script>
 
@@ -112,6 +129,27 @@
       <header class="head">
         <StatusBadge status={column.status} />
         <span class="muted small">{column.cards.length}</span>
+        <span class="sortbar">
+          <select
+            data-ui="kanban.{column.status}.sort"
+            class="input sort"
+            aria-label={tr('ui.sort.by', { status: statusStyle(column.status).text })}
+            title={column.choice.by === 'manual' ? tr('ui.sort.tipManual') : tr('ui.kanban.sortedHint')}
+            value={column.choice.by}
+            onchange={(event) => onsort(column.status, { by: event.currentTarget.value as ApplicationSortKey, up: false })}
+          >
+            {#each sortKeysFor(column.status) as key (key)}<option value={key}>{sortLabel(key)}</option>{/each}
+          </select>
+          <button
+            data-ui="kanban.{column.status}.sort-dir"
+            type="button"
+            class="dir"
+            disabled={column.choice.by === 'manual'}
+            aria-label={tr('ui.sort.direction')}
+            title={tr('ui.sort.direction')}
+            onclick={() => onsort(column.status, { ...column.choice, up: !column.choice.up })}
+          >{column.choice.up ? '↑' : '↓'}</button>
+        </span>
       </header>
       {#each column.cards as card (card.id)}
         <article
@@ -134,6 +172,7 @@
         >
           <a data-ui="kanban.card.{card.id}.link" class="title" draggable="false" href={paths.application(card.id)}>{card.label}</a>
           <span class="muted small">{[card.job_title, card.company_name].filter((part) => part !== '').join(' · ')}</span>
+          <ApplicationFacts row={card} by={column.choice.by} ui="kanban.card.{card.id}" {now} />
           {#if card.last_activity_at !== ''}<span class="muted small">{formatDate(card.last_activity_at)}</span>{/if}
           {#if targets(card).length > 0}
             <select data-ui="kanban.card.{card.id}.move"
@@ -174,7 +213,11 @@
   .column.allowed { border-color: var(--accent); }
   .column.blocked { opacity: 0.45; }
   .column.over.allowed { background: var(--accent-soft); }
-  .head { display: flex; align-items: center; justify-content: space-between; }
+  .head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+  .sortbar { display: flex; gap: var(--space-1); align-items: center; margin-left: auto; }
+  .sort { min-height: 32px; max-width: 130px; padding: 0 var(--space-1); font-size: var(--text-s); }
+  .dir { width: 32px; min-height: 32px; padding: 0; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); cursor: pointer; }
+  .dir:disabled { opacity: 0.45; cursor: default; }
   .card { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); cursor: grab; }
   .card.dragging { opacity: 0.4; }
   .title { font-weight: 600; }

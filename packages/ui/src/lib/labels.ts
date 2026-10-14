@@ -86,6 +86,10 @@ export function commLabel(field: 'direction' | 'summary' | 'when', kind: string)
   return known === 'message' ? tr(`ui.comm.${field}`) : tr(`ui.comm.${field}.${known}`);
 }
 
+export function sortLabel(key: string): string {
+  return tr(`ui.sort.${key}`);
+}
+
 export const AI_TASK_TYPES = ['import_job', 'import_match_job', 'match_job', 'resume_tailor', 'cover_letter', 'other', 'answer_question'];
 
 export function aiTaskTypeLabel(type: string): string {

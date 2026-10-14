@@ -37,7 +37,7 @@ describe('Kanban', () => {
     await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_status_list).toEqual(['sent']));
     await fireEvent.click(screen.getByLabelText('Kanban'));
     await screen.findByRole('group', { name: 'Applications by status' });
-    expect(document.querySelectorAll('[data-ui^="kanban."]:not([data-ui^="kanban.card"])').length).toBe(8);
+    expect(document.querySelectorAll('[data-ui^="kanban."]:not([data-ui^="kanban.card"]):not([data-ui*=".sort"])').length).toBe(8);
     await fireEvent.click(within(screen.getByRole('group', { name: 'Status' })).getByLabelText('Waiting'));
     await waitFor(() => expect(document.querySelector('[data-ui="kanban.sent"]')).toBeNull());
     expect(column('waiting')).not.toBeNull();
@@ -234,5 +234,49 @@ describe('Allowed status changes', () => {
       await fireEvent.click(within(matrix).getByLabelText(`Allow moving from Sent to ${to}`));
     }
     expect(await within(matrix).findByText(/No move out of: Sent/)).toBeInTheDocument();
+  });
+});
+
+describe('List sort', () => {
+  async function list(): Promise<void> {
+    useDevBackend();
+    await loadApp();
+    render(ApplicationsList);
+    await screen.findByLabelText('Sort by');
+  }
+
+  it('offers all sort options, keeps the default order and remembers a choice', async () => {
+    await list();
+    const select = screen.getByLabelText('Sort by') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value)).toEqual(['default', 'match', 'created', 'salary', 'sent', 'waiting']);
+    expect(select.value).toBe('default');
+    expect(select.title).toMatch(/^Default order is the order of the list as it was/);
+    expect((document.querySelector('[data-ui="applications.sort-dir"]') as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.change(select, { target: { value: 'match' } });
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_list_sort).toEqual({ by: 'match', up: false }));
+    await fireEvent.click(document.querySelector('[data-ui="applications.sort-dir"]')!);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_list_sort).toEqual({ by: 'match', up: true }));
+  });
+
+  it('shows the match and the salary on every row and orders the rows by the chosen field', async () => {
+    await list();
+    expect(document.querySelectorAll('[data-ui^="application."][data-ui$=".match"]').length).toBeGreaterThan(0);
+    await fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'match' } });
+    const matches = [...document.querySelectorAll('[data-ui^="application."][data-ui$=".match"]')].map((el) => Number(/(\d+) %/.exec(el.textContent ?? '')?.[1] ?? -1));
+    const sorted = [...matches].sort((a, b) => (a === -1 ? 1 : b === -1 ? -1 : b - a));
+    expect(matches).toEqual(sorted);
+  });
+
+  it('keeps the board choices apart from the list choice', async () => {
+    await list();
+    await fireEvent.change(screen.getByLabelText('Sort by'), { target: { value: 'salary' } });
+    await fireEvent.click(screen.getByLabelText('Kanban'));
+    await screen.findByRole('group', { name: 'Applications by status' });
+    await fireEvent.change(document.querySelector('[data-ui="kanban.draft.sort"]')!, { target: { value: 'created' } });
+    await waitFor(async () => {
+      const saved = (await api.getSettings()).settings.ui_state;
+      expect(saved.applications_list_sort).toEqual({ by: 'salary', up: false });
+      expect(saved.applications_board_sort).toEqual({ draft: { by: 'created', up: false } });
+    });
   });
 });

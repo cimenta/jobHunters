@@ -114,6 +114,7 @@
       <li>{tr('ui.help.applications.i7')}</li>
       <li>{tr('ui.help.applications.i8')}</li>
       <li>{tr('ui.help.applications.i9')}</li>
+      <li>{tr('ui.help.applications.i10')}</li>
     </ul>
     <Screenshot ui="help.shot.applications" src={applicationsShot} caption={tr('ui.help.shot.applications')} />
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>

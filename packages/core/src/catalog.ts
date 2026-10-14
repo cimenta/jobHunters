@@ -4,11 +4,24 @@ import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './
 import { parseUrl } from './jobs/url';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
-import type { AiTask, Application, Company, Job, Reminder } from './types';
+import type { AiTask, Application, Company, Job, Reminder, StatusHistoryEntry } from './types';
 
 export type JobRow = Job & { company_name: string; application_count: number; match_task_status: string; match_task_id: string };
 export type CompanyRow = Company & { job_count: number; application_count: number };
-export type ApplicationRow = Application & { job_title: string; company_name: string };
+export type ApplicationRow = Application & {
+  job_title: string;
+  company_name: string;
+  /** Of the job; null until the AI evaluated the match. */
+  match_percent: number | null;
+  salary_min: number | null;
+  salary_max: number | null;
+  salary_currency: string;
+  salary_period: string;
+  /** First entry of the status history; empty when there is none. */
+  created_at: string;
+  /** When the application went to waiting (only while it is waiting); empty otherwise. */
+  waiting_since: string;
+};
 
 const DESCRIPTION_PREVIEW = 200;
 
@@ -52,12 +65,35 @@ export function companyRows(companies: readonly Company[], jobs: readonly Job[],
   }));
 }
 
-export function applicationRows(applications: readonly Application[], jobs: readonly Job[], companies: readonly Company[]): ApplicationRow[] {
+/** `history` is optional: without it `created_at` and `waiting_since` are empty. */
+export function applicationRows(applications: readonly Application[], jobs: readonly Job[], companies: readonly Company[], history: readonly StatusHistoryEntry[] = []): ApplicationRow[] {
   const names = companyNames(companies);
   const byId = new Map(jobs.map((job) => [job.id, job]));
+  const created = new Map<string, string>();
+  const waitingStart = new Map<string, string>();
+  for (const entry of history) {
+    const first = created.get(entry.application_id);
+    if (first === undefined || entry.at < first) created.set(entry.application_id, entry.at);
+    // A reschedule (waiting to waiting) does not restart the waiting.
+    if (entry.to === 'waiting' && entry.from !== 'waiting') {
+      const latest = waitingStart.get(entry.application_id);
+      if (latest === undefined || entry.at > latest) waitingStart.set(entry.application_id, entry.at);
+    }
+  }
   return applications.map((application) => {
     const job = byId.get(application.job_id);
-    return { ...application, job_title: job?.title ?? '', company_name: job ? (names.get(job.company_id) ?? '') : '' };
+    return {
+      ...application,
+      job_title: job?.title ?? '',
+      company_name: job ? (names.get(job.company_id) ?? '') : '',
+      match_percent: job?.match_percent ?? null,
+      salary_min: job?.salary_min ?? null,
+      salary_max: job?.salary_max ?? null,
+      salary_currency: job?.salary_currency ?? '',
+      salary_period: job?.salary_period ?? '',
+      created_at: created.get(application.id) ?? '',
+      waiting_since: application.status === 'waiting' ? (waitingStart.get(application.id) ?? '') : '',
+    };
   });
 }
 

@@ -66,9 +66,10 @@ describe('sortJobs', () => {
 });
 
 describe('filterApplications', () => {
+  const job = { match_percent: null, salary_min: null, salary_max: null, salary_currency: '', salary_period: '', created_at: '', waiting_since: '' };
   const rows = [
-    { ...makeApplication({ id: 'a1', status: 'sent', label: 'Example – Android – #1 (2026-10)' }), job_title: 'Android Developer', company_name: 'Example s.r.o.' },
-    { ...makeApplication({ id: 'a2', status: 'weird' }), job_title: 'Analyst', company_name: 'Sample GmbH' },
+    { ...makeApplication({ id: 'a1', status: 'sent', label: 'Example – Android – #1 (2026-10)' }), ...job, job_title: 'Android Developer', company_name: 'Example s.r.o.' },
+    { ...makeApplication({ id: 'a2', status: 'weird' }), ...job, job_title: 'Analyst', company_name: 'Sample GmbH' },
   ];
   it('filters by status and text', () => {
     expect(filterApplications(rows, { text: '', status: 'sent' }).map((r) => r.id)).toEqual(['a1']);

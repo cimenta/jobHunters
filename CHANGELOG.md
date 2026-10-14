@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.1] - 2026-10-14
+
+- Every Kanban column has a menu by its name to sort its cards by match score, date created or salary, and for the columns after Draft also by date sent, and for Waiting by days waiting; an arrow button reverses the order. "Manual" is the order you set by dragging and is kept: while a column is sorted by a field, dragging inside it is off (moving a card in from another column still changes its status), and choosing Manual brings your own order back. Cards without a value are always last.
+- The list of applications has one sort menu with all the options and a reverse button.
+- Every card and list row now shows the match score and the salary of the ad ("No match yet" / "No salary" when it has none); when sorted by date created, date sent or days waiting, a line shows that value. The salary sort uses the maximum of the ad as a monthly amount.
+- The explanation of the sort ("Ordered by the field. Dragging inside this column is off; choose Manual to get your own order back.") shows when you hover over the sort menu, so it takes no room in the column.
+- The sort of each column and of the list is remembered.
+- No Setup is needed for this update.
+
 ## [0.16.0] - 2026-10-13
 
 - Every entry of an application's Timeline now has a round coloured icon (a flag for a status change, the icon of the channel for a message, a calendar for a meeting, a task sheet for homework, a check for a confirmation, a file or download for documents and PDFs, a bell for reminders) and a small arrow showing whether it came to you or went from you. The filter chips carry the same icons.

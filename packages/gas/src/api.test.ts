@@ -280,6 +280,16 @@ describe('applications api', () => {
     expect(detail.data.timeline.map((e) => e.type)).toEqual(expect.arrayContaining(['meeting', 'message']));
   });
 
+  it('lists applications with the job data and the created date', () => {
+    const { api, jobId } = prepared();
+    api('createApplication', { jobId });
+    const listed = api('listApplications') as { ok: true; data: { created_at: string; waiting_since: string; match_percent: number | null; salary_period: string }[] };
+    expect(listed.data).toHaveLength(1);
+    expect(listed.data[0]!.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(listed.data[0]!.waiting_since).toBe('');
+    expect(listed.data[0]).toHaveProperty('salary_period');
+  });
+
   it('answers questions within the limit and manages reminders', () => {
     const { api, jobId } = prepared();
     const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;

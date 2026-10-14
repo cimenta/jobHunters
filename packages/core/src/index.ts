@@ -1,4 +1,5 @@
 export * from './application-service';
+export * from './application-sort';
 export * from './availability';
 export * from './applications';
 export * from './catalog';

@@ -3,7 +3,7 @@ import { applicationRows, buildDashboard, buildMenuCounts, CatalogService, compa
 import { InMemoryRepository } from './repository';
 import { errorOf } from './testing/errors';
 import { makeApplication, makeCompany, makeJob, makeReminder } from './testing/fixtures';
-import type { AiTask, Company, Job } from './types';
+import type { AiTask, Company, Job, StatusHistoryEntry } from './types';
 
 const companies = [makeCompany({ id: 'c1', name: 'Example s.r.o.' }), makeCompany({ id: 'c2', name: 'Sample GmbH' })];
 const jobs = [
@@ -46,6 +46,32 @@ describe('views', () => {
     expect(applicationRows(applications, jobs, companies).map((r) => [r.id, r.job_title, r.company_name])).toEqual([
       ['a1', 'Android Developer', 'Example s.r.o.'], ['a2', 'Android Developer', 'Example s.r.o.'], ['a3', 'Data Analyst', 'Example s.r.o.'],
     ]);
+  });
+  it('adds the match, the salary of the job and the dates from the status history', () => {
+    const rich = jobs.map((job) => (job.id === applications[0]!.job_id ? { ...job, match_percent: 82, salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month' } : job));
+    const history: StatusHistoryEntry[] = [
+      { application_id: 'a1', from: 'sent', to: 'waiting', at: '2026-10-09T10:00:00.000Z' },
+      { application_id: 'a1', from: '', to: 'draft', at: '2026-10-01T10:00:00.000Z' },
+      { application_id: 'a1', from: 'waiting', to: 'sent', at: '2026-10-05T10:00:00.000Z' },
+      { application_id: 'a1', from: 'sent', to: 'waiting', at: '2026-10-07T10:00:00.000Z' },
+    ];
+    const withStatus = applications.map((a) => (a.id === 'a1' ? { ...a, status: 'waiting' } : a));
+    const [first] = applicationRows(withStatus, rich, companies, history);
+    expect(first).toMatchObject({ match_percent: 82, salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month', created_at: '2026-10-01T10:00:00.000Z', waiting_since: '2026-10-09T10:00:00.000Z' });
+  });
+  it('keeps the start of waiting when the reminder of a waiting application is rescheduled', () => {
+    const history: StatusHistoryEntry[] = [
+      { application_id: 'a1', from: 'sent', to: 'waiting', at: '2026-10-01T10:00:00.000Z' },
+      { application_id: 'a1', from: 'waiting', to: 'waiting', at: '2026-10-12T10:00:00.000Z' },
+    ];
+    const [first] = applicationRows(applications.map((a) => (a.id === 'a1' ? { ...a, status: 'waiting' } : a)), jobs, companies, history);
+    expect(first!.waiting_since).toBe('2026-10-01T10:00:00.000Z');
+  });
+  it('leaves the dates empty without history and waiting_since empty unless the status is waiting', () => {
+    const [first] = applicationRows(applications, jobs, companies);
+    expect(first).toMatchObject({ created_at: '', waiting_since: '' });
+    const history: StatusHistoryEntry[] = [{ application_id: 'a1', from: 'sent', to: 'waiting', at: '2026-10-09T10:00:00.000Z' }];
+    expect(applicationRows(applications.map((a) => ({ ...a, status: 'sent' })), jobs, companies, history)[0]!.waiting_since).toBe('');
   });
 });
 

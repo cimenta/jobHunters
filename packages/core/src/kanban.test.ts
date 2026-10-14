@@ -109,11 +109,25 @@ describe('ApplicationService.move', () => {
 
 describe('ui state setting', () => {
   it('defaults, parses and drops unknown statuses', () => {
-    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_sort: 'newest' });
+    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
     expect(parseUiState('{"applications_hide_empty":true}')?.applications_hide_empty).toBe(true);
     expect(parseUiState('{"applications_hide_empty":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_status_board":["sent","nope","sent"]}'))
-      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_sort: 'newest' });
+      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
+  });
+
+  it('parses the sort choices of the board and the list, dropping what does not fit', () => {
+    const parsed = parseUiState('{"applications_board_sort":{"draft":{"by":"match","up":true},"waiting":{"by":"waiting","up":false},"nope":{"by":"match","up":false},"sent":{"by":"waiting","up":false}},"applications_list_sort":{"by":"salary","up":true}}');
+    expect(parsed?.applications_board_sort).toEqual({ draft: { by: 'match', up: true }, waiting: { by: 'waiting', up: false } });
+    expect(parsed?.applications_list_sort).toEqual({ by: 'salary', up: true });
+  });
+  it('falls back to the defaults for sort choices of a wrong shape', () => {
+    expect(parseUiState('{"applications_board_sort":[]}')).toBeUndefined();
+    expect(parseUiState('{"applications_board_sort":{"draft":"match"}}')).toBeUndefined();
+    expect(parseUiState('{"applications_board_sort":{"draft":{"by":"match","up":"yes"}}}')).toBeUndefined();
+    expect(parseUiState('{"applications_list_sort":{"by":"manual","up":false}}')).toBeUndefined();
+    expect(parseUiState('{"applications_list_sort":{"by":"match"}}')).toBeUndefined();
+    expect(parseUiState('{"applications_list_sort":5}')).toBeUndefined();
   });
 
   it('parses the Jobs screen choices and keeps defaults for a 0.12.2 value', () => {
