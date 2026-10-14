@@ -11,6 +11,10 @@ export type CompanyRow = Company & { job_count: number; application_count: numbe
 export type ApplicationRow = Application & {
   job_title: string;
   company_name: string;
+  /** Of the job. */
+  location: string;
+  is_remote: boolean;
+  is_hybrid: boolean;
   /** Of the job; null until the AI evaluated the match. */
   match_percent: number | null;
   salary_min: number | null;
@@ -86,6 +90,9 @@ export function applicationRows(applications: readonly Application[], jobs: read
       ...application,
       job_title: job?.title ?? '',
       company_name: job ? (names.get(job.company_id) ?? '') : '',
+      location: job?.location ?? '',
+      is_remote: job?.is_remote ?? false,
+      is_hybrid: job?.is_hybrid ?? false,
       match_percent: job?.match_percent ?? null,
       salary_min: job?.salary_min ?? null,
       salary_max: job?.salary_max ?? null,

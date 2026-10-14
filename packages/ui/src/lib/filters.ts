@@ -1,6 +1,12 @@
 import { foldDiacritics, type ApplicationRow, type JobRow, type JobSort } from '@jobhunters/core';
+import { formatWorkMode } from './format';
 
 const normalise = (text: string): string => foldDiacritics(text).toLowerCase();
+
+/** The ticked work modes as search words: in the current language and in English, so "remote" also finds them in a Czech interface. */
+function workModeWords(row: { is_remote?: boolean; is_hybrid?: boolean }): string {
+  return `${formatWorkMode(row)} ${row.is_remote ? 'remote' : ''} ${row.is_hybrid ? 'hybrid' : ''}`;
+}
 
 export interface JobFilters {
   text: string;
@@ -19,7 +25,7 @@ export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow
     if (filters.gig && !row.is_gig) return false;
     if (filters.hideApplied === true && row.application_count > 0) return false;
     if (filters.status !== undefined && filters.status !== '' && (row.status === '' ? 'new' : row.status) !== filters.status) return false;
-    return needle === '' || normalise(`${row.title} ${row.company_name} ${row.location}`).includes(needle);
+    return needle === '' || normalise(`${row.title} ${row.company_name} ${row.location} ${workModeWords(row)}`).includes(needle);
   });
 }
 
@@ -63,6 +69,6 @@ export function filterApplications(rows: readonly ApplicationRow[], filters: App
   return rows.filter((row) => {
     if (filters.status !== undefined && filters.status !== '' && row.status !== filters.status) return false;
     if (filters.statuses !== undefined && filters.statuses.length > 0 && !filters.statuses.includes(row.status)) return false;
-    return needle === '' || normalise(`${row.label} ${row.job_title} ${row.company_name}`).includes(needle);
+    return needle === '' || normalise(`${row.label} ${row.job_title} ${row.company_name} ${row.location} ${workModeWords(row)}`).includes(needle);
   });
 }

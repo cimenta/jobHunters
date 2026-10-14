@@ -19,6 +19,12 @@ describe('filterJobs', () => {
     expect(filterJobs(jobs, { ...none, text: 'brno' }).map((j) => j.id)).toEqual(['j2']);
     expect(filterJobs(jobs, { ...none, text: 'nothing like this' })).toEqual([]);
   });
+  it('also searches the work mode: Remote and Hybrid, in English and in the current language', () => {
+    const withModes = [{ ...jobs[0]!, is_remote: true }, { ...jobs[1]!, is_hybrid: true }];
+    expect(filterJobs(withModes, { ...none, text: 'remote' }).map((j) => j.id)).toEqual(['j1']);
+    expect(filterJobs(withModes, { ...none, text: 'HYBRID' }).map((j) => j.id)).toEqual(['j2']);
+    expect(filterJobs(jobs, { ...none, text: 'remote' })).toEqual([]);
+  });
   it('filters by availability and gig', () => {
     expect(filterJobs(jobs, { ...none, availability: 'offline' }).map((j) => j.id)).toEqual(['j2']);
     expect(filterJobs(jobs, { ...none, gig: true }).map((j) => j.id)).toEqual(['j2']);
@@ -66,14 +72,19 @@ describe('sortJobs', () => {
 });
 
 describe('filterApplications', () => {
-  const job = { match_percent: null, salary_min: null, salary_max: null, salary_currency: '', salary_period: '', created_at: '', waiting_since: '' };
+  const job = { location: '', is_remote: false, is_hybrid: false, match_percent: null, salary_min: null, salary_max: null, salary_currency: '', salary_period: '', created_at: '', waiting_since: '' };
   const rows = [
-    { ...makeApplication({ id: 'a1', status: 'sent', label: 'Example – Android – #1 (2026-10)' }), ...job, job_title: 'Android Developer', company_name: 'Example s.r.o.' },
-    { ...makeApplication({ id: 'a2', status: 'weird' }), ...job, job_title: 'Analyst', company_name: 'Sample GmbH' },
+    { ...makeApplication({ id: 'a1', status: 'sent', label: 'Example – Android – #1 (2026-10)' }), ...job, job_title: 'Android Developer', company_name: 'Example s.r.o.', location: 'Praha', is_hybrid: true },
+    { ...makeApplication({ id: 'a2', status: 'weird' }), ...job, job_title: 'Analyst', company_name: 'Sample GmbH', location: 'Brno', is_remote: true },
   ];
   it('filters by status and text', () => {
     expect(filterApplications(rows, { text: '', status: 'sent' }).map((r) => r.id)).toEqual(['a1']);
     expect(filterApplications(rows, { text: 'sample', status: '' }).map((r) => r.id)).toEqual(['a2']);
     expect(filterApplications(rows, { text: '', status: '' })).toHaveLength(2);
+  });
+  it('also searches the location and the work mode of the job', () => {
+    expect(filterApplications(rows, { text: 'PRAHA' }).map((r) => r.id)).toEqual(['a1']);
+    expect(filterApplications(rows, { text: 'hybrid' }).map((r) => r.id)).toEqual(['a1']);
+    expect(filterApplications(rows, { text: 'remote' }).map((r) => r.id)).toEqual(['a2']);
   });
 });

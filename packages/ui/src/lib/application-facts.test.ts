@@ -4,7 +4,7 @@ import { matchOf, sortExtra } from './application-facts';
 
 const row = (over: Partial<ApplicationRow> = {}): ApplicationRow => ({
   id: 'a', job_id: 'j', attempt: 1, label: 'L', language: 'en', status: 'sent', applied_at: '', last_activity_at: '', snapshot_used: '', folder_url: '', notes: '', board_position: null,
-  job_title: 'T', company_name: 'C', match_percent: null, salary_min: null, salary_max: null, salary_currency: '', salary_period: '', created_at: '', waiting_since: '', ...over,
+  job_title: 'T', company_name: 'C', location: '', is_remote: false, is_hybrid: false, match_percent: null, salary_min: null, salary_max: null, salary_currency: '', salary_period: '', created_at: '', waiting_since: '', ...over,
 });
 const NOW = Date.parse('2026-10-14T12:00:00.000Z');
 

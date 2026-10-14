@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.5] - 2026-10-14
+
+- The search box of Jobs also looks in the work mode, and the search box of Applications now looks in the place and the work mode of the job as well (besides the label, the job title and the company). Type Remote or Hybrid (in a Czech interface also Na dálku or Hybridně).
+- No Setup is needed for this update.
+
 ## [0.16.4] - 2026-10-14
 
 - A job has two new checkboxes, Remote and Hybrid, that are always shown and can be ticked in the job detail, in the application detail (both change the same job) and in the review form of Add job. A click in a detail is saved at once. The list of jobs shows the ticked ones in the facts line. They replace the old Work mode value (yes / no / hybrid), which was shown only when the ad stated it.
