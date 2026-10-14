@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.6] - 2026-10-14
+
+- "Download PDF" in the Documents tab saves the PDF to your computer with one click (Google Drive's direct download) instead of opening the Drive viewer. The download runs in the window of the app itself, so no extra tab is opened. It needs the Google account of your Drive to be signed in in the browser. "Export PDF" has a file icon, so it is no longer mistaken for the download.
+- "Export PDF" no longer piles up copies: exporting a document again replaces the content and the name of the PDF that is already in the folder of the application, so there is always one file and its link stays the same. If that file was deleted or is in the trash, a new one is made. The button waits while the export runs, so a double click does not start two.
+- No Setup is needed for this update. If pressing "Download PDF" opens a page of Google instead of saving the file (for example when several Google accounts are signed in), tell the author.
+
 ## [0.16.5] - 2026-10-14
 
 - The search box of Jobs also looks in the work mode, and the search box of Applications now looks in the place and the work mode of the job as well (besides the label, the job title and the company). Type Remote or Hybrid (in a Czech interface also Na dálku or Hybridně).

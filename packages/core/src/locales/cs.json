@@ -715,7 +715,7 @@
   "ui.help.applications.i3": "„Skrýt prázdné sloupce“ schová sloupce bez přihlášek.",
   "ui.help.applications.i4": "Přihláška se otevře jako okno nad seznamem. Záložky: Inzerát (uložený text inzerátu, otevře se jako první), Dokumenty (náhled, export do PDF, „Obsah pomocí AI“), Otázky („Odpověď pomocí AI“ s nejvyšším počtem vět), Komunikace (zprávy, schůzky, domácí úkoly a potvrzení), Připomínky a Časová osa.",
   "ui.help.applications.i5": "Ovládání stavu nabízí jen změny povolené v Nastavení. Přesun do stavu Čeká se se zeptá na datum připomínky.",
-  "ui.help.applications.i6": "Exportované PDF se jmenuje „Vaše jméno – Typ dokumentu – Firma – Název pozice“; jméno se bere z Nastavení → Profil.",
+  "ui.help.applications.i6": "Exportované PDF se jmenuje „Vaše jméno – Typ dokumentu – Firma – Název pozice“; jméno se bere z Nastavení → Profil. „Export do PDF“ ho uloží do složky přihlášky; další export přepíše tentýž soubor, takže je tam vždy jen jeden. „Stáhnout PDF“ ho uloží do vašeho počítače jedním kliknutím z Disku, bez vlastní záložky.",
   "ui.help.applications.i7": "Vyhledávání hledá v popisku přihlášky, v názvu a firmě inzerátu, v jeho místě a způsobu práce (Na dálku nebo Hybridně). Tlačítko „Zrušit filtry“ se objeví, když je zapnuté hledání nebo výběr stavů. Vynuluje obojí pro seznam nebo nástěnku, kterou právě vidíte; přepínač Kanban a „Skrýt prázdné sloupce“ zůstanou, jak jsou.",
   "ui.help.applications.i8": "Číslo u položky „Přihlášky“ v hlavním menu říká, kolik přihlášek je ještě v konceptu.",
   "ui.help.companies.title": "Firmy",

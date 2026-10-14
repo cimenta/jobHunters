@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { AiTask } from '@jobhunters/core';
+  import { driveDownloadUrl, type AiTask } from '@jobhunters/core';
   import { api } from '../../api';
   import type { ApplicationDetail, DocumentView } from '../../api/types';
   import Badge from '../../components/Badge.svelte';
@@ -34,10 +34,21 @@
     previewId = doc.id;
   }
 
+  /** The documents whose PDF is being exported; the button waits, so a double click does not start a second export. */
+  let exporting = $state<string[]>([]);
+
   async function exportPdf(doc: DocumentView): Promise<void> {
-    await api.exportDocumentPdf(doc.id);
-    toast.success(tr('ui.docs.pdfExported', { name: documentTypeLabel(doc.type) }));
-    invalidate();
+    if (exporting.includes(doc.id)) return;
+    exporting = [...exporting, doc.id];
+    try {
+      await api.exportDocumentPdf(doc.id);
+      toast.success(tr('ui.docs.pdfExported', { name: documentTypeLabel(doc.type) }));
+      invalidate();
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      exporting = exporting.filter((id) => id !== doc.id);
+    }
   }
 
   /** The newest AI task that writes this document. */
@@ -109,9 +120,9 @@
           <div class="actions">
             <a data-ui="doc.{doc.id}.doc-link" href={doc.doc_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.docs.openDoc')}</a>
             <Button ui="doc.preview.{doc.id}" onclick={() => togglePreview(doc)}>{previewId === doc.id ? tr('ui.docs.hidePreview') : tr('ui.docs.preview')}</Button>
-            <Button ui="doc.export.{doc.id}" onclick={() => exportPdf(doc)}><Icon name="download" size={16} />{tr('ui.docs.exportPdf')}</Button>
+            <Button ui="doc.export.{doc.id}" loading={exporting.includes(doc.id)} onclick={() => exportPdf(doc)}><Icon name="file" size={16} />{tr('ui.docs.exportPdf')}</Button>
             {#if doc.pdf_url !== ''}
-              <a data-ui="doc.{doc.id}.pdf-link" href={doc.pdf_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
+              <a class="btn" data-ui="doc.{doc.id}.pdf-link" href={driveDownloadUrl(doc.pdf_url)} target="_top" rel="noopener"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
               <span class="muted small">{formatDate(doc.pdf_exported_at)}</span>
             {/if}
           </div>

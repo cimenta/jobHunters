@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ensureFolderPath, fileIdFromUrl, fillPlaceholders, sanitizeFolderName } from './drive';
+import { driveDownloadUrl, ensureFolderPath, fileIdFromUrl, fillPlaceholders, sanitizeFolderName } from './drive';
 import { FakeDrive } from './testing/fake-drive';
 
 describe('sanitizeFolderName', () => {
@@ -59,6 +59,14 @@ describe('FakeDrive', () => {
     expect(drive.exportHtml(copy.id)).toContain('Dear Acme');
     expect(drive.exportPdf(copy.id, root.id, 'Cover letter').id).not.toBe(copy.id);
     expect(drive.documents.get(template)?.content).toBe('Dear {{company}}');
+  });
+});
+
+describe('driveDownloadUrl', () => {
+  it('turns a Drive file address into a direct download address, and gives nothing for an address without an id', () => {
+    expect(driveDownloadUrl('https://drive.google.com/file/d/1AbC_d-9/view?usp=drivesdk')).toBe('https://drive.google.com/uc?export=download&id=1AbC_d-9');
+    expect(driveDownloadUrl('')).toBe('');
+    expect(driveDownloadUrl('https://example.com/')).toBe('');
   });
 });
 

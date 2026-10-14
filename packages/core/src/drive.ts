@@ -22,7 +22,11 @@ export interface DriveGateway {
   listChildren(folderId: string): { folders: string[]; files: number };
   /** Replaces every {{key}} with the value, literally. */
   replaceInDocument(docId: string, values: Record<string, string>): void;
-  exportPdf(docId: string, folderId: string, name: string): FileRef;
+  /**
+   * Exports the Doc as a PDF into the folder. When `existingPdfId` names a file that still exists (and is not in the
+   * trash), its content and name are replaced and the same file is returned, so a repeated export leaves ONE file.
+   */
+  exportPdf(docId: string, folderId: string, name: string, existingPdfId?: string): FileRef;
   exportHtml(docId: string): string;
   /** Creates a text file in the folder and returns it. */
   saveTextFile(folderId: string, name: string, content: string, mimeType: string): FileRef;
@@ -48,6 +52,12 @@ export function ensureFolderPath(drive: DriveGateway, root: FolderRef, segments:
 
 export function fillPlaceholders(text: string, values: Readonly<Record<string, string>>): string {
   return text.replace(/\{\{(\w+)\}\}/g, (match, key: string) => (hasOwn(values, key) ? values[key]! : match));
+}
+
+/** Address that makes the browser save a Drive file to the local disk at once, or '' when `url` holds no file id. */
+export function driveDownloadUrl(url: string): string {
+  const id = fileIdFromUrl(url);
+  return id === '' ? '' : `https://drive.google.com/uc?export=download&id=${id}`;
 }
 
 /** The Drive/Docs id inside a Google address, or '' when there is none. */

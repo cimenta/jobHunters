@@ -74,10 +74,35 @@ export class GasDrive implements DriveGateway {
     document.saveAndClose();
   }
 
-  exportPdf(docId: string, folderId: string, name: string): FileRef {
+  exportPdf(docId: string, folderId: string, name: string, existingPdfId = ''): FileRef {
     const blob = DriveApp.getFileById(docId).getAs('application/pdf').setName(`${name}.pdf`);
+    const existing = existingPdfId === '' ? undefined : this.liveFile(existingPdfId);
+    if (existing !== undefined) {
+      // DriveApp cannot replace binary content, so the Drive REST API does it; the file keeps its id and address.
+      const response = UrlFetchApp.fetch(`https://www.googleapis.com/upload/drive/v3/files/${existing.getId()}?uploadType=media`, {
+        method: 'patch',
+        contentType: 'application/pdf',
+        payload: blob.getBytes(),
+        headers: { Authorization: `Bearer ${ScriptApp.getOAuthToken()}` },
+        muteHttpExceptions: true,
+      });
+      const status = response.getResponseCode();
+      if (status !== 200) throw new AppError('export_failed', `Replacing the PDF failed with HTTP ${status}`, { status });
+      existing.setName(`${name}.pdf`);
+      return { id: existing.getId(), url: existing.getUrl() };
+    }
     const file = DriveApp.getFolderById(folderId).createFile(blob);
     return { id: file.getId(), url: file.getUrl() };
+  }
+
+  /** The file with this id, or undefined when it is gone, in the trash or not readable (then a new one is made). */
+  private liveFile(id: string): GoogleAppsScript.Drive.File | undefined {
+    try {
+      const file = DriveApp.getFileById(id);
+      return file.isTrashed() ? undefined : file;
+    } catch {
+      return undefined;
+    }
   }
 
   saveTextFile(folderId: string, name: string, content: string, mimeType: string): FileRef {

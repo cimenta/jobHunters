@@ -1,6 +1,6 @@
 import { fileIdFromUrl } from '@jobhunters/core';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { navigate, router } from '../lib/router.svelte';
 import { toasts } from '../state/toast.svelte';
@@ -115,8 +115,13 @@ describe('ApplicationDetail', () => {
     expect(within(row).getByRole('link', { name: /Open in Google Docs/ })).toHaveAttribute('rel', 'noopener noreferrer');
 
     await fireEvent.click(within(row).getByRole('button', { name: 'Export PDF' }));
-    expect(await within(row).findByRole('link', { name: /Download PDF/ })).toHaveAttribute('href', expect.stringMatching(/^https:/));
-    expect(toasts.map((t) => t.text)).toContain('PDF of "Resume" exported');
+    await waitFor(() => expect(toasts.map((t) => t.text)).toContain('PDF of "Resume" exported'));
+    // One click saves the file with Drive's direct download. The link works on the top window, so no tab is opened.
+    const download = await within(row).findByRole('link', { name: /Download PDF/ });
+    expect(download).toHaveAttribute('href', expect.stringMatching(/^https:\/\/drive\.google\.com\/uc\?export=download&id=[A-Za-z0-9_-]+$/));
+    expect(download).toHaveAttribute('target', '_top');
+    await fireEvent.click(within(row).getByRole('button', { name: 'Export PDF' }));
+    await waitFor(() => expect(toasts.filter((t) => t.text === 'PDF of "Resume" exported')).toHaveLength(2));
   });
 
   it('adds another document from a template', async () => {

@@ -67,7 +67,9 @@ do the writing and the reading for you.
 - **Any other document, too.** A template of the type *Other* describes what the document must contain, for example an
   interview preparation for this company and position, and the AI fills it in from the ad and your experience.
 - **Preview, open in Google Docs, export to PDF.** PDFs are named after you, the document type, the company and the
-  position, and the app tells you when a document changed since its last export.
+  position, and the app tells you when a document changed since its last export. Exporting again replaces the same PDF
+  in the application's folder, and one click on "Download PDF" saves it to your computer
+  (Drive downloads it into the current window, no tab of its own).
 - **Questions of the application** with an answer limit in sentences, answered by the AI or by you.
 - **Prepare with AI** in one step: create the application and queue the AI tasks for its documents.
 

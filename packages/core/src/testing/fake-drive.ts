@@ -79,8 +79,15 @@ export class FakeDrive implements DriveGateway {
     doc.modifiedAt = this.tick();
   }
 
-  exportPdf(docId: string, folderId: string, name: string): FileRef {
+  exportPdf(docId: string, folderId: string, name: string, existingPdfId = ''): FileRef {
     const doc = this.doc(docId);
+    const existing = existingPdfId === '' ? undefined : this.documents.get(existingPdfId);
+    if (existing) {
+      existing.name = `${name}.pdf`;
+      existing.content = doc.content;
+      existing.modifiedAt = this.tick();
+      return { id: existing.id, url: `https://drive.example.invalid/file/d/${existing.id}/view` };
+    }
     const id = this.nextId('pdf');
     this.documents.set(id, { id, name: `${name}.pdf`, folderId, content: doc.content, modifiedAt: this.tick() });
     return { id, url: `https://drive.example.invalid/file/d/${id}/view` };

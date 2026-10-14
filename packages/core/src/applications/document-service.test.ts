@@ -37,6 +37,27 @@ describe('exportPdf', () => {
     expect(pdf.folderId).not.toBeNull();
   });
 
+  it('replaces the file of an earlier export instead of making a second one', () => {
+    const { service, drive, documents, jobs } = setup();
+    const first = service.exportPdf('d1');
+    jobs.update('j1', { title: 'Kotlin Developer' });
+    const second = service.exportPdf('d1');
+    const pdfs = [...drive.documents.values()].filter((d) => d.name.endsWith('.pdf'));
+    expect(pdfs).toHaveLength(1);
+    expect(second.pdf_url).toBe(first.pdf_url);
+    expect(pdfs[0]!.name).toBe('Eva Example – Resume – Example s.r.o. – Kotlin Developer.pdf');
+    expect(documents.get('d1')!.pdf_url).toBe(first.pdf_url);
+  });
+
+  it('makes a new file when the earlier PDF no longer exists in Drive', () => {
+    const { service, drive } = setup();
+    const first = service.exportPdf('d1');
+    drive.documents.delete(fileIdFromUrl(first.pdf_url));
+    const second = service.exportPdf('d1');
+    expect(second.pdf_url).not.toBe(first.pdf_url);
+    expect([...drive.documents.values()].filter((d) => d.name.endsWith('.pdf'))).toHaveLength(1);
+  });
+
   it('falls back to name and type when the job was deleted', () => {
     const { service, drive, jobs } = setup();
     jobs.remove('j1');

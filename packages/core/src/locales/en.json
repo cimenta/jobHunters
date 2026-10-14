@@ -710,7 +710,7 @@
   "ui.help.applications.i3": "\"Hide empty columns\" hides the columns without applications.",
   "ui.help.applications.i4": "An application opens as a pop-up over the list. Tabs: Ad (the saved text of the ad, opened first), Documents (preview, PDF export, \"Content by AI\"), Questions (\"Answer by AI\" with a maximum number of sentences), Communication (messages, meetings, homework and confirmations), Reminders and Timeline.",
   "ui.help.applications.i5": "The status control offers only the changes allowed in Settings. Moving to Waiting asks for a reminder date.",
-  "ui.help.applications.i6": "The exported PDF is named \"Your name – Document type – Company – Job title\"; your name comes from Settings → Profile.",
+  "ui.help.applications.i6": "The exported PDF is named \"Your name – Document type – Company – Job title\"; your name comes from Settings → Profile. \"Export PDF\" saves it into the folder of the application; exporting again replaces that same file, so there is always only one. \"Download PDF\" saves it to your computer with one click, from Drive, without opening a tab of its own.",
   "ui.help.applications.i7": "The search box looks in the label of the application, the title and company of the job, its place and its work mode (Remote or Hybrid). The button \"Clear filters\" appears when the search or a status selection is on. It clears both for the list or the board you are looking at; the Kanban switch and \"Hide empty columns\" stay as they are.",
   "ui.help.applications.i8": "The number next to \"Applications\" in the main menu is how many applications are still in draft.",
   "ui.help.companies.title": "Companies",

@@ -60,7 +60,7 @@ export class DocumentService {
       type: doc.type, fullName: profileName(), company: company?.name ?? '', title: job?.title ?? '',
       language: isLocale(application.language) ? application.language : 'en',
     });
-    const pdf = drive.exportPdf(fileIdFromUrl(doc.doc_url), folderId, name);
+    const pdf = drive.exportPdf(fileIdFromUrl(doc.doc_url), folderId, name, fileIdFromUrl(doc.pdf_url));
     return this.view(documents.update(doc.id, { pdf_url: pdf.url, pdf_exported_at: now() }));
   }
 
