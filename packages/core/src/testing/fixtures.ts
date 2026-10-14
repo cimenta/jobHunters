@@ -14,6 +14,7 @@ export function makeApplication(overrides: Partial<Application> = {}): Applicati
     snapshot_used: '',
     folder_url: '',
     notes: '',
+    salary: '',
     ...overrides,
   };
 }

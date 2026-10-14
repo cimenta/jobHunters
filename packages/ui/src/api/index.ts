@@ -1,7 +1,7 @@
 import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRemoveResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
-  AppInfo, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
+  AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
   CreateApplicationResult, PrepareResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
@@ -64,8 +64,9 @@ export const api = {
 
   listApplications: () => call<ApplicationRow[]>('listApplications'),
   getApplication: (id: string) => call<ApplicationDetail>('getApplication', { id }),
+  updateApplication: (id: string, patch: { salary?: string }) => call<Application>('updateApplication', { id, ...patch }),
   prepareApplication: (jobId: string) => call<PrepareResult>('prepareApplication', { jobId }),
-  createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string }) => call<CreateApplicationResult>('createApplication', input),
+  createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string; salary?: string }) => call<CreateApplicationResult>('createApplication', input),
   moveApplication: (id: string, to: string, index: number, remindAt?: string) => call<ApplicationRow>('moveApplication', remindAt === undefined ? { id, to, index } : { id, to, index, remindAt }),
   setApplicationStatus: (id: string, to: string, remindAt?: string) => call<unknown>('setApplicationStatus', remindAt === undefined ? { id, to } : { id, to, remindAt }),
 

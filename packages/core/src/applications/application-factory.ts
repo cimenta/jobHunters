@@ -37,6 +37,8 @@ export interface CreateApplicationInput {
   language?: string;
   /** "Apply again": copy the documents of this earlier application instead of using templates. */
   fromApplicationId?: string;
+  /** The salary the user asks for, free text; kept up to MAX_ASKED_SALARY characters. */
+  salary?: string;
 }
 
 export interface CreateApplicationResult {
@@ -44,6 +46,9 @@ export interface CreateApplicationResult {
   documents: ApplicationDocument[];
   warnings: AppWarning[];
 }
+
+/** Longest salary text kept; a cell holds far more, this only stops a pasted page. */
+export const MAX_ASKED_SALARY = 200;
 
 export function documentName(type: string, label: string, language: Locale): string {
   return `${t(`document.type.${type}`, {}, language)} – ${label}`;
@@ -99,6 +104,7 @@ export class ApplicationFactory {
       snapshot_used: '',
       folder_url: folder.url,
       notes: '',
+      salary: (input.salary ?? '').trim().slice(0, MAX_ASKED_SALARY),
       board_position: null,
     });
     history.append({ application_id: application.id, from: '', to: 'draft', at: timestamp });

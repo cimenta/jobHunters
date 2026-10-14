@@ -54,6 +54,13 @@ function setup(options: { drive?: FakeDrive; templates?: boolean; settings?: Rec
 const contentOf = (drive: FakeDrive, doc: ApplicationDocument) => drive.documents.get(fileIdFromUrl(doc.doc_url))!.content;
 
 describe('create', () => {
+  it('keeps the salary the user asks for, trimmed and cut to 200 characters; none given means empty', () => {
+    const { factory } = setup();
+    expect(factory.create({ jobId: 'j1' }).application.salary).toBe('');
+    expect(factory.create({ jobId: 'j1', salary: '  75 000 CZK / month  ' }).application.salary).toBe('75 000 CZK / month');
+    expect(factory.create({ jobId: 'j1', salary: 'x'.repeat(300) }).application.salary).toHaveLength(200);
+  });
+
   it('refuses a job that waits for the AI', () => {
     const { factory, deps } = setup();
     deps.jobs.update('j1', { status: 'awaiting' });

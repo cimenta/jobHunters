@@ -16,7 +16,7 @@ const JOB_COLUMNS = [
 
 const APPLICATION_COLUMNS = [
   'id', 'job_id', 'attempt', 'label', 'language', 'status', 'applied_at', 'last_activity_at',
-  'snapshot_used', 'folder_url', 'notes', 'board_position',
+  'snapshot_used', 'folder_url', 'notes', 'salary', 'board_position',
 ] as const satisfies readonly (keyof Application)[];
 
 const REMINDER_COLUMNS = [

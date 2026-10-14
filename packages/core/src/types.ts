@@ -61,6 +61,8 @@ export interface Application {
   snapshot_used: string;
   folder_url: string;
   notes: string;
+  /** The salary the user asks for in this application, free text (for example "75 000 CZK / month"); empty when not given. */
+  salary: string;
   /** Position among the cards of its status in the Kanban board; null = not placed yet (shown first). */
   board_position: number | null;
 }

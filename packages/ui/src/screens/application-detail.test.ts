@@ -120,6 +120,9 @@ describe('ApplicationDetail', () => {
     const download = await within(row).findByRole('link', { name: /Download PDF/ });
     expect(download).toHaveAttribute('href', expect.stringMatching(/^https:\/\/drive\.google\.com\/uc\?export=download&id=[A-Za-z0-9_-]+$/));
     expect(download).toHaveAttribute('target', '_top');
+    // Drawn like the Export PDF button beside it, not as a bare underlined link.
+    expect(download).toHaveClass('btn');
+    expect(within(row).getByRole('button', { name: 'Export PDF' })).toHaveClass('btn');
     await fireEvent.click(within(row).getByRole('button', { name: 'Export PDF' }));
     await waitFor(() => expect(toasts.filter((t) => t.text === 'PDF of "Resume" exported')).toHaveLength(2));
   });
@@ -185,6 +188,34 @@ describe('ApplicationDetail summary', () => {
     expect(info).toHaveTextContent('Full-time');
     expect(ui('application-detail.header')).toHaveTextContent('Match 82 %');
     expect(ui('application-detail.header')).toHaveTextContent('Sent');
+  });
+
+  it('shows the salary asked for right next to the AI salary and edits it on a double-click', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const text = () => ui('application-detail.asked-salary.text') as HTMLElement | null;
+    await waitFor(() => expect(text()).not.toBeNull());
+    // Same row as the AI salary: both are children of one pair, in that order.
+    const ai = ui('application-detail.info.ai-salary')!;
+    expect(ai.nextElementSibling).toBe(ui('application-detail.asked-salary'));
+    expect(text()).toHaveTextContent('Double-click to add');
+
+    await fireEvent.dblClick(text()!);
+    const input = ui('application-detail.asked-salary.input') as HTMLInputElement;
+    expect(input).toHaveFocus();
+    await fireEvent.input(input, { target: { value: '80 000 CZK / month' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('80 000 CZK / month'));
+    expect((await api.getApplication(id)).application.salary).toBe('80 000 CZK / month');
+
+    await fireEvent.dblClick(text()!);
+    const again = ui('application-detail.asked-salary.input') as HTMLInputElement;
+    await fireEvent.input(again, { target: { value: 'something else' } });
+    await fireEvent.keyDown(again, { key: 'Escape' });
+    expect(text()).toHaveTextContent('80 000 CZK / month');
+    expect((await api.getApplication(id)).application.salary).toBe('80 000 CZK / month');
   });
 
   it('has editable Remote and Hybrid checkboxes of the job', async () => {

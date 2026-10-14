@@ -3,7 +3,7 @@ import { applicationRows, buildDashboard, buildMenuCounts, CatalogService, compa
 import { InMemoryRepository } from './repository';
 import { errorOf } from './testing/errors';
 import { makeApplication, makeCompany, makeJob, makeReminder } from './testing/fixtures';
-import type { AiTask, Company, Job, StatusHistoryEntry } from './types';
+import type { AiTask, Application, Company, Job, StatusHistoryEntry } from './types';
 
 const companies = [makeCompany({ id: 'c1', name: 'Example s.r.o.' }), makeCompany({ id: 'c2', name: 'Sample GmbH' })];
 const jobs = [
@@ -146,7 +146,7 @@ describe('CatalogService', () => {
   const setup = () => {
     const jobRepo = new InMemoryRepository<Job>([makeJob({ id: 'j1' })]);
     const companyRepo = new InMemoryRepository<Company>([makeCompany({ id: 'c1' })]);
-    return { service: new CatalogService({ jobs: jobRepo, companies: companyRepo }), jobRepo, companyRepo };
+    return { service: new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: companyRepo }), jobRepo, companyRepo };
   };
 
   it('updates the editable fields of a job only', () => {
@@ -154,6 +154,16 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { notes: 'Call on Monday', is_gig: true })).toMatchObject({ notes: 'Call on Monday', is_gig: true, title: 'Android Developer' });
     expect(jobRepo.get('j1')!.notes).toBe('Call on Monday');
     expect(errorOf(() => service.updateJob('ghost', {}))).toMatchObject({ code: 'job_not_found' });
+  });
+
+  it('changes and clears the salary asked for in an application', () => {
+    const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', salary: '60 000' })]);
+    const service = new CatalogService({ jobs: new InMemoryRepository<Job>(), applications, companies: new InMemoryRepository<Company>() });
+    expect(service.updateApplication('a1', { salary: '  75 000 CZK / month ' }).salary).toBe('75 000 CZK / month');
+    expect(applications.get('a1')!.salary).toBe('75 000 CZK / month');
+    expect(service.updateApplication('a1', { salary: '' }).salary).toBe('');
+    expect(service.updateApplication('a1', {}).salary).toBe('');
+    expect(errorOf(() => service.updateApplication('ghost', { salary: 'x' }))).toMatchObject({ code: 'application_not_found' });
   });
 
   it('updates a company and validates the name and website', () => {
@@ -169,7 +179,7 @@ describe('CatalogService', () => {
 describe('awaiting status and byType', () => {
   it('refuses to set a job to awaiting by hand', () => {
     const jobRepo = new InMemoryRepository<Job>([makeJob({ id: 'j1' })]);
-    const service = new CatalogService({ jobs: jobRepo, companies: new InMemoryRepository<Company>() });
+    const service = new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: new InMemoryRepository<Company>() });
     expect(errorOf(() => service.updateJob('j1', { status: 'awaiting' })).code).toBe('job_status_invalid');
     expect(jobRepo.get('j1')!.status).toBe('new');
   });

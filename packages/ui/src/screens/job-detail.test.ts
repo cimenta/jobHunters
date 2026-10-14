@@ -93,6 +93,19 @@ describe('JobDetail', () => {
     expect((await api.getJob(id)).applications).toHaveLength(2);
   });
 
+  it('stores the salary typed in the Create application dialog', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Create application' }));
+    const dialog = screen.getByRole('dialog', { name: 'Create application' });
+    await fireEvent.input(within(dialog).getByLabelText('Salary I ask for (optional)'), { target: { value: '75 000 CZK / month' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(router.current.name).toBe('application'));
+    const created = (await api.getJob(id)).applications.find((application) => application.salary === '75 000 CZK / month');
+    expect(created).toBeDefined();
+  });
+
   it('can start from an earlier application', async () => {
     useDevBackend();
     const id = await idOf('Android Developer');

@@ -4,6 +4,7 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import AskedSalary from '../components/AskedSalary.svelte';
   import Badge from '../components/Badge.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import Tabs from '../components/Tabs.svelte';
@@ -90,10 +91,19 @@
               {#each facts as fact (fact.key)}
                 {#if fact.key === 'work-mode'}
                   {#if job}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="application-detail" />{/if}
+                {:else if fact.key === 'ai-salary'}
+                  <!-- The salary asked for sits right next to the AI estimate, on the same row. -->
+                  <div class="pair">
+                    <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                    <AskedSalary applicationId={application.id} value={application.salary ?? ''} ui="application-detail" />
+                  </div>
                 {:else}
-                  <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                  <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                 {/if}
               {/each}
+              {#if !facts.some((fact) => fact.key === 'ai-salary')}
+                <AskedSalary applicationId={application.id} value={application.salary ?? ''} ui="application-detail" />
+              {/if}
             </dl>
           {/if}
         </div>
@@ -131,7 +141,8 @@
   .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: var(--space-2) var(--space-4); margin: 0; }
   .fact { min-width: 0; overflow-wrap: anywhere; }
   .fact dd { margin: 0; }
-  .fact.wide { grid-column: 1 / -1; }
+  .pair { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); }
+  .pair > :global(.fact) { flex: 1 1 220px; }
   @media (max-width: 600px) {
     .summary { grid-template-columns: 1fr; grid-template-areas: 'side' 'main'; }
     .side { padding-left: 0; border-left: 0; }

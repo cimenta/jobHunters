@@ -11,10 +11,14 @@
     label?: string;
     /** Identifier shown by the identifier labels (data-ui). */
     ui?: string;
+    /** With an address the button is drawn as a link (for a download or a page) but looks and sizes like a button. */
+    href?: string;
+    target?: string;
+    rel?: string;
     onclick?: (event: MouseEvent) => unknown;
     children?: Snippet;
   }
-  let { variant = 'secondary', type = 'button', disabled = false, loading = false, full = false, label, ui, onclick, children }: Props = $props();
+  let { variant = 'secondary', type = 'button', disabled = false, loading = false, full = false, label, ui, href, target, rel, onclick, children }: Props = $props();
 
   let busy = $state(false);
 
@@ -34,10 +38,14 @@
   }
 </script>
 
-<button class="btn {variant}" class:full {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} title={label} data-ui={ui} onclick={handle}>
-  {#if busy || loading}<span class="spinner" aria-hidden="true"></span>{/if}
-  {@render children?.()}
-</button>
+{#if href !== undefined}
+  <a class="btn {variant}" class:full {href} {target} {rel} aria-label={label} title={label} data-ui={ui}>{@render children?.()}</a>
+{:else}
+  <button class="btn {variant}" class:full {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} title={label} data-ui={ui} onclick={handle}>
+    {#if busy || loading}<span class="spinner" aria-hidden="true"></span>{/if}
+    {@render children?.()}
+  </button>
+{/if}
 
 <style>
   .btn {
@@ -54,6 +62,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-s);
     cursor: pointer;
+    text-decoration: none;
   }
   .btn:hover:not(:disabled) { border-color: var(--accent); }
   .btn:disabled { opacity: 0.6; cursor: not-allowed; }

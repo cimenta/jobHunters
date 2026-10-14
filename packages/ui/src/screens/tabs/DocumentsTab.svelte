@@ -122,7 +122,7 @@
             <Button ui="doc.preview.{doc.id}" onclick={() => togglePreview(doc)}>{previewId === doc.id ? tr('ui.docs.hidePreview') : tr('ui.docs.preview')}</Button>
             <Button ui="doc.export.{doc.id}" loading={exporting.includes(doc.id)} onclick={() => exportPdf(doc)}><Icon name="file" size={16} />{tr('ui.docs.exportPdf')}</Button>
             {#if doc.pdf_url !== ''}
-              <a class="btn" data-ui="doc.{doc.id}.pdf-link" href={driveDownloadUrl(doc.pdf_url)} target="_top" rel="noopener"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</a>
+              <Button ui="doc.{doc.id}.pdf-link" href={driveDownloadUrl(doc.pdf_url)} target="_top" rel="noopener"><Icon name="download" size={16} />{tr('ui.docs.downloadPdf')}</Button>
               <span class="muted small">{formatDate(doc.pdf_exported_at)}</span>
             {/if}
           </div>

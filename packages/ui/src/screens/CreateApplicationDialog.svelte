@@ -22,16 +22,18 @@
 
   let language = $state('en');
   let from = $state('');
+  let salary = $state('');
 
   $effect(() => {
     if (open) {
       language = app.settings?.default_document_language ?? 'en';
       from = '';
+      salary = '';
     }
   });
 
   async function create(): Promise<void> {
-    const result = await api.createApplication({ jobId: job.id, language, fromApplicationId: from === '' ? undefined : from });
+    const result = await api.createApplication({ jobId: job.id, language, fromApplicationId: from === '' ? undefined : from, salary: salary.trim() === '' ? undefined : salary });
     invalidate();
     toast.success(tr('ui.createApp.created', { label: result.application.label, title: job.title }));
     for (const warning of result.warnings) toast.warning(describeWarning(warning));
@@ -58,6 +60,9 @@
         </select>
       </Field>
     {/if}
+    <Field label={tr('ui.createApp.salary')} for="create-salary">
+      <input data-ui="create-application.salary" id="create-salary" class="input" maxlength="200" placeholder={tr('ui.createApp.salaryPlaceholder')} bind:value={salary} />
+    </Field>
   </div>
   {#snippet footer()}
     <Button ui="create-application.cancel" onclick={onclose}>{tr('ui.cancel')}</Button>

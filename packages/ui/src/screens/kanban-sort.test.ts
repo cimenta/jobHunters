@@ -6,7 +6,7 @@ import { api } from '../api';
 import KanbanBoard from './KanbanBoard.svelte';
 
 const row = (id: string, over: Partial<ApplicationRow> = {}): ApplicationRow => ({
-  id, job_id: `j${id}`, attempt: 1, label: `Card ${id}`, language: 'en', status: 'draft', applied_at: '', last_activity_at: '2026-10-01T00:00:00.000Z', snapshot_used: '', folder_url: '', notes: '',
+  id, job_id: `j${id}`, attempt: 1, label: `Card ${id}`, language: 'en', status: 'draft', applied_at: '', last_activity_at: '2026-10-01T00:00:00.000Z', snapshot_used: '', folder_url: '', notes: '', salary: '',
   board_position: null, job_title: 'Job', company_name: 'Co', location: '', is_remote: false, is_hybrid: false, match_percent: null, salary_min: null, salary_max: null, salary_currency: 'CZK', salary_period: 'month', created_at: '', waiting_since: '', ...over,
 });
 const ROWS = [

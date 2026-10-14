@@ -228,6 +228,10 @@ describe('applications api', () => {
     const created = api('createApplication', { jobId }) as { ok: true; data: { application: { id: string; status: string }; documents: { doc_url: string }[]; warnings: unknown[] } };
     expect(created).toMatchObject({ ok: true, data: { application: { status: 'draft' }, warnings: [] } });
     expect(created.data.documents).toHaveLength(2);
+    const asked = api('createApplication', { jobId, salary: ' 75 000 CZK ' }) as { ok: true; data: { application: { id: string; salary: string } } };
+    expect(asked.data.application.salary).toBe('75 000 CZK');
+    expect(api('updateApplication', { id: asked.data.application.id, salary: '80 000 CZK' })).toMatchObject({ ok: true, data: { salary: '80 000 CZK' } });
+    expect(api('updateApplication', { id: 'ghost', salary: 'x' })).toMatchObject({ ok: false, error: { code: 'application_not_found' } });
     const resume = [...drive.documents.values()].find((d) => d.name.startsWith('Resume – '));
     expect(resume?.content).toBe('resume: Eva Example for Example Ltd as Data Analyst {{body}}');
   });

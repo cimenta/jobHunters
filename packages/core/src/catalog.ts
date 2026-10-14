@@ -2,6 +2,7 @@ import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
 import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
 import { parseUrl } from './jobs/url';
+import { MAX_ASKED_SALARY } from './applications/application-factory';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
 import type { AiTask, Application, Company, Job, Reminder, StatusHistoryEntry } from './types';
@@ -185,6 +186,7 @@ export function buildDashboard(input: {
 
 export interface CatalogServiceDeps {
   jobs: Repository<Job>;
+  applications: Repository<Application>;
   companies: Repository<Company>;
   /** The statuses an ad may have; the built-in ones when not given. */
   jobStatuses?: () => JobStatusStyles;
@@ -208,6 +210,14 @@ export class CatalogService {
       change.status = patch.status;
     }
     return this.deps.jobs.update(id, change);
+  }
+
+  /** The salary the user asks for in an application; an empty text clears it. */
+  updateApplication(id: string, patch: { salary?: string }): Application {
+    if (!this.deps.applications.get(id)) throw new NotFoundError('application_not_found', `Application ${id} not found`, { id });
+    const change: Partial<Omit<Application, 'id'>> = {};
+    if (patch.salary !== undefined) change.salary = patch.salary.trim().slice(0, MAX_ASKED_SALARY);
+    return this.deps.applications.update(id, change);
   }
 
   updateCompany(id: string, patch: { name?: string; website?: string; notes?: string }): Company {

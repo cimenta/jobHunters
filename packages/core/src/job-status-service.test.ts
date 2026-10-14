@@ -8,13 +8,13 @@ import { InMemoryRepository } from './repository';
 import { SettingsService } from './settings';
 import { errorOf } from './testing/errors';
 import { makeJob } from './testing/fixtures';
-import type { Company, Job } from './types';
+import type { Application, Company, Job } from './types';
 
 function setup(jobs: Job[] = []) {
   const jobRepo = new InMemoryRepository<Job>(jobs);
   const settings = new SettingsService(new InMemoryKeyValueStore());
   const service = new JobStatusService({ jobs: jobRepo, settings });
-  const catalog = new CatalogService({ jobs: jobRepo, companies: new InMemoryRepository<Company>(), jobStatuses: () => settings.get().settings.job_status_styles });
+  const catalog = new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: new InMemoryRepository<Company>(), jobStatuses: () => settings.get().settings.job_status_styles });
   return { service, settings, catalog, jobRepo };
 }
 

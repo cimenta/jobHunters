@@ -59,6 +59,8 @@ do the writing and the reading for you.
 
 ### Apply
 
+- **The salary you ask for** can be typed when you create an application and is shown next to the AI salary in its
+  detail; a double-click changes it.
 - **Applications are created from your templates.** Keep your resume and cover letter as Google Docs with
   placeholders such as `{{name}}`, `{{company}}`, `{{position}}`, `{{date}}`, `{{links}}` and `{{body}}`. A new
   application copies them into its own folder and fills in what it knows.

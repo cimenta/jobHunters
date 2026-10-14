@@ -155,7 +155,7 @@ export function buildContainer(deps: ContainerDeps) {
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
   const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
-  const catalogService = new CatalogService({ jobs, companies, jobStatuses: () => settings.get().settings.job_status_styles });
+  const catalogService = new CatalogService({ jobs, applications, companies, jobStatuses: () => settings.get().settings.job_status_styles });
   const jobStatusService = new JobStatusService({ jobs, settings });
   const aiTaskService = new AiTaskService({
     tasks, jobs, companies, documents, questions, applications, newId: deps.newId, now: deps.now,
