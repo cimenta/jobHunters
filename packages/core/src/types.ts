@@ -22,7 +22,11 @@ export interface Job {
   salary_currency: string;
   salary_period: string;
   employment_type: string;
+  /** Legacy work mode (yes / no / hybrid). Only read once, by Setup, to fill is_remote and is_hybrid; the app no longer uses it. */
   remote: '' | 'yes' | 'no' | 'hybrid';
+  /** Work mode checkboxes of the ad; both can be ticked. */
+  is_remote: boolean;
+  is_hybrid: boolean;
   posted_at: string;
   valid_until: string;
   description: string;

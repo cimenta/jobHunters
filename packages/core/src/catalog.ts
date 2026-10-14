@@ -186,11 +186,13 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
+    if (patch.is_remote !== undefined) change.is_remote = patch.is_remote;
+    if (patch.is_hybrid !== undefined) change.is_hybrid = patch.is_hybrid;
     if (patch.status !== undefined) {
       const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
       if (patch.status === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, patch.status)) {

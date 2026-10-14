@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.4] - 2026-10-14
+
+- A job has two new checkboxes, Remote and Hybrid, that are always shown and can be ticked in the job detail, in the application detail (both change the same job) and in the review form of Add job. A click in a detail is saved at once. The list of jobs shows the ticked ones in the facts line. They replace the old Work mode value (yes / no / hybrid), which was shown only when the ad stated it.
+- Portals that state a work mode tick the boxes when the ad is read; the AI prompts fill the new columns `is_remote` and `is_hybrid` instead of `remote`. "Refresh the ad" never changes the boxes.
+- **Run Setup after the update** (Settings > General > Run setup): the sheet Jobs gets the columns is_remote and is_hybrid, and the old Work mode of your existing jobs is carried over once (yes = Remote, hybrid = Hybrid). Until then the Jobs screens fail with a missing-columns error. The red "!" by Settings shows until Setup has run. The old `remote` column stays in the sheet and can be deleted by hand later.
+
 ## [0.16.3] - 2026-10-14
 
 - Add job: the checkbox "Create AI job to import" is now always shown under the link, not only after a failed download. Ticked, the button becomes "Create AI job" and the AI reads the ad itself, fills in the job and evaluates the match, without the app downloading the page first. Use it for sites whose ad text the app cannot read.

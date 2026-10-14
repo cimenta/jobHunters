@@ -10,12 +10,14 @@ export interface JobDraft {
   salary_currency: string;
   salary_period: string;
   is_gig: boolean;
+  is_remote: boolean;
+  is_hybrid: boolean;
   description: string;
   notes: string;
 }
 
 export function emptyDraft(): JobDraft {
-  return { title: '', company: '', location: '', salary_min: '', salary_max: '', salary_currency: '', salary_period: '', is_gig: false, description: '', notes: '' };
+  return { title: '', company: '', location: '', salary_min: '', salary_max: '', salary_currency: '', salary_period: '', is_gig: false, is_remote: false, is_hybrid: false, description: '', notes: '' };
 }
 
 export function toDraft(parsed: ParsedJob): JobDraft {
@@ -28,6 +30,8 @@ export function toDraft(parsed: ParsedJob): JobDraft {
     salary_currency: parsed.salary_currency,
     salary_period: parsed.salary_period,
     is_gig: parsed.is_gig,
+    is_remote: parsed.is_remote,
+    is_hybrid: parsed.is_hybrid,
     description: parsed.description,
     notes: '',
   };
@@ -55,6 +59,8 @@ export function toOverrides(draft: JobDraft): { overrides: JobOverrides; valid: 
       salary_currency: draft.salary_currency,
       salary_period: draft.salary_period,
       is_gig: draft.is_gig,
+      is_remote: draft.is_remote,
+      is_hybrid: draft.is_hybrid,
       description: draft.description,
       notes: draft.notes,
     },

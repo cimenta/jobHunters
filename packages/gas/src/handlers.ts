@@ -25,7 +25,7 @@ function parseJobInput(args: unknown, method: string) {
       if (!(EDITABLE_JOB_FIELDS as readonly string[]).includes(key)) fail();
       const valid = NUMBER_FIELDS.has(key)
         ? value === null || typeof value === 'number'
-        : key === 'is_gig'
+        : (key === 'is_gig' || key === 'is_remote' || key === 'is_hybrid')
           ? typeof value === 'boolean'
           : typeof value === 'string';
       if (!valid) fail();

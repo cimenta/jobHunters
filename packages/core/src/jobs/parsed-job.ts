@@ -12,6 +12,9 @@ export interface ParsedJob {
   employment_type: string;
   is_gig: boolean;
   remote: '' | 'yes' | 'no' | 'hybrid';
+  /** Work mode checkboxes: filled from `remote` by finishParsedJob, then corrected by the user. */
+  is_remote: boolean;
+  is_hybrid: boolean;
   posted_at: string;
   valid_until: string;
   description: string;
@@ -31,7 +34,7 @@ export interface JobParser {
 export function emptyParsedJob(): ParsedJob {
   return {
     title: '', company: '', location: '', salary_min: null, salary_max: null, salary_currency: '', salary_period: '',
-    employment_type: '', is_gig: false, remote: '', posted_at: '', valid_until: '', description: '', language: '', missing: [],
+    employment_type: '', is_gig: false, remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '', missing: [],
   };
 }
 
@@ -41,6 +44,8 @@ export function finishParsedJob(job: ParsedJob): ParsedJob {
   const description = truncateForCell(job.description.trim());
   return {
     ...job,
+    is_remote: job.is_remote || job.remote === 'yes',
+    is_hybrid: job.is_hybrid || job.remote === 'hybrid',
     title: job.title.trim(),
     company: job.company.trim(),
     location: job.location.trim(),
@@ -64,6 +69,8 @@ export function mergeParsed(base: ParsedJob, over: ParsedJob): ParsedJob {
     employment_type: text(base.employment_type, over.employment_type),
     is_gig: base.is_gig || over.is_gig,
     remote: over.remote !== '' ? over.remote : base.remote,
+    is_remote: base.is_remote || over.is_remote,
+    is_hybrid: base.is_hybrid || over.is_hybrid,
     posted_at: text(base.posted_at, over.posted_at),
     valid_until: text(base.valid_until, over.valid_until),
     description: text(base.description, over.description),

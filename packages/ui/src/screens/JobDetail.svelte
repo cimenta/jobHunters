@@ -7,6 +7,7 @@
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
   import Tabs from '../components/Tabs.svelte';
+  import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, safeHttpUrl } from '../lib/format';
@@ -126,7 +127,11 @@
           {#if facts.length > 0}
             <dl class="facts" data-ui="job-detail.info">
               {#each facts as fact (fact.key)}
-                <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="job-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                {#if fact.key === 'work-mode'}
+                  {#if job.status !== 'awaiting'}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="job-detail" />{/if}
+                {:else}
+                  <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="job-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                {/if}
               {/each}
             </dl>
           {/if}

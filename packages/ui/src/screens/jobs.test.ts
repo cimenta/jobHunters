@@ -157,6 +157,16 @@ describe('AddJob', () => {
     expect(toasts.map((x) => x.text).some((text) => /Application created and 2 AI tasks queued/.test(text))).toBe(true);
   });
 
+  it('saves the Remote and Hybrid checkboxes ticked in the review form', async () => {
+    await reviewForm('Ten years of Kotlin');
+    await fireEvent.click(document.querySelector('[data-ui="add-job.remote"]') as HTMLElement);
+    await fireEvent.click(document.querySelector('[data-ui="add-job.hybrid"]') as HTMLElement);
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const [saved] = await api.listJobs();
+    expect(saved).toMatchObject({ is_remote: true, is_hybrid: true });
+  });
+
   it('disables both AI checkboxes without a described experience and says why', async () => {
     await reviewForm('');
     expect(matchBox()).toBeDisabled();

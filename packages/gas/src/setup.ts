@@ -1,4 +1,4 @@
-import { buildSetupPlan, type SheetSetup } from '@jobhunters/core';
+import { buildSetupPlan, workModeFlags, type SheetSetup } from '@jobhunters/core';
 import { GasDrive } from './adapters/gas-drive';
 import { ROOT_FOLDER_ID_KEY, SETUP_OK_VERSION_KEY, SPREADSHEET_ID_KEY } from './props';
 import { describeSheetChange, reportSetup, type SetupStatus, type SheetChange } from './setup-report';
@@ -50,6 +50,8 @@ function applySheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan:
       sheet.getRange(2, 1, plan.seedRows.length, plan.headers.length).setValues(plan.seedRows.map((row) => [...row]));
     }
   }
+  // The checkboxes Remote / Hybrid replace the old yes / no / hybrid cell: the jobs that already have it are carried over once.
+  if (!isNew && plan.name === 'Jobs' && (addedColumns.includes('is_remote') || addedColumns.includes('is_hybrid'))) backfillWorkMode(sheet);
   // Validation, not insertCheckboxes(): that writes FALSE into every row, so the sheet would look full.
   const checkbox = SpreadsheetApp.newDataValidation().requireCheckbox().build();
   for (const column of plan.checkboxColumns) sheet.getRange(2, column, rows - 1, 1).setDataValidation(checkbox);
@@ -71,6 +73,21 @@ function applySheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan:
   const repaired = plan.name === 'Profile' ? brokenProfileValues(sheet) : [];
   for (const cell of repaired) sheet.getRange(cell.row, 2).setValue(cell.text);
   return { created: isNew, columns: plan.headers.length, seedRows: isNew ? plan.seedRows.length : 0, addedColumns, addedRows, repairedValues: repaired.map((cell) => cell.key) };
+}
+
+/** Fills the new is_remote and is_hybrid cells from the old `remote` cell (yes -> Remote, hybrid -> Hybrid); other rows stay empty. */
+function backfillWorkMode(sheet: GoogleAppsScript.Spreadsheet.Sheet): void {
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  const header = sheet.getRange('1:1').getValues()[0] as string[];
+  const remote = header.indexOf('remote');
+  const isRemote = header.indexOf('is_remote');
+  const isHybrid = header.indexOf('is_hybrid');
+  if (remote < 0 || isRemote < 0 || isHybrid < 0) return;
+  const old = sheet.getRange(2, remote + 1, last - 1, 1).getValues();
+  const flags = old.map((row) => workModeFlags(String(row[0] ?? '')));
+  sheet.getRange(2, isRemote + 1, last - 1, 1).setValues(flags.map((flag) => [flag.is_remote ? true : '']));
+  sheet.getRange(2, isHybrid + 1, last - 1, 1).setValues(flags.map((flag) => [flag.is_hybrid ? true : '']));
 }
 
 /** The keys of the Profile rows that the plan lists but the sheet lacks (a newer version added keys). */

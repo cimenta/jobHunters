@@ -176,11 +176,27 @@ describe('ApplicationDetail summary', () => {
       return found!;
     });
     expect(info).toHaveTextContent('60,000 – 80,000 CZK / month');
-    expect(info).toHaveTextContent('Hybrid');
     expect(info).toHaveTextContent('Praha');
     expect(info).toHaveTextContent('Full-time');
     expect(ui('application-detail.header')).toHaveTextContent('Match 82 %');
     expect(ui('application-detail.header')).toHaveTextContent('Sent');
+  });
+
+  it('has editable Remote and Hybrid checkboxes of the job', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const remote = await waitFor(() => {
+      const found = ui('application-detail.work-mode.remote') as HTMLInputElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(remote).not.toBeChecked();
+    expect(ui('application-detail.work-mode.hybrid')).toBeChecked();
+    await fireEvent.click(remote);
+    await waitFor(async () => expect((await api.getJob(jobId)).job.is_remote).toBe(true));
   });
 
   it('has the status control and four icon buttons with a hover name in the right column', async () => {

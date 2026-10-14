@@ -18,7 +18,6 @@ export function reportAvailability(check: AvailabilityCheck): void {
 const REFRESH_GROUPS: Array<{ key: string; columns: string[] }> = [
   { key: 'title', columns: ['title'] },
   { key: 'salary', columns: ['salary_min', 'salary_max', 'salary_currency', 'salary_period'] },
-  { key: 'workMode', columns: ['remote'] },
   { key: 'type', columns: ['employment_type'] },
   { key: 'location', columns: ['location'] },
   { key: 'dates', columns: ['posted_at', 'valid_until'] },

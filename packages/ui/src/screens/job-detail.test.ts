@@ -155,7 +155,7 @@ describe('JobDetail layout', () => {
     expect(link.textContent?.trim()).toBe('');
   });
 
-  it('shows salary, work mode, location, type and the AI salary, each labelled and only when filled', async () => {
+  it('shows salary, location, type and the AI salary, each labelled and only when filled', async () => {
     const backend = useDevBackend();
     const id = await idOf('Android Developer');
     render(JobDetail, { id });
@@ -163,8 +163,6 @@ describe('JobDetail layout', () => {
     const info = document.querySelector('[data-ui="job-detail.info"]') as HTMLElement;
     expect(info).toHaveTextContent('Salary');
     expect(info).toHaveTextContent('60,000 – 80,000 CZK / month');
-    expect(info).toHaveTextContent('Work mode');
-    expect(info).toHaveTextContent('Hybrid');
     expect(info).toHaveTextContent('Location');
     expect(info).toHaveTextContent('Praha');
     expect(info).toHaveTextContent('Type');
@@ -177,7 +175,32 @@ describe('JobDetail layout', () => {
     render(JobDetail, { id: analyst });
     await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
     const empty = document.querySelector('[data-ui="job-detail.info"]');
-    expect(empty === null || !/Salary|Work mode|Location|Type|AI/.test(empty.textContent ?? '')).toBe(true);
+    expect(empty === null || !/Salary|Location|Type|AI/.test(empty.textContent ?? '')).toBe(true);
+  });
+
+  it('always shows the Remote and Hybrid checkboxes, and a click is saved at once', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const remote = () => document.querySelector('[data-ui="job-detail.work-mode.remote"]') as HTMLInputElement;
+    const hybrid = () => document.querySelector('[data-ui="job-detail.work-mode.hybrid"]') as HTMLInputElement;
+    expect(remote()).not.toBeChecked();
+    expect(hybrid()).toBeChecked();
+    await fireEvent.click(remote());
+    await waitFor(async () => expect((await api.getJob(id)).job).toMatchObject({ is_remote: true, is_hybrid: true }));
+    await fireEvent.click(hybrid());
+    await waitFor(async () => expect((await api.getJob(id)).job).toMatchObject({ is_remote: true, is_hybrid: false }));
+    await waitFor(() => expect(hybrid()).not.toBeChecked());
+  });
+
+  it('shows the Remote and Hybrid checkboxes even for a job without any work mode', async () => {
+    useDevBackend();
+    const id = await idOf('Data Analyst (part time)');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
+    expect(document.querySelector('[data-ui="job-detail.work-mode.remote"]')).not.toBeChecked();
+    expect(document.querySelector('[data-ui="job-detail.work-mode.hybrid"]')).not.toBeChecked();
   });
 
   it('hides the actions of a job that waits for the AI', async () => {

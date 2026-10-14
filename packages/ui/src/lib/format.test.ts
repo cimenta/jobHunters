@@ -92,11 +92,14 @@ describe('formatCount', () => {
 });
 
 describe('formatWorkMode', () => {
-  it('names the work mode in the current language and returns nothing for an empty or unknown value', () => {
+  it('names the ticked work modes in the current language and returns nothing when none is ticked', () => {
     setLocale('en');
-    expect([formatWorkMode('no'), formatWorkMode('hybrid'), formatWorkMode('yes'), formatWorkMode(''), formatWorkMode('???')]).toEqual(['On-site', 'Hybrid', 'Remote', '', '']);
+    expect([
+      formatWorkMode({ is_remote: true, is_hybrid: false }), formatWorkMode({ is_remote: false, is_hybrid: true }),
+      formatWorkMode({ is_remote: true, is_hybrid: true }), formatWorkMode({ is_remote: false, is_hybrid: false }),
+    ]).toEqual(['Remote', 'Hybrid', 'Remote · Hybrid', '']);
     setLocale('cs');
-    expect([formatWorkMode('no'), formatWorkMode('hybrid'), formatWorkMode('yes')]).toEqual(['Na místě', 'Hybridně', 'Na dálku']);
+    expect([formatWorkMode({ is_remote: true, is_hybrid: false }), formatWorkMode({ is_remote: false, is_hybrid: true })]).toEqual(['Na dálku', 'Hybridně']);
     setLocale('en');
   });
 });
@@ -143,7 +146,7 @@ describe('missing values (the transport can drop null properties)', () => {
 
   it('formatEmploymentType, formatWorkMode and formatAiSalary survive undefined', () => {
     expect(formatEmploymentType(undefined as unknown as string)).toBe('');
-    expect(formatWorkMode(undefined as unknown as string)).toBe('');
+    expect(formatWorkMode({})).toBe('');
     expect(formatAiSalary(undefined as unknown as string, undefined as unknown as string)).toBe('');
   });
 });

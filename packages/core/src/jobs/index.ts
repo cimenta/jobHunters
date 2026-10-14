@@ -11,3 +11,4 @@ export * from './fetcher';
 export * from './job-service';
 export * from './job-import-service';
 export * from './job-remover';
+export * from './work-mode';

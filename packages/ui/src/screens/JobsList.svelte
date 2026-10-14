@@ -101,7 +101,7 @@
 
   /** Work mode · type · salary of the ad, empty when the ad has none of them. */
   function facts(job: JobRow): string {
-    return [formatWorkMode(job.remote), formatEmploymentType(job.employment_type), formatSalary(job)].filter((part) => part !== '').join(' · ');
+    return [formatWorkMode(job), formatEmploymentType(job.employment_type), formatSalary(job)].filter((part) => part !== '').join(' · ');
   }
 
   async function check(job: JobRow): Promise<void> {

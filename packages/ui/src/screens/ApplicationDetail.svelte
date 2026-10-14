@@ -7,6 +7,7 @@
   import Badge from '../components/Badge.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import Tabs from '../components/Tabs.svelte';
+  import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import { formatDate, safeHttpUrl } from '../lib/format';
   import { jobFacts, matchColor } from '../lib/job-facts';
   import { tr } from '../lib/i18n.svelte';
@@ -87,7 +88,11 @@
           {#if facts.length > 0}
             <dl class="facts" data-ui="application-detail.info">
               {#each facts as fact (fact.key)}
-                <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                {#if fact.key === 'work-mode'}
+                  {#if job}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="application-detail" />{/if}
+                {:else}
+                  <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
+                {/if}
               {/each}
             </dl>
           {/if}

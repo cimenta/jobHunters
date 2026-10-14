@@ -11,7 +11,7 @@ import { jobUrlKey, normalizeJobUrl, parseUrl, titleFromUrl } from './url';
 
 export const EDITABLE_JOB_FIELDS = [
   'title', 'company', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
-  'employment_type', 'is_gig', 'remote', 'posted_at', 'valid_until', 'description', 'language', 'notes',
+  'employment_type', 'is_gig', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'notes',
 ] as const;
 
 /** Values the user confirmed or corrected in the form; they win over the parsed ones. */
@@ -143,7 +143,7 @@ export class JobService {
     const patch: Partial<Job> = {
       title: parsed.title.trim() || titleFromUrl(job.url), location: parsed.location, salary_min: parsed.salary_min, salary_max: parsed.salary_max,
       salary_currency: parsed.salary_currency, salary_period: parsed.salary_period, employment_type: parsed.employment_type,
-      remote: parsed.remote, posted_at: parsed.posted_at, valid_until: parsed.valid_until, description: truncateForCell(parsed.description),
+      posted_at: parsed.posted_at, valid_until: parsed.valid_until, description: truncateForCell(parsed.description),
       language: parsed.language, parser_id: acquired.parserId,
     };
     const companyName = parsed.company.trim();
@@ -166,7 +166,7 @@ export class JobService {
     return this.deps.jobs.insert({
       id: this.deps.newId(), company_id: '', title: titleFromUrl(url), url, source: parseUrl(url)?.host.replace(/^www\./, '') ?? '',
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
-      salary_currency: '', salary_period: '', employment_type: '', remote: '', posted_at: '', valid_until: '', description: '', language: '',
+      salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
       status: 'awaiting', match_percent: null, ai_salary: '',
     });
@@ -207,7 +207,9 @@ export class JobService {
       salary_currency: fields.salary_currency,
       salary_period: fields.salary_period,
       employment_type: fields.employment_type,
-      remote: fields.remote,
+      remote: '',
+      is_remote: fields.is_remote,
+      is_hybrid: fields.is_hybrid,
       posted_at: fields.posted_at,
       valid_until: fields.valid_until,
       description: truncateForCell(fields.description),

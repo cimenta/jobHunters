@@ -125,13 +125,13 @@ function seedShowcase(backend: DevBackend, now: () => string): void {
     return id;
   };
   const jobs = {
-    android: save('android', 'Android Developer', { company: 'Example s.r.o.', location: 'Praha', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, 82, '75000 (65000-90000)'),
-    kotlin: save('kotlin', 'Senior Kotlin Engineer', { company: 'Northwind Apps', location: 'Brno', salary_min: 90000, salary_max: 120000, salary_currency: 'CZK', salary_period: 'month', remote: 'yes', employment_type: 'full_time' }, 91, '110000 (95000-125000)'),
-    lead: save('lead', 'Mobile Team Lead', { company: 'Globex Studio', location: 'Praha', salary_min: 110000, salary_max: 140000, salary_currency: 'CZK', salary_period: 'month', remote: 'no', employment_type: 'full_time' }, 64, '120000 (105000-145000)'),
-    backend: save('backend', 'Backend Developer (Kotlin)', { company: 'Initech Mobile', location: 'Ostrava', salary_min: 70000, salary_max: 95000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, 48),
-    flutter: save('flutter', 'Flutter Developer', { company: 'Acme Labs', location: 'Remote', salary_min: 55000, salary_max: 75000, salary_currency: 'CZK', salary_period: 'month', remote: 'yes', employment_type: 'full_time' }, 35),
+    android: save('android', 'Android Developer', { company: 'Example s.r.o.', location: 'Praha', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month', is_hybrid: true, employment_type: 'full_time' }, 82, '75000 (65000-90000)'),
+    kotlin: save('kotlin', 'Senior Kotlin Engineer', { company: 'Northwind Apps', location: 'Brno', salary_min: 90000, salary_max: 120000, salary_currency: 'CZK', salary_period: 'month', is_remote: true, employment_type: 'full_time' }, 91, '110000 (95000-125000)'),
+    lead: save('lead', 'Mobile Team Lead', { company: 'Globex Studio', location: 'Praha', salary_min: 110000, salary_max: 140000, salary_currency: 'CZK', salary_period: 'month', employment_type: 'full_time' }, 64, '120000 (105000-145000)'),
+    backend: save('backend', 'Backend Developer (Kotlin)', { company: 'Initech Mobile', location: 'Ostrava', salary_min: 70000, salary_max: 95000, salary_currency: 'CZK', salary_period: 'month', is_hybrid: true, employment_type: 'full_time' }, 48),
+    flutter: save('flutter', 'Flutter Developer', { company: 'Acme Labs', location: 'Remote', salary_min: 55000, salary_max: 75000, salary_currency: 'CZK', salary_period: 'month', is_remote: true, employment_type: 'full_time' }, 35),
     analyst: save('analyst', 'Data Analyst (part time)', { company: 'Sample GmbH', location: 'Brno', is_gig: true, salary_min: 250, salary_max: 300, salary_currency: 'CZK', salary_period: 'hour', employment_type: 'part_time' }, 58),
-    qa: save('qa', 'QA Automation Engineer', { company: 'Umbrella Digital', location: 'Plzeň', salary_min: 65000, salary_max: 85000, salary_currency: 'CZK', salary_period: 'month', remote: 'hybrid', employment_type: 'full_time' }, null),
+    qa: save('qa', 'QA Automation Engineer', { company: 'Umbrella Digital', location: 'Plzeň', salary_min: 65000, salary_max: 85000, salary_currency: 'CZK', salary_period: 'month', is_hybrid: true, employment_type: 'full_time' }, null),
   };
 
   const apply = (jobId: string, steps: string[]): string => {
@@ -173,7 +173,7 @@ function seed(backend: DevBackend, now: () => string): void {
   const lorem = 'We are looking for a colleague to join our team. You will build and run services together with us.';
   const android = save('https://example.com/jobs/android', `Android Developer\n\n${lorem}`, {
     company: 'Example s.r.o.', location: 'Praha', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month',
-    remote: 'hybrid', employment_type: 'full_time',
+    is_hybrid: true, employment_type: 'full_time',
   });
   backend.container.jobs.update(android, { ai_salary: '75000 (65000-90000)' });
   const analyst = save('https://example.com/jobs/analyst', `Data Analyst (part time)\n\n${lorem}`, {

@@ -121,7 +121,7 @@ stays in the timeline of the application, so you are prepared for the next step 
 
 ### Jobs
 
-Every ad as a card: the company, place, work mode, type, salary, the AI salary estimate, the match badge and how many
+Every ad as a card: the company, place, Remote / Hybrid, type, salary, the AI salary estimate, the match badge and how many
 applications you have. A narrow column of icons opens the original ad and checks its availability, and two checkboxes
 ask the AI for a match or prepare an application in one click.
 
@@ -129,8 +129,9 @@ ask the AI for a match or prepare an application in one click.
   <img src="docs/screenshots/02-jobs.png" alt="List of jobs with filters, sorting and match badges" width="900">
 </p>
 
-The detail of a job shows the facts of the ad on the left and the status with the actions on the right (refresh the ad,
-check availability, open the ad, open its folder in Drive). Its tabs hold the applications, your notes, the saved
+The detail of a job shows the facts of the ad on the left, with the checkboxes Remote and Hybrid that you can tick at any
+time, and the status with the actions on the right (refresh the ad, check availability, open the ad, open its folder in
+Drive, delete a job that has no application). Its tabs hold the applications, your notes, the saved
 description and the AI evaluation.
 
 <p align="center">
@@ -154,7 +155,7 @@ match in one task.
   <img src="docs/screenshots/06-application-detail.png" alt="Application detail with the status control and the tabs" width="900">
 </p>
 
-An application has the same layout as a job: the facts and the match on the left, the status control and the shortcuts
+An application has the same layout as a job: the facts, the Remote and Hybrid checkboxes and the match on the left, the status control and the shortcuts
 (job, company, ad, folder) on the right. The tabs are the saved text of the ad, the documents, the questions, the
 communication, the reminders and the timeline.
 

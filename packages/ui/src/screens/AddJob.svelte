@@ -198,7 +198,11 @@
             </select>
           </Field>
         </div>
-        <label class="check"><input data-ui="add-job.gig" type="checkbox" bind:checked={draft.is_gig} />{tr('ui.job.gig')}</label>
+        <div class="row wrap">
+          <label class="check"><input data-ui="add-job.gig" type="checkbox" bind:checked={draft.is_gig} />{tr('ui.job.gig')}</label>
+          <label class="check"><input data-ui="add-job.remote" type="checkbox" bind:checked={draft.is_remote} />{tr('ui.job.remote')}</label>
+          <label class="check"><input data-ui="add-job.hybrid" type="checkbox" bind:checked={draft.is_hybrid} />{tr('ui.job.hybrid')}</label>
+        </div>
         <Field label={tr('ui.job.description')} for="draft-description" hint={missing('description') ? tr('ui.addJob.missing') : undefined} warn>
           <textarea data-ui="add-job.description" id="draft-description" class="input" rows="8" bind:value={draft.description}></textarea>
         </Field>

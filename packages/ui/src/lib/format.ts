@@ -38,9 +38,9 @@ export function formatSalary(job: { salary_min?: number | null; salary_max?: num
   return `${range}${currency}${period}`;
 }
 
-/** On-site / hybrid / remote in the current language; empty or unknown gives ''. */
-export function formatWorkMode(remote: string | undefined): string {
-  return remote === 'no' || remote === 'hybrid' || remote === 'yes' ? tr(`ui.workMode.${remote}`) : '';
+/** "Remote", "Hybrid" or both, in the current language; neither gives ''. */
+export function formatWorkMode(job: { is_remote?: boolean; is_hybrid?: boolean }): string {
+  return [job.is_remote ? tr('ui.job.remote') : '', job.is_hybrid ? tr('ui.job.hybrid') : ''].filter((part) => part !== '').join(' · ');
 }
 
 const EMPLOYMENT_TYPES = ['full_time', 'part_time', 'contractor', 'intern'];

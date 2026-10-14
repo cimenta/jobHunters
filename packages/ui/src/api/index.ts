@@ -7,7 +7,7 @@ import type {
 
 export type JobOverrides = Partial<{
   title: string; company: string; location: string; salary_min: number | null; salary_max: number | null; salary_currency: string;
-  salary_period: string; employment_type: string; is_gig: boolean; remote: string; description: string; language: string; notes: string;
+  salary_period: string; employment_type: string; is_gig: boolean; is_remote: boolean; is_hybrid: boolean; description: string; language: string; notes: string;
 }>;
 
 export interface CommunicationInput {
@@ -44,7 +44,7 @@ export const api = {
   saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
   refreshJob: (id: string) => call<RefreshResult>('refreshJob', { id }),
-  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; status?: string }) => call<Job>('updateJob', { id, ...patch }),
+  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
   requestQuestionAi: (questionId: string, notes: string) => call<AiTask>('requestQuestionAi', { questionId, notes }),
