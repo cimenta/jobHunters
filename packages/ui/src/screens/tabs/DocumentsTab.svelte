@@ -127,10 +127,11 @@
             {/if}
           </div>
           <div class="ai" data-ui="doc.ai.{doc.id}">
-            <label class="check">
-              <input data-ui="doc.{doc.id}.ai-toggle" type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(doc, event.currentTarget.checked)} />
-              {tr('ui.docs.ai')}
-            </label>
+            <!-- A div, not a label: only a click on the box itself queues the AI task, never a click on its text. -->
+            <div class="check">
+              <input data-ui="doc.{doc.id}.ai-toggle" type="checkbox" aria-label={tr('ui.docs.ai')} checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(doc, event.currentTarget.checked)} />
+              <span data-ui="doc.{doc.id}.ai-toggle.text">{tr('ui.docs.ai')}</span>
+            </div>
             {#if !active}
               <textarea data-ui="doc.{doc.id}.ai-notes" class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes[doc.id]}></textarea>
             {/if}

@@ -51,6 +51,32 @@ describe('Questions tab', () => {
     expect(toasts.map((t) => t.text)).toContain('AI answer request cancelled for "Why do you want to work with us?"');
   });
 
+  it('queues the AI only when the checkbox itself is clicked, never when its text is clicked', async () => {
+    const id = await open(/Questions/);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const box = await screen.findByLabelText('Answer by AI');
+    const text = document.querySelector('[data-ui$=".ai-toggle.text"]') as HTMLElement;
+    expect(text).toHaveTextContent('Answer by AI');
+    await fireEvent.click(text);
+    expect(box).not.toBeChecked();
+    expect((await api.getApplication(id)).tasks).toEqual([]);
+    await fireEvent.click(box);
+    await waitFor(async () => expect((await api.getApplication(id)).tasks).toHaveLength(1));
+  });
+
+  it('queues the AI for a document only when its checkbox itself is clicked, never when its text is clicked', async () => {
+    const id = await open(/Documents/);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const box = (await screen.findAllByLabelText('Content by AI'))[0]!;
+    const text = document.querySelector('[data-ui$=".ai-toggle.text"]') as HTMLElement;
+    expect(text).toHaveTextContent('Content by AI');
+    await fireEvent.click(text);
+    expect(box).not.toBeChecked();
+    expect((await api.getApplication(id)).tasks).toEqual([]);
+    await fireEvent.click(box);
+    await waitFor(async () => expect((await api.getApplication(id)).tasks).toHaveLength(1));
+  });
+
   it('shows an error notice when requesting the AI answer fails', async () => {
     await open(/Questions/);
     await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });

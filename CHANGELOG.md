@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.8] - 2026-10-14
+
+- The checkboxes "Content by AI" (documents) and "Answer by AI" (questions) of an application now queue the AI task only when you click the checkbox itself. Clicking their text no longer ticks them, so a stray click next to the box cannot start an AI task.
+- No Setup is needed for this update.
+
 ## [0.16.7] - 2026-10-14
 
 - New optional field "Salary I ask for" (free text, for example "75 000 CZK / month") in the window "Create application". The application detail shows it right next to the AI salary; double-click it to change it (Enter or leaving the field saves, Esc cancels, Enter on the focused text also opens it). Applications created without that window (from Add job or "Prepare with AI") start with it empty and you fill it by double-click. It is not shown in the lists or on the Kanban board.

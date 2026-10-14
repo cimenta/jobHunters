@@ -80,10 +80,11 @@
     <textarea id="answer-{question.id}" data-ui="question.answer.{question.id}" class="input" rows="4" aria-invalid={over} bind:value={answer}></textarea>
   </Field>
   <div class="ai" data-ui="question.ai.{question.id}">
-    <label class="check">
-      <input data-ui="question.{question.id}.ai-toggle" type="checkbox" checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(event.currentTarget.checked)} />
-      {tr('ui.questions.ai')}
-    </label>
+    <!-- A div, not a label: only a click on the box itself queues the AI task, never a click on its text. -->
+    <div class="check">
+      <input data-ui="question.{question.id}.ai-toggle" type="checkbox" aria-label={tr('ui.questions.ai')} checked={active} disabled={task?.status === 'in_progress'} onchange={(event) => toggleAi(event.currentTarget.checked)} />
+      <span data-ui="question.{question.id}.ai-toggle.text">{tr('ui.questions.ai')}</span>
+    </div>
     {#if !active}
       <textarea data-ui="question.{question.id}.ai-notes" class="input" rows="2" aria-label={tr('ui.docs.aiNotes')} placeholder={tr('ui.docs.aiNotes')} bind:value={notes}></textarea>
     {/if}
