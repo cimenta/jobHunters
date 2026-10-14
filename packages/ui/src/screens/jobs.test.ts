@@ -179,32 +179,37 @@ describe('AddJob', () => {
   }
   const aiBox = () => document.querySelector('[data-ui="add-job.ai-job"]') as HTMLInputElement | null;
 
-  it('has no AI job checkbox until the download failed', async () => {
+  it('always shows the AI job checkbox, and with it ticked creates the AI job without downloading the ad', async () => {
     useDevBackend({ seed: false });
     await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
     await loadApp();
     render(AddJob);
-    expect(aiBox()).toBeNull();
-    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
-    await screen.findByDisplayValue('Demo Engineer');
-    expect(aiBox()).toBeNull();
-  });
-
-  it('after a failed download offers "Create AI job to import", which queues ONE import-and-match task', async () => {
-    await failedDownload('Ten years of Kotlin');
     expect(aiBox()).not.toBeNull();
     expect(aiBox()).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Use this text' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Read the ad' })).toBeInTheDocument();
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
     await fireEvent.click(aiBox()!);
-    expect(screen.queryByRole('button', { name: 'Use this text' })).toBeNull();
-    expect(screen.getByLabelText('Text of the ad')).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Read the ad' })).toBeNull();
     await fireEvent.click(screen.getByRole('button', { name: 'Create AI job' }));
     await waitFor(() => expect(router.current.name).toBe('job'));
     const tasks = await api.listAiTasks();
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({ type: 'import_match_job', status: 'pending' });
     expect(toasts.map((t) => t.text).some((text) => /AI job created for .*1 AI task queued \(import and match\)/.test(text))).toBe(true);
+  });
+
+  it('after a failed download the same checkbox still queues ONE import-and-match task', async () => {
+    await failedDownload('Ten years of Kotlin');
+    expect(aiBox()).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Use this text' })).toBeInTheDocument();
+    await fireEvent.click(aiBox()!);
+    expect(screen.getByRole('button', { name: 'Use this text' })).toBeDisabled();
+    expect(screen.getByLabelText('Text of the ad')).toBeDisabled();
+    await fireEvent.click(screen.getByRole('button', { name: 'Create AI job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const tasks = await api.listAiTasks();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({ type: 'import_match_job', status: 'pending' });
   });
 
   it('disables the checkbox while text is pasted, and without a described experience', async () => {

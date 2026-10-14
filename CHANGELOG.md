@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.3] - 2026-10-14
+
+- Add job: the checkbox "Create AI job to import" is now always shown under the link, not only after a failed download. Ticked, the button becomes "Create AI job" and the AI reads the ad itself, fills in the job and evaluates the match, without the app downloading the page first. Use it for sites whose ad text the app cannot read.
+- No Setup is needed for this update.
+
 ## [0.16.2] - 2026-10-14
 
 - A job that has no application can now be deleted, whatever its status: with the trash icon on its card in Jobs, with the trash icon under the status in its detail, or with the red "Delete job" button at the bottom of its detail. A job that has an application cannot be deleted; delete the application first. Companies stay.

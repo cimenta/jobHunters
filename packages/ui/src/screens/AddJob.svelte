@@ -61,14 +61,20 @@
   }
 
   async function createAiJob(): Promise<void> {
-    if (!preview) return;
-    const result = await api.importAiJob(preview.url);
-    invalidate();
-    if (result.status === 'queued') {
-      toast.success(tr('ui.addJob.aiJobCreated', { title: result.job.title }));
-      navigate(paths.job(result.job.id));
-    } else if (result.status === 'duplicate') {
-      navigate(paths.job(result.job.id));
+    loading = true;
+    try {
+      const result = await api.importAiJob(url.trim());
+      invalidate();
+      if (result.status === 'queued') {
+        toast.success(tr('ui.addJob.aiJobCreated', { title: result.job.title }));
+        navigate(paths.job(result.job.id));
+      } else if (result.status === 'duplicate') {
+        navigate(paths.job(result.job.id));
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      loading = false;
     }
   }
 
@@ -116,15 +122,28 @@
         class="stack"
         onsubmit={(event) => {
           event.preventDefault();
-          void read();
+          void (aiJob ? createAiJob() : read());
         }}
       >
         <Field label={tr('ui.addJob.url')} for="job-url" hint={tr('ui.addJob.urlHint')}>
           <input id="job-url" data-ui="add-job.url" class="input" type="url" inputmode="url" autocomplete="off" bind:value={url} />
         </Field>
+        <label class="check">
+          <input data-ui="add-job.ai-job" type="checkbox" bind:checked={aiJob} disabled={!hasExperience || hasPastedText} />
+          <span>
+            {tr('ui.addJob.aiJob')}
+            {#if !hasExperience}
+              <small class="warn" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobNeedsExperience')} <a data-ui="add-job.ai-job.settings" href={paths.settings}>{tr('ui.nav.settings')}</a></small>
+            {:else if hasPastedText}
+              <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobClearText')}</small>
+            {:else}
+              <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobHint')}</small>
+            {/if}
+          </span>
+        </label>
         <div class="row wrap">
-          <Button type="submit" variant="primary" ui="add-job.read" {loading} disabled={url.trim() === ''}>{tr('ui.addJob.find')}</Button>
-          {#if !pasting && preview && preview.duplicateOf === ''}
+          <Button type="submit" variant="primary" ui={aiJob ? 'add-job.create-ai-job' : 'add-job.read'} {loading} disabled={url.trim() === ''}>{aiJob ? tr('ui.addJob.createAiJob') : tr('ui.addJob.find')}</Button>
+          {#if !pasting && preview && preview.duplicateOf === '' && !aiJob}
             <Button ui="add-job.show-paste" onclick={() => (pasting = true)}>{tr('ui.addJob.pasteInstead')}</Button>
           {/if}
         </div>
@@ -147,28 +166,8 @@
           <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" disabled={aiJob} bind:value={pasted}></textarea>
         </Field>
         <div>
-          {#if aiJob}
-            <Button ui="add-job.create-ai-job" variant="primary" onclick={createAiJob}>{tr('ui.addJob.createAiJob')}</Button>
-          {:else}
-            <Button ui="add-job.read-text" variant="primary" disabled={pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button>
-          {/if}
+          <Button ui="add-job.read-text" variant="primary" disabled={aiJob || pasted.trim() === ''} onclick={() => read(pasted)}>{tr('ui.addJob.usePaste')}</Button>
         </div>
-        {#if preview && !preview.fetched && preview.duplicateOf === ''}
-          <p class="muted small or">{tr('ui.addJob.or')}</p>
-          <label class="check">
-            <input data-ui="add-job.ai-job" type="checkbox" bind:checked={aiJob} disabled={!hasExperience || hasPastedText} />
-            <span>
-              {tr('ui.addJob.aiJob')}
-              {#if !hasExperience}
-                <small class="warn" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobNeedsExperience')} <a data-ui="add-job.ai-job.settings" href={paths.settings}>{tr('ui.nav.settings')}</a></small>
-              {:else if hasPastedText}
-                <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobClearText')}</small>
-              {:else}
-                <small class="muted" data-ui="add-job.ai-job.hint">{tr('ui.addJob.aiJobHint')}</small>
-              {/if}
-            </span>
-          </label>
-        {/if}
       </Card>
     {/if}
 
@@ -226,7 +225,6 @@
 </div>
 
 <style>
-  .or { text-align: center; margin: 0; }
   .check { display: flex; align-items: flex-start; gap: var(--space-2); min-height: var(--tap); }
   .check small { display: block; }
   .warn { color: var(--warning); }
