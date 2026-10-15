@@ -16,6 +16,8 @@ export interface JobFilters {
   status?: string;
   /** Drop jobs that have at least one application. */
   hideApplied?: boolean;
+  /** Drop jobs whose status is No. */
+  hideNo?: boolean;
 }
 
 export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow[] {
@@ -24,6 +26,7 @@ export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow
     if (filters.availability !== '' && row.availability !== filters.availability) return false;
     if (filters.gig && !row.is_gig) return false;
     if (filters.hideApplied === true && row.application_count > 0) return false;
+    if (filters.hideNo === true && row.status === 'no') return false;
     if (filters.status !== undefined && filters.status !== '' && (row.status === '' ? 'new' : row.status) !== filters.status) return false;
     return needle === '' || normalise(`${row.title} ${row.company_name} ${row.location} ${workModeWords(row)}`).includes(needle);
   });

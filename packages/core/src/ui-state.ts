@@ -16,6 +16,8 @@ export interface UiState {
   applications_status_board: string[];
   /** Whether the Jobs screen hides jobs that have an application. */
   jobs_hide_applied: boolean;
+  /** Whether the Jobs screen hides jobs whose status is No. */
+  jobs_hide_no: boolean;
   /** Order of the Jobs screen. */
   jobs_sort: JobSort;
   /** Order of the cards of each Kanban column; a status without an entry is ordered by hand. */
@@ -24,7 +26,7 @@ export interface UiState {
   applications_list_sort: SortChoice<ListSortKey>;
 }
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -60,7 +62,7 @@ export function parseUiState(raw: string): UiState | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
   const entry = value as Record<string, unknown>;
   const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } };
-  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied'] as const) {
+  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no'] as const) {
     if (entry[key] === undefined) continue;
     if (typeof entry[key] !== 'boolean') return undefined;
     out[key] = entry[key];

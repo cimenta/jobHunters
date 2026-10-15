@@ -154,10 +154,6 @@
         <p>{tr('ui.job.awaitingNotice')}</p>
         <div><Button variant="danger" ui="job-detail.delete" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button></div>
       </Card>
-    {:else if canDelete}
-      <div class="danger-zone" data-ui="job-detail.danger-zone">
-        <Button variant="danger" ui="job-detail.delete-button" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button>
-      </div>
     {/if}
     {#if canDelete}
       <DeleteJobDialog open={deleting} job={{ id: job.id, title: job.title, folder_url: job.folder_url }} onclose={() => (deleting = false)} ondeleted={() => navigate(paths.jobs)} />
@@ -214,7 +210,6 @@
 
 <style>
   .description { white-space: pre-wrap; }
-  .danger-zone { padding-top: var(--space-4); border-top: 1px solid var(--border); }
   .summary { display: grid; --icons-w: calc(2 * var(--tap) + var(--space-2)); grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'main side'; gap: var(--space-4); align-items: start; }
   .main { grid-area: main; min-width: 0; }
   .side { grid-area: side; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; padding-left: var(--space-4); border-left: 1px solid var(--border); }

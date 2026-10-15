@@ -55,7 +55,7 @@ do the writing and the reading for you.
 - **AI salary estimate**: what to ask for and the realistic range, shown next to the salary of the ad.
 - **Your own ad statuses** with names and colours, flags for gigs and part-time work, notes, the contact person of an
   ad, and a reason why not when you set a job to No.
-- Search, filters (availability, status, gig, jobs that already have an application), sorting by date or match, and a
+- Search, filters (availability, status, gig, jobs that already have an application, jobs set to No), sorting by date or match, and a
   **Clear filters** button. The choices are remembered.
 
 ### Apply

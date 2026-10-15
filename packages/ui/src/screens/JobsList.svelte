@@ -31,10 +31,13 @@
   let status = $state('');
 
   const hideApplied = $derived(uiState().jobs_hide_applied);
+  const hideNo = $derived(uiState().jobs_hide_no);
+  /** The status No as the user named it (the names of the statuses can be changed in Settings). */
+  const noText = $derived(jobStatusOptions(true).find((option) => option.code === 'no')?.text ?? 'No');
   const sort = $derived(uiState().jobs_sort);
 
-  const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied }), sort));
-  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '' || hideApplied);
+  const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied, hideNo }), sort));
+  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '' || hideApplied || hideNo);
 
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   /** The no-experience hint is shown once, on the first card whose checkbox is disabled, so the list stays calm. */
@@ -114,7 +117,7 @@
     availability = '';
     gig = false;
     status = '';
-    saveUiState({ jobs_hide_applied: false });
+    saveUiState({ jobs_hide_applied: false, jobs_hide_no: false });
     document.getElementById('job-search')?.focus();
   }
   import DeleteJobDialog from './DeleteJobDialog.svelte';
@@ -159,8 +162,11 @@
         </select>
       </Field>
       <div class="checks" data-ui="jobs.checks">
-        <label class="check" title={tr('ui.job.gig')}><input type="checkbox" data-ui="jobs.gig" bind:checked={gig} />{tr('ui.jobs.gigShort')}</label>
         <label class="check" title={tr('ui.jobs.hideApplied')}><input type="checkbox" data-ui="jobs.hide-applied" checked={hideApplied} onchange={(event) => saveUiState({ jobs_hide_applied: event.currentTarget.checked })} />{tr('ui.jobs.hideAppliedShort')}</label>
+        <div class="check-row">
+        <label class="check" title={tr('ui.jobs.hideStatus', { status: noText })}><input type="checkbox" data-ui="jobs.hide-no" checked={hideNo} onchange={(event) => saveUiState({ jobs_hide_no: event.currentTarget.checked })} />{tr('ui.jobs.hideStatusShort', { status: noText })}</label>
+        <label class="check" title={tr('ui.job.gig')}><input type="checkbox" data-ui="jobs.gig" bind:checked={gig} />{tr('ui.jobs.gigShort')}</label>
+        </div>
       </div>
       {#if filtered}<Button variant="secondary" ui="jobs.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
     </div></div>
@@ -247,6 +253,8 @@
   .filters { display: flex; flex-direction: column; gap: var(--space-3); }
   .filters > :global(*) { min-width: 0; }
   .checks { display: flex; flex-direction: column; }
+  /* Hide No and Gig stand side by side under Hide with application. */
+  .check-row { display: flex; flex-wrap: wrap; column-gap: var(--space-4); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); white-space: nowrap; }
   @container (min-width: 560px) {
     .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; }

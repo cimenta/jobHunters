@@ -69,7 +69,7 @@ a:hover { color: var(--accent-hover); }
 textarea.input { min-height: 96px; resize: vertical; }
 .input:focus { border-color: var(--accent); }
 .input[aria-invalid='true'] { border-color: var(--danger); }
-input[type='checkbox'] { width: 20px; height: 20px; accent-color: var(--accent); }
+input[type='checkbox'] { width: 16px; height: 16px; accent-color: var(--accent); }
 input[type='color'].input { padding: 2px; min-width: 56px; width: 56px; }
 
 .list { display: flex; flex-direction: column; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }

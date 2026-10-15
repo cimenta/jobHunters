@@ -386,6 +386,29 @@ describe('JobsList sort and hide', () => {
     expect(titles()).toEqual([without[0]!.title]);
   });
 
+  it('hides the jobs with the status No with the Hide No checkbox, which is remembered and cleared by Clear filters', async () => {
+    const { rows } = await open();
+    const target = rows.find((job) => job.status !== 'no' && job.status !== 'awaiting')!;
+    await api.updateJob(target.id, { status: 'no' });
+    const first = render(JobsList);
+    await screen.findByText(target.title);
+    const box = () => screen.getByLabelText('Hide No') as HTMLInputElement;
+    expect(box().checked).toBe(false);
+    await fireEvent.click(box());
+    await waitFor(() => expect(screen.queryByText(target.title)).toBeNull());
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_hide_no).toBe(true));
+    first.unmount();
+    await loadApp();
+    render(JobsList);
+    await screen.findByLabelText('Sort by');
+    expect(box().checked).toBe(true);
+    expect(screen.queryByText(target.title)).toBeNull();
+    await fireEvent.click(document.querySelector('[data-ui="jobs.clear-filters"]')!);
+    expect(box().checked).toBe(false);
+    await screen.findByText(target.title);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_hide_no).toBe(false));
+  });
+
   it('remembers both choices in the app and restores them on the next render', async () => {
     await open();
     const first = render(JobsList);
@@ -461,10 +484,11 @@ describe('JobsList clear filters button', () => {
     await open();
     setLocale('cs');
     try {
-      await waitFor(() => expect(document.querySelector('[data-ui="jobs.checks"] label')?.textContent?.trim()).toBe('Brigáda'));
+      await waitFor(() => expect(document.querySelector('[data-ui="jobs.checks"] label')?.textContent?.trim()).toBe('Skrýt s přihláškou'));
       const stack = document.querySelector('[data-ui="jobs.checks"]')!;
       const texts = [...stack.querySelectorAll('label')].map((label) => label.textContent?.trim());
-      expect(texts).toEqual(['Brigáda', 'Skrýt s přihláškou']);
+      // Gig stands right after Hide No.
+      expect(texts).toEqual(['Skrýt s přihláškou', 'Skrýt „Ne“', 'Brigáda']);
     } finally {
       setLocale('en');
     }
@@ -478,7 +502,7 @@ describe('JobsList clear filters button', () => {
     expect(button()!.classList.contains('ghost')).toBe(false);
   });
 
-  it('stacks the gig and hide checkboxes in one container with short texts and full hover titles', async () => {
+  it('groups the gig and hide checkboxes in one container, Hide No and Gig on one row, with short texts and full hover titles', async () => {
     await open();
     const stack = document.querySelector('[data-ui="jobs.checks"]')!;
     expect(stack).not.toBeNull();
@@ -486,7 +510,12 @@ describe('JobsList clear filters button', () => {
     expect(stack.contains(hideBox())).toBe(true);
     const gigLabel = gigBox().closest('label')!;
     const hideLabel = hideBox().closest('label')!;
-    expect(gigLabel.parentElement).toBe(hideLabel.parentElement);
+    // Hide No and Gig stand side by side (one row), under Hide with application.
+    const noLabel = (document.querySelector('[data-ui="jobs.hide-no"]') as HTMLElement).closest('label')!;
+    expect(gigLabel.parentElement).toBe(noLabel.parentElement);
+    expect(gigLabel.parentElement).not.toBe(stack);
+    expect(hideLabel.parentElement).toBe(stack);
+    expect(stack.children[1]).toBe(gigLabel.parentElement);
     expect(gigLabel.textContent?.trim()).toBe('Gig');
     expect(hideLabel.textContent?.trim()).toBe('Hide with application');
     expect(gigLabel.getAttribute('title')).toBe('Gig (short-term work)');

@@ -404,7 +404,7 @@ describe('JobDetail awaiting the AI', () => {
 });
 
 describe('Delete job (detail)', () => {
-  it('offers the trash icon under the status and the red button only for a job without an application', async () => {
+  it('offers the trash icon under the status, and no second delete button, only for a job without an application', async () => {
     useDevBackend();
     const jobs = await api.listJobs();
     const free = jobs.find((j) => j.application_count === 0 && j.status !== 'awaiting')!;
@@ -418,7 +418,10 @@ describe('Delete job (detail)', () => {
     await second.findByLabelText('Status of the ad');
     const icon = document.querySelector('[data-ui="job-detail.delete-icon"]')!;
     expect(icon.closest('[data-ui="job-detail.actions"]')).not.toBeNull();
-    expect(document.querySelector('[data-ui="job-detail.delete-button"]')).not.toBeNull();
+    // The delete action is offered once; the red button at the bottom of the detail is gone.
+    expect(document.querySelector('[data-ui="job-detail.delete-button"]')).toBeNull();
+    expect(document.querySelector('[data-ui="job-detail.danger-zone"]')).toBeNull();
+    expect(screen.getAllByRole('button', { name: 'Delete job' })).toHaveLength(1);
   });
 
   it('deletes the job from the icon and goes back to the list', async () => {

@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.11] - 2026-10-15
+
+- The job detail had two buttons that delete the job (the trash icon under the status and a red button at the bottom). The red button is gone; the trash icon stays. A job that waits for the AI keeps its own delete button in its notice.
+- The Jobs filters have a new checkbox "Hide No" that hides the jobs whose status is No. It is remembered like "Hide with application", "Clear filters" switches it off, and its label follows the name you gave the status No in Settings.
+- All checkboxes of the app are smaller (16 px instead of 20 px); the whole label stays clickable.
+- No Setup is needed for this update.
+
 ## [0.16.10] - 2026-10-15
 
 - A job has a new field "Contact person" (the person the ad names as responsible for the position or as a contact, free text). It is shown in the facts of the job detail and of the application detail and changed by a double-click (Enter or leaving the field saves, Esc cancels).

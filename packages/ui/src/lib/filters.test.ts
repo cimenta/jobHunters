@@ -31,6 +31,16 @@ describe('filterJobs', () => {
   });
 });
 
+describe('hideNo', () => {
+  const none = { text: '', availability: '' as const, gig: false };
+  it('drops the jobs whose status is No and nothing else', () => {
+    const withStatus = [{ ...jobs[0]!, status: 'no' }, { ...jobs[1]!, status: 'new' }, { ...jobs[1]!, id: 'j3', status: '' }];
+    expect(filterJobs(withStatus, { ...none, hideNo: true }).map((j) => j.id)).toEqual(['j2', 'j3']);
+    expect(filterJobs(withStatus, { ...none, hideNo: false })).toHaveLength(3);
+    expect(filterJobs(withStatus, none)).toHaveLength(3);
+  });
+});
+
 describe('hideApplied', () => {
   const none = { text: '', availability: '' as const, gig: false };
   it('drops jobs with an application and combines with other filters', () => {

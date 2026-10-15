@@ -109,11 +109,11 @@ describe('ApplicationService.move', () => {
 
 describe('ui state setting', () => {
   it('defaults, parses and drops unknown statuses', () => {
-    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
+    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
     expect(parseUiState('{"applications_hide_empty":true}')?.applications_hide_empty).toBe(true);
     expect(parseUiState('{"applications_hide_empty":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_status_board":["sent","nope","sent"]}'))
-      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
+      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_hide_no: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } });
   });
 
   it('parses the sort choices of the board and the list, dropping what does not fit', () => {
@@ -137,6 +137,8 @@ describe('ui state setting', () => {
     expect(parseUiState('{"jobs_sort":"nope"}')).toBeUndefined();
     expect(parseUiState('{"jobs_sort":1}')).toBeUndefined();
     expect(parseUiState('{"jobs_hide_applied":"yes"}')).toBeUndefined();
+    expect(parseUiState('{"jobs_hide_no":true}')?.jobs_hide_no).toBe(true);
+    expect(parseUiState('{"jobs_hide_no":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_hide_empty":true,"applications_status_list":[],"applications_status_board":[]}'))
       .toMatchObject({ jobs_hide_applied: false, jobs_sort: 'newest' });
     expect(JOB_SORTS).toEqual(['newest', 'oldest', 'match_desc', 'match_asc']);
