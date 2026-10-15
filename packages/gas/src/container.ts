@@ -13,7 +13,7 @@ import {
   JobImportService,
   JobRemover,
   JobService,
-  JobStatusMigration, JobStatusService,
+  JobStatusMigration, JobStatusService, TestDataService,
   QuestionService,
   ReminderService,
   Scheduler,
@@ -160,6 +160,7 @@ export function buildContainer(deps: ContainerDeps) {
   const catalogService = new CatalogService({ jobs, applications, companies, jobStatuses: () => settings.get().settings.job_status_styles });
   const jobStatusService = new JobStatusService({ jobs, settings });
   const jobStatusMigration = new JobStatusMigration({ jobs, applications, settings });
+  const testDataService = new TestDataService({ jobs, companies, factory: applicationFactory, newId: deps.newId, now: deps.now });
   const aiTaskService = new AiTaskService({
     tasks, jobs, companies, documents, questions, applications, newId: deps.newId, now: deps.now,
     experience: () => settings.get().settings.candidate_experience,
@@ -228,6 +229,7 @@ export function buildContainer(deps: ContainerDeps) {
     catalogService,
     jobStatusService,
     jobStatusMigration,
+    testDataService,
     aiTaskService,
     applicationPreparer,
     jobImportService,

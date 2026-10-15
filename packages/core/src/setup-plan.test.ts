@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SHEETS } from './schema';
 import { SETTING_KEYS } from './settings';
-import { buildSetupPlan } from './setup-plan';
+import { actualColumns, buildSetupPlan, columnSpans } from './setup-plan';
 
 const plan = buildSetupPlan();
 const sheet = (name: string) => plan.find((p) => p.name === name)!;
@@ -71,5 +71,35 @@ describe('buildSetupPlan', () => {
 
   it('seeds no data into entity sheets', () => {
     for (const name of ['Companies', 'Jobs', 'Applications', 'Reminders', 'Log']) expect(sheet(name).seedRows).toEqual([]);
+  });
+});
+
+describe('columns found by name', () => {
+  const jobs = sheet('Jobs');
+  // The Jobs sheet of an installation older than the checkboxes Remote and Hybrid: they were added at the END.
+  const olderHeader = jobs.headers.filter((name) => name !== 'is_remote' && name !== 'is_hybrid').concat(['is_remote', 'is_hybrid']);
+
+  it('finds a plan column where the sheet really has it, not at its number in the plan', () => {
+    const plan = (name: string) => jobs.headers.indexOf(name) + 1;
+    expect(actualColumns(jobs, olderHeader, [plan('is_remote'), plan('is_hybrid')])).toEqual([olderHeader.length - 1, olderHeader.length]);
+    expect(actualColumns(jobs, olderHeader, [plan('posted_at')])).toEqual([olderHeader.indexOf('posted_at') + 1]);
+    // The plan number of is_remote is where an older sheet keeps posted_at: a checkbox must never land there.
+    expect(actualColumns(jobs, olderHeader, jobs.checkboxColumns)).not.toContain(olderHeader.indexOf('posted_at') + 1);
+    expect(actualColumns(jobs, olderHeader, jobs.checkboxColumns)).not.toContain(olderHeader.indexOf('valid_until') + 1);
+  });
+
+  it('is the identity for a sheet that has the columns of the plan in the plan order', () => {
+    expect(actualColumns(jobs, jobs.headers, jobs.checkboxColumns)).toEqual(jobs.checkboxColumns);
+    expect(actualColumns(jobs, jobs.headers, jobs.textColumns)).toEqual(jobs.textColumns);
+  });
+
+  it('leaves out a plan column the sheet lacks', () => {
+    const number = (name: string) => jobs.headers.indexOf(name) + 1;
+    expect(actualColumns(jobs, ['id', 'title'], [number('id'), number('title'), number('no_reason')])).toEqual([1, 2]);
+  });
+
+  it('groups neighbouring columns into runs of [first, count]', () => {
+    expect(columnSpans([5, 1, 2, 3, 9, 10, 3])).toEqual([[1, 3], [5, 1], [9, 2]]);
+    expect(columnSpans([])).toEqual([]);
   });
 });

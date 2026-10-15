@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.13] - 2026-10-15
+
+- Fix: Setup put the formats of the sheet columns (plain text, checkboxes, dropdown lists) on the columns of an OLD sheet by their number in the template, not by their name. Since 0.16.4 that put checkboxes on `posted_at` and `valid_until` of the sheet Jobs (their empty cells showed FALSE) and left `is_remote` and `is_hybrid` without them, and shifted the other formats of that sheet by two columns. Setup now finds every column by its name in the first row of the sheet, and puts the old mistake right once: it takes the checkboxes off the date columns, turns their FALSE back into empty cells, and sets the checkboxes and dropdown lists on the right columns. No data of yours changes except those FALSE cells.
+- **Run Setup after the update** (Settings > General > Run setup). The red "!" by Settings shows until it ran.
+- Settings > General has a new card **Test data** with two buttons: "Create test job" and "Create test job + application". They make the company "test" (reused) and a job "test", "test 2"... with no link and the status New; the second also makes a real application (Drive folder, documents from your templates). Delete them like any other data.
+- The badge "PDF is out of date" of a document has a tooltip: the Google Doc was edited after the PDF was exported, so the PDF may no longer match it; press Export PDF to create it again.
+
 ## [0.16.12] - 2026-10-15
 
 - Two new built-in statuses of an ad: **Applied** and **Archived**. Creating an application for a New job makes it Applied (an Archived job becomes Applied again when you apply again); an application that moves to Rejected makes its job Archived. A job with the status No or a status of your own stays as it is, and nothing moves back by itself: set a job to New by hand when you want it there. The new statuses are not checked for availability. The count of new jobs in the menu now counts only jobs that are really New.

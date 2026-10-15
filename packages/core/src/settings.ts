@@ -28,6 +28,7 @@ export const SETTING_KEYS = [
   'menu_refresh_busy_seconds',
   'menu_numbers',
   'job_status_migration',
+  'sheet_formats_repaired',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -74,6 +75,8 @@ export interface Settings {
   menu_numbers: MenuNumbers;
   /** 1 once the one-time move of the statuses of ads that already have an application ran (see job-lifecycle.ts). */
   job_status_migration: string;
+  /** 1 once Setup applied the formats of the sheet columns by their names (see setup-plan.ts). */
+  sheet_formats_repaired: string;
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -120,6 +123,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   menu_refresh_busy_seconds: '15',
   menu_numbers: stringifyMenuNumbers(DEFAULT_MENU_NUMBERS),
   job_status_migration: '',
+  sheet_formats_repaired: '',
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -182,6 +186,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   menu_refresh_seconds: parseRefreshSeconds,
   menu_refresh_busy_seconds: parseRefreshSeconds,
   menu_numbers: parseMenuNumbers,
+  sheet_formats_repaired: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   job_status_migration: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),

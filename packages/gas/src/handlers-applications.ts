@@ -46,6 +46,9 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       });
     },
 
+    createTestJob: () => c.lock.run(() => c.testDataService.createJob()),
+    createTestJobWithApplication: () => c.lock.run(() => c.testDataService.createJobWithApplication()),
+
     listTemplates: () => c.templateService.list(),
 
     addTemplate: (args) => {

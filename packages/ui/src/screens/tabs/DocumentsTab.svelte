@@ -115,7 +115,7 @@
         <li class="list-item doc" data-ui="doc.{doc.id}">
           <div class="head">
             <strong class="grow">{documentTypeLabel(doc.type)}</strong>
-            {#if doc.pdf_stale}<Badge text={tr('ui.docs.pdfStale')} color="var(--warning-soft)" textColor="var(--text)" />{/if}
+            {#if doc.pdf_stale}<Badge ui="doc.{doc.id}.pdf-stale" text={tr('ui.docs.pdfStale')} title={tr('ui.docs.pdfStaleTip')} color="var(--warning-soft)" textColor="var(--text)" />{/if}
           </div>
           <div class="actions">
             <a data-ui="doc.{doc.id}.doc-link" href={doc.doc_url} target="_blank" rel="noopener noreferrer" class="row"><Icon name="external" size={16} />{tr('ui.docs.openDoc')}</a>

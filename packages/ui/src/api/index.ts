@@ -2,7 +2,7 @@ import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRem
 import { call } from './client';
 import type {
   AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, PrepareResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -66,6 +66,8 @@ export const api = {
   getApplication: (id: string) => call<ApplicationDetail>('getApplication', { id }),
   updateApplication: (id: string, patch: { salary?: string }) => call<Application>('updateApplication', { id, ...patch }),
   prepareApplication: (jobId: string) => call<PrepareResult>('prepareApplication', { jobId }),
+  createTestJob: () => call<TestJobResult>('createTestJob'),
+  createTestJobWithApplication: () => call<TestApplicationResult>('createTestJobWithApplication'),
   createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string; salary?: string }) => call<CreateApplicationResult>('createApplication', input),
   moveApplication: (id: string, to: string, index: number, remindAt?: string) => call<ApplicationRow>('moveApplication', remindAt === undefined ? { id, to, index } : { id, to, index, remindAt }),
   setApplicationStatus: (id: string, to: string, remindAt?: string) => call<unknown>('setApplicationStatus', remindAt === undefined ? { id, to } : { id, to, remindAt }),

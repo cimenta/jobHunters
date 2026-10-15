@@ -1,4 +1,4 @@
-import { buildSetupPlan, workModeFlags, type SheetSetup } from '@jobhunters/core';
+import { actualColumns, buildSetupPlan, columnSpans, workModeFlags, type SheetSetup } from '@jobhunters/core';
 import { GasDrive } from './adapters/gas-drive';
 import { ROOT_FOLDER_ID_KEY, SETUP_OK_VERSION_KEY, SPREADSHEET_ID_KEY } from './props';
 import { describeSheetChange, reportSetup, type SetupStatus, type SheetChange } from './setup-report';
@@ -24,23 +24,78 @@ function getOrCreateSpreadsheet(
   return { spreadsheet, created: true };
 }
 
+/** The first row of the sheet as text; an empty cell gives ''. */
+function readHeader(sheet: GoogleAppsScript.Spreadsheet.Sheet): string[] {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  return (sheet.getRange(1, 1, 1, width).getValues()[0] as unknown[]).map((cell) => String(cell));
+}
+
+/**
+ * The plain-text format of the plan, on the columns where the sheet really has them. They are found by NAME: a sheet
+ * from an older version got newer columns at its end, so the number of a column in the plan is not its number in the sheet.
+ * The text columns stay plain text, so a cell like "=IMPORTXML(...)" is stored as text and never evaluated.
+ */
+function applyTextFormats(sheet: GoogleAppsScript.Spreadsheet.Sheet, plan: SheetSetup, header: readonly string[], rows: number): void {
+  for (const [first, count] of columnSpans(actualColumns(plan, header, plan.textColumns))) sheet.getRange(1, first, rows, count).setNumberFormat('@');
+  // The number and checkbox columns are not text: a text format that an older setup put on one by mistake is taken off.
+  const others = plan.headers.map((_, index) => index + 1).filter((number) => !plan.textColumns.includes(number));
+  if (rows > 1) for (const [first, count] of columnSpans(actualColumns(plan, header, others))) sheet.getRange(2, first, rows - 1, count).setNumberFormat('General');
+}
+
+/** Checkboxes and dropdowns on the columns where the sheet has them (found by name); a validation that an older setup put on the wrong column is cleared first. */
+function applyValidations(sheet: GoogleAppsScript.Spreadsheet.Sheet, plan: SheetSetup, header: readonly string[], rows: number): void {
+  if (rows < 2) return;
+  const everyPlanColumn = plan.headers.map((_, index) => index + 1);
+  for (const [first, count] of columnSpans(actualColumns(plan, header, everyPlanColumn))) sheet.getRange(2, first, rows - 1, count).clearDataValidations();
+  // Validation, not insertCheckboxes(): that writes FALSE into every row, so the sheet would look full.
+  const checkbox = SpreadsheetApp.newDataValidation().requireCheckbox().build();
+  for (const [first, count] of columnSpans(actualColumns(plan, header, plan.checkboxColumns))) sheet.getRange(2, first, rows - 1, count).setDataValidation(checkbox);
+  for (const dropdown of plan.dropdowns) {
+    const [column] = actualColumns(plan, header, [dropdown.column]);
+    if (column === undefined) continue;
+    // Invalid values stay allowed: Claude or the user may write others, and the app reports them as warnings.
+    const rule = SpreadsheetApp.newDataValidation().requireValueInList(dropdown.values, true).setAllowInvalid(true).build();
+    sheet.getRange(2, column, rows - 1, 1).setDataValidation(rule);
+  }
+}
+
+/** A checkbox validation on a date column (an older setup mistake) turned its empty cells into FALSE: they are made empty again. */
+function clearFalseCells(sheet: GoogleAppsScript.Spreadsheet.Sheet, header: readonly string[], names: readonly string[]): void {
+  const last = sheet.getLastRow();
+  if (last < 2) return;
+  for (const name of names) {
+    const column = header.indexOf(name) + 1;
+    if (column < 1) continue;
+    const range = sheet.getRange(2, column, last - 1, 1);
+    let changed = false;
+    const next = (range.getValues() as unknown[][]).map((row) => {
+      const value = row[0];
+      if (value === false || value === 'false' || value === 'FALSE') {
+        changed = true;
+        return [''];
+      }
+      return [value];
+    });
+    if (changed) range.setValues(next);
+  }
+}
+
 function applySheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan: SheetSetup): SheetChange {
   let sheet = spreadsheet.getSheetByName(plan.name);
   const isNew = sheet === null;
   if (sheet === null) sheet = spreadsheet.insertSheet(plan.name);
   const rows = sheet.getMaxRows();
 
-  // Text format first, so headers and seed values are stored as typed and later "=..." text is never evaluated.
-  for (const column of plan.textColumns) sheet.getRange(1, column, rows, 1).setNumberFormat('@');
+  // A new sheet has the columns of the plan: its text format comes first, so headers and seed values are stored as typed.
+  if (isNew) applyTextFormats(sheet, plan, plan.headers, rows);
 
   let addedColumns: string[] = [];
   if (!isNew) {
     // A sheet from an older version gets the columns added since, at the end; data is never touched.
-    const width = Math.max(sheet.getLastColumn(), 1);
-    const have = sheet.getRange(1, 1, 1, width).getValues()[0] as string[];
+    const have = readHeader(sheet);
     const missing = plan.headers.filter((header) => !have.includes(header));
     addedColumns = missing;
-    if (missing.length > 0) sheet.getRange(1, width + 1, 1, missing.length).setValues([[...missing]]).setFontWeight('bold');
+    if (missing.length > 0) sheet.getRange(1, have.length + 1, 1, missing.length).setValues([[...missing]]).setFontWeight('bold');
   }
 
   if (isNew) {
@@ -50,16 +105,13 @@ function applySheet(spreadsheet: GoogleAppsScript.Spreadsheet.Spreadsheet, plan:
       sheet.getRange(2, 1, plan.seedRows.length, plan.headers.length).setValues(plan.seedRows.map((row) => [...row]));
     }
   }
+  // Every format below goes by the real first row of the sheet.
+  const header = isNew ? [...plan.headers] : readHeader(sheet);
+  if (!isNew) applyTextFormats(sheet, plan, header, rows);
   // The checkboxes Remote / Hybrid replace the old yes / no / hybrid cell: the jobs that already have it are carried over once.
   if (!isNew && plan.name === 'Jobs' && (addedColumns.includes('is_remote') || addedColumns.includes('is_hybrid'))) backfillWorkMode(sheet);
-  // Validation, not insertCheckboxes(): that writes FALSE into every row, so the sheet would look full.
-  const checkbox = SpreadsheetApp.newDataValidation().requireCheckbox().build();
-  for (const column of plan.checkboxColumns) sheet.getRange(2, column, rows - 1, 1).setDataValidation(checkbox);
-  for (const dropdown of plan.dropdowns) {
-    // Invalid values stay allowed: Claude or the user may write others, and the app reports them as warnings.
-    const rule = SpreadsheetApp.newDataValidation().requireValueInList(dropdown.values, true).setAllowInvalid(true).build();
-    sheet.getRange(2, dropdown.column, rows - 1, 1).setDataValidation(rule);
-  }
+  applyValidations(sheet, plan, header, rows);
+  if (!isNew && plan.name === 'Jobs') clearFalseCells(sheet, header, ['posted_at', 'valid_until']);
   // Profile is a key/value sheet: a newer version may need more keys, which are added with an empty value.
   let addedRows: string[] = [];
   if (!isNew && plan.name === 'Profile') {

@@ -365,6 +365,23 @@ describe('Settings: menu numbers', () => {
   });
 });
 
+describe('Settings: test data', () => {
+  it('is always visible and its buttons make a numbered test job, with or without an application', async () => {
+    await open();
+    const card = document.querySelector('[data-ui="settings.test-data"]') as HTMLElement;
+    expect(card).not.toBeNull();
+    expect(document.querySelector('[data-ui="settings.help.test-data"]')).not.toBeNull();
+    const before = (await api.listJobs()).length;
+    await fireEvent.click(card.querySelector('[data-ui="settings.test-data.job"]') as HTMLElement);
+    await waitFor(() => expect(card.querySelector('[data-ui="settings.test-data.created"]')).toHaveTextContent('Test job "test" created.'));
+    expect(card.querySelector('[data-ui="settings.test-data.link"]')?.getAttribute('href')).toMatch(/^#\/jobs\//);
+    await fireEvent.click(card.querySelector('[data-ui="settings.test-data.application"]') as HTMLElement);
+    await waitFor(() => expect(card.querySelector('[data-ui="settings.test-data.created"]')).toHaveTextContent('Test job "test 2" and its application created.'));
+    expect(card.querySelector('[data-ui="settings.test-data.link"]')?.getAttribute('href')).toMatch(/^#\/applications\//);
+    expect((await api.listJobs()).length).toBe(before + 2);
+  });
+});
+
 describe('Settings: setup', () => {
   it('runs setup from a button and shows the verdict and the log lines in a dialog that closes', async () => {
     await open();

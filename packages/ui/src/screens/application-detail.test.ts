@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { navigate, router } from '../lib/router.svelte';
+import { invalidate } from '../state/invalidate.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import ApplicationDetail from './ApplicationDetail.svelte';
@@ -253,6 +254,29 @@ describe('ApplicationDetail summary', () => {
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getJob(jobId)).job.url).toBe('https://example.com/jobs/from-application'));
     await waitFor(() => expect(ui('application-detail.ad-link')).toHaveAttribute('href', 'https://example.com/jobs/from-application'));
+  });
+
+  it('explains the badge "PDF is out of date" in a tooltip, and shows it only when the Doc is newer than the PDF', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const detail = await api.getApplication(id);
+    const resume = detail.documents.find((doc) => doc.type === 'resume')!;
+    await api.exportDocumentPdf(resume.id);
+    render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: /Documents/ }));
+    await screen.findByText('Resume');
+    expect(ui(`doc.${resume.id}.pdf-stale`)).toBeNull();
+    backend.drive.documents.get(fileIdFromUrl(resume.doc_url))!.modifiedAt = '2100-01-01T00:00:00.000Z';
+    // The Doc was edited in Drive: the next load of the application shows it.
+    invalidate();
+    const badge = await waitFor(() => {
+      const found = ui(`doc.${resume.id}.pdf-stale`);
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(badge).toHaveTextContent('PDF is out of date');
+    expect(badge.getAttribute('title')).toMatch(/edited after this PDF was exported/);
+    expect(badge.getAttribute('title')).toMatch(/Export PDF/);
   });
 
   it('has editable Remote and Hybrid checkboxes of the job', async () => {

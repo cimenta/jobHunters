@@ -1,8 +1,9 @@
 <script lang="ts">
-  let { text, color, textColor }: { text: string; color: string; textColor: string } = $props();
+  /** `title` is the explanation shown when the pointer rests on the badge; `ui` is the identifier shown by the identifier labels (data-ui). */
+  let { text, color, textColor, title, ui }: { text: string; color: string; textColor: string; title?: string; ui?: string } = $props();
 </script>
 
-<span class="badge" style:background-color={color} style:color={textColor}>{text}</span>
+<span class="badge" {title} data-ui={ui} style:background-color={color} style:color={textColor}>{text}</span>
 
 <style>
   .badge {

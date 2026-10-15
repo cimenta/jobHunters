@@ -245,6 +245,21 @@ describe('applications api', () => {
     expect((api('getJob', { id: jobId }) as { data: { job: { status: string } } }).data.job.status).toBe('archived');
   });
 
+  it('makes test jobs: the company test is reused, the titles are numbered, and the second kind also makes a real application', () => {
+    const { api } = prepared();
+    type Made = { ok: true; data: { job: { id: string; title: string; url: string; status: string; company_id: string }; company: { id: string; name: string }; application?: { status: string }; warnings?: unknown[] } };
+    const first = api('createTestJob') as Made;
+    const second = api('createTestJob') as Made;
+    expect(first.data.job).toMatchObject({ title: 'test', url: '', status: 'new' });
+    expect(first.data.company.name).toBe('test');
+    expect(second.data.job.title).toBe('test 2');
+    expect(second.data.company.id).toBe(first.data.company.id);
+    const both = api('createTestJobWithApplication') as Made;
+    expect(both.data.job).toMatchObject({ title: 'test 3', status: 'applied', company_id: first.data.company.id });
+    expect(both.data.application).toMatchObject({ status: 'draft' });
+    expect(both.data.warnings).toEqual([]);
+  });
+
   it('creates an application with documents filled from the templates and the profile', () => {
     const { api, drive, jobId } = prepared();
     const created = api('createApplication', { jobId }) as { ok: true; data: { application: { id: string; status: string }; documents: { doc_url: string }[]; warnings: unknown[] } };

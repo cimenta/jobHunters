@@ -1,5 +1,5 @@
 export type {
-  AiTask, AiTaskRow, AppWarning, Application, ApplicationDocument, ApplicationRow, Communication, Company, CompanyRow, CreateApplicationResult, PrepareResult,
+  AiTask, AiTaskRow, AppWarning, Application, ApplicationDocument, ApplicationRow, Communication, Company, CompanyRow, CreateApplicationResult, PrepareResult, TestApplicationResult, TestJobResult,
   Dashboard, DashboardReminder, DocumentView, HistoryEntry, HistoryList, Job, JobPreview, JobRow, Question, Reminder, RefreshResult, SaveResult, Settings, Template,
   TimelineEvent,
 } from '@jobhunters/core';

@@ -12,7 +12,9 @@
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { tr } from '../lib/i18n.svelte';
+  import { describeWarning } from '../lib/errors';
   import { documentTypeLabel } from '../lib/labels';
+  import { paths } from '../lib/route';
   import { useResource } from '../lib/resource.svelte';
   import type { SetupResult } from '../api/types';
   import { app, promptsOutdated, reloadSettings, reloadSetupStatus } from '../state/app.svelte';
@@ -82,6 +84,8 @@
   let templateName = $state('');
   let templateUrl = $state('');
   let setupResult = $state<SetupResult | undefined>();
+  /** The last record made by the Test data buttons: shown with a link to it. */
+  let testCreated = $state<{ title: string; hash: string; application: boolean } | undefined>();
 
   $effect(() => {
     const settings = app.settings;
@@ -251,6 +255,19 @@
     invalidate();
   }
 
+  async function createTest(withApplication: boolean): Promise<void> {
+    if (withApplication) {
+      const result = await api.createTestJobWithApplication();
+      testCreated = { title: result.job.title, hash: paths.application(result.application.id), application: true };
+      for (const warning of result.warnings) toast.warning(describeWarning(warning));
+    } else {
+      const result = await api.createTestJob();
+      testCreated = { title: result.job.title, hash: paths.job(result.job.id), application: false };
+    }
+    invalidate();
+    toast.success(tr(withApplication ? 'ui.settings.testApplicationCreated' : 'ui.settings.testJobCreated', { title: testCreated.title }));
+  }
+
   async function runSetup(): Promise<void> {
     setupResult = await api.runSetup();
     await reloadSetupStatus();
@@ -378,6 +395,24 @@
       </ul>
     {/if}
     <div><Button ui="settings.setup.run" onclick={runSetup}>{tr('ui.settings.setupRun')}</Button></div>
+  </Card>
+
+  <Card ui="settings.test-data">
+    <div class="head">
+      <h2>{tr('ui.settings.testData')}</h2>
+      <HelpTip ui="settings.help.test-data" label={tr('ui.settings.testData')} text={tr('ui.settings.tip.testData')} />
+    </div>
+    <p class="small" data-ui="settings.test-data.about">{tr('ui.settings.testDataAbout')}</p>
+    <div class="row">
+      <Button ui="settings.test-data.job" onclick={() => createTest(false)}>{tr('ui.settings.testJob')}</Button>
+      <Button ui="settings.test-data.application" onclick={() => createTest(true)}>{tr('ui.settings.testJobApplication')}</Button>
+    </div>
+    {#if testCreated}
+      <p class="small" data-ui="settings.test-data.created">
+        {tr(testCreated.application ? 'ui.settings.testApplicationCreated' : 'ui.settings.testJobCreated', { title: testCreated.title })}
+        <a data-ui="settings.test-data.link" href={testCreated.hash}>{tr('ui.open')}</a>
+      </p>
+    {/if}
   </Card>
   </div>
   <Dialog open={setupResult !== undefined} title={tr('ui.settings.setupResultTitle')} ui="settings.setup-result" onclose={() => (setupResult = undefined)}>
@@ -628,6 +663,7 @@
   .attention p { margin: 0; }
   .attention strong { color: var(--danger); }
   .head { display: flex; align-items: center; gap: var(--space-2); }
+  .row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .menu-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
   .menu-pick-item { flex: 0 0 100%; font-weight: 600; }
   .menu-pick select { flex: 1 1 180px; min-width: 0; }
