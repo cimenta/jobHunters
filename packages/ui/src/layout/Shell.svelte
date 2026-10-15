@@ -10,6 +10,8 @@
   import { app, settingsNeedAttention } from '../state/app.svelte';
   import { invalidation } from '../state/invalidate.svelte';
   import { createMenuPoller, menuRefreshSeconds } from '../lib/menu-poll';
+  import { menuBadge } from '../lib/menu-numbers';
+  import { DEFAULT_MENU_NUMBERS } from '@jobhunters/core';
 
   let { children }: { children?: Snippet } = $props();
 
@@ -27,9 +29,14 @@
   const counts = useResource(() => api.getMenuCounts());
   // The numbers wait for the setup check: the red mark must be on screen first, never after them.
   const showCounts = $derived(counts.status === 'ready' && !app.setupChecking);
-  const newJobs = $derived(showCounts ? (counts.data?.newJobs ?? 0) : 0);
   const waiting = $derived(showCounts ? (counts.data?.aiTasksWaiting ?? 0) : 0);
-  const drafts = $derived(showCounts ? (counts.data?.draftApplications ?? 0) : 0);
+  // The numbers the user chose in Settings for the menu items that show them.
+  const chosen = $derived(app.settings?.menu_numbers ?? DEFAULT_MENU_NUMBERS);
+  const badges = $derived({
+    jobs: showCounts ? menuBadge('jobs', chosen.jobs, counts.data?.metrics?.jobs) : undefined,
+    applications: showCounts ? menuBadge('applications', chosen.applications, counts.data?.metrics?.applications) : undefined,
+    tasks: showCounts ? menuBadge('tasks', chosen.tasks, counts.data?.metrics?.tasks) : undefined,
+  });
 
   // Keeps the menu numbers fresh (the AI works in the sheet): 15 s while AI tasks wait, else 60 s, only while visible.
   const poller = createMenuPoller({
@@ -83,7 +90,7 @@
   <nav aria-label={tr('ui.nav.label')} data-ui="nav">
     <span class="brand" data-ui="app.brand">JobHunters{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}</span>
     {#each items as item (item.section)}
-      {@const count = item.section === 'jobs' ? newJobs : item.section === 'tasks' ? waiting : item.section === 'applications' ? drafts : 0}
+      {@const badge = item.section === 'jobs' || item.section === 'tasks' || item.section === 'applications' ? badges[item.section] : undefined}
       {#snippet link()}
         <a
           class="item"
@@ -91,23 +98,19 @@
           href={item.href}
           aria-label={item.section === 'settings' && settingsNeedAttention()
             ? tr('ui.nav.actionNeeded', { label: labels[item.section]() })
-            : count > 0 && item.section === 'jobs'
-            ? tr('ui.nav.jobsNew', { label: labels[item.section](), count })
-            : count > 0 && item.section === 'applications'
-              ? tr('ui.nav.applicationsDraft', { label: labels[item.section](), count })
-              : count > 0
-                ? tr('ui.nav.tasksWaiting', { label: labels[item.section](), count })
-                : labels[item.section]()}
+            : badge
+              ? `${labels[item.section]()}, ${badge.label}`
+              : labels[item.section]()}
           aria-current={current === item.section ? 'page' : undefined}
         >
           <Icon name={item.icon} size={22} />
           <span class="label">{labels[item.section]()}</span>
-          {#if item.section === 'tasks' && count > 0}
-            <span class="count" data-ui="nav.count.tasks" aria-hidden="true" title={tr('ui.nav.tasksWaitingTip', { count })}>{formatCount(count)}</span>
+          {#if item.section === 'tasks' && badge}
+            <span class="count" data-ui="nav.count.tasks" aria-hidden="true" title={badge.title}>{badge.text}</span>
           {:else if item.section === 'settings' && settingsNeedAttention()}
             <span class="count alert" data-ui="nav.action-needed" aria-hidden="true" title={tr('ui.nav.actionNeededTip')}>!</span>
-          {:else if item.section === 'applications' && count > 0}
-            <span class="count" data-ui="nav.count.applications" aria-hidden="true" title={tr('ui.nav.applicationsDraftTip', { count })}>{formatCount(count)}</span>
+          {:else if item.section === 'applications' && badge}
+            <span class="count" data-ui="nav.count.applications" aria-hidden="true" title={badge.title}>{badge.text}</span>
           {/if}
         </a>
       {/snippet}
@@ -115,8 +118,8 @@
         <div class="item-group">
           {@render link()}
           <a class="plus" data-ui="nav.add-job" href={paths.newJob} aria-label={tr('ui.nav.addJob')} title={tr('ui.nav.addJob')}><Icon name="plus" size={20} /></a>
-          {#if count > 0}
-            <span class="count jobs-count" data-ui="nav.count.jobs" aria-hidden="true" title={tr('ui.nav.jobsNewTip', { count })}>{formatCount(count)}</span>
+          {#if badge}
+            <span class="count jobs-count" data-ui="nav.count.jobs" aria-hidden="true" title={badge.title}>{badge.text}</span>
           {/if}
         </div>
       {:else}

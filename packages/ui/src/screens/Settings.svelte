@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { EXPERIENCE_MAX, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, type PromptType } from '@jobhunters/core';
+  import { EXPERIENCE_MAX, MENU_ITEMS, MENU_METRICS, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, stringifyMenuNumbers, type MenuItem, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -99,6 +99,7 @@
       prompts = Object.fromEntries(PROMPT_TYPES.map((type) => [type, settings[`ai_prompt_${type}`]])) as Record<PromptType, string>;
       menuNormalError = '';
       menuBusyError = '';
+      menuPick = Object.fromEntries(MENU_ITEMS.map((item) => [item, [settings.menu_numbers[item][0] ?? '', settings.menu_numbers[item][1] ?? '']])) as Record<MenuItem, [string, string]>;
       menuNormal = String(settings.menu_refresh_seconds);
       menuBusy = String(settings.menu_refresh_busy_seconds);
       docLanguage = settings.default_document_language;
@@ -125,6 +126,20 @@
     await api.updateSettings({ result_notices: String(resultNotices) });
     await reloadSettings();
     toast.success(tr(resultNotices ? 'ui.settings.noticesOn' : 'ui.settings.noticesOff'));
+  }
+
+  /** The two choices of each menu item; an empty text means "nothing". */
+  let menuPick = $state<Record<MenuItem, [string, string]>>({ jobs: ['', ''], applications: ['', ''], tasks: ['', ''] });
+
+  /** Saves the choice of one menu item at once; the second number is dropped when it repeats the first. */
+  async function saveMenuNumbers(item: MenuItem): Promise<void> {
+    const [first, second] = menuPick[item];
+    const current = app.settings?.menu_numbers;
+    if (!current) return;
+    const ids = [first, second === first ? '' : second].filter((id) => id !== '');
+    await api.updateSettings({ menu_numbers: stringifyMenuNumbers({ ...current, [item]: ids }) });
+    await reloadSettings();
+    toast.success(tr('ui.settings.savedMenuNumbers'));
   }
 
   async function saveMenuRefresh(): Promise<void> {
@@ -316,6 +331,19 @@
       <h2>{tr('ui.settings.menuRefresh')}</h2>
       <HelpTip ui="settings.help.menu-refresh" label={tr('ui.settings.menuRefresh')} text={tr('ui.settings.tip.menuRefresh', { normal: SETTINGS_DEFAULTS.menu_refresh_seconds, busy: SETTINGS_DEFAULTS.menu_refresh_busy_seconds })} />
     </div>
+    {#each MENU_ITEMS as item (item)}
+      <div class="menu-pick" data-ui="settings.menu-numbers.{item}">
+        <span class="menu-pick-item">{tr(`ui.nav.${item}`)}</span>
+        <select class="input" data-ui="settings.menu-numbers.{item}.first" aria-label={tr('ui.settings.menuFirst', { item: tr(`ui.nav.${item}`) })} bind:value={menuPick[item][0]} onchange={() => saveMenuNumbers(item)}>
+          <option value="">{tr('ui.settings.menuNothing')}</option>
+          {#each MENU_METRICS[item] as id (id)}<option value={id}>{tr(`ui.menuMetric.${item}.${id}`)}</option>{/each}
+        </select>
+        <select class="input" data-ui="settings.menu-numbers.{item}.second" aria-label={tr('ui.settings.menuSecond', { item: tr(`ui.nav.${item}`) })} bind:value={menuPick[item][1]} onchange={() => saveMenuNumbers(item)}>
+          <option value="">{tr('ui.settings.menuNothing')}</option>
+          {#each MENU_METRICS[item].filter((id) => id !== menuPick[item][0]) as id (id)}<option value={id}>{tr(`ui.menuMetric.${item}.${id}`)}</option>{/each}
+        </select>
+      </div>
+    {/each}
     <Field label={tr('ui.settings.menuRefreshNormal')} for="set-menu-normal" error={menuNormalError}>
       <input data-ui="settings.menu-refresh.normal" id="set-menu-normal" class="input" type="number" min="0" max="3600" step="1" inputmode="numeric" bind:value={menuNormal} oninput={() => { menuNormalError = ''; menuBusyError = ''; }} />
     </Field>
@@ -600,6 +628,9 @@
   .attention p { margin: 0; }
   .attention strong { color: var(--danger); }
   .head { display: flex; align-items: center; gap: var(--space-2); }
+  .menu-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  .menu-pick-item { flex: 0 0 100%; font-weight: 600; }
+  .menu-pick select { flex: 1 1 180px; min-width: 0; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
   .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .checks { display: flex; flex-direction: column; gap: var(--space-1); padding: 0; margin: 0; border: 0; }

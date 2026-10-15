@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.9] - 2026-10-15
+
+- You choose which numbers the main menu shows. In Settings > General, on the card "Menu numbers", each of Jobs, Applications and AI tasks has two choices: a first number and an optional second one, shown as "first / second". Jobs can show new jobs, new jobs with no application, all jobs with no application or all jobs; Applications drafts, waiting for a reply, sent or all active; AI tasks waiting, needing your answer or failed. The choice is saved at once. The defaults are what the menu showed before (new jobs, drafts, waiting tasks), so nothing changes until you pick something else.
+- Point at a number in the menu to read what it means, one line per number, for example "New jobs with no application: 3". A badge is hidden only when every chosen number is 0; a 0 next to a non-zero number is shown ("0 / 12"). Ads that still wait for the AI are never counted.
+- No Setup is needed for this update.
+
 ## [0.16.8] - 2026-10-14
 
 - The checkboxes "Content by AI" (documents) and "Answer by AI" (questions) of an application now queue the AI task only when you click the checkbox itself. Clicking their text no longer ticks them, so a stray click next to the box cannot start an AI task.

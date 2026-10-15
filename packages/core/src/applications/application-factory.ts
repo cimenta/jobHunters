@@ -5,11 +5,11 @@ import { buildLabel } from '../label';
 import type { AppendLog, Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
 import type { Settings } from '../settings';
+import { INACTIVE_APPLICATION_STATUSES } from '../status';
 import type { Application, ApplicationDocument, Company, Job, StatusHistoryEntry, Template } from '../types';
 import { buildPlaceholders } from './placeholders';
 import { findTemplate } from './templates';
 
-const INACTIVE_STATUSES = ['rejected', 'withdrawn', 'ghosted'];
 const UNKNOWN_COMPANY = 'Unknown company';
 
 export interface ApplicationFactoryDeps {
@@ -87,7 +87,7 @@ export class ApplicationFactory {
     const label = buildLabel({ company: companyName, title: job.title, attempt, date: timestamp });
 
     const warnings: AppWarning[] = [];
-    const active = siblings.find((application) => !INACTIVE_STATUSES.includes(application.status));
+    const active = siblings.find((application) => !INACTIVE_APPLICATION_STATUSES.includes(application.status));
     if (active) warnings.push({ code: 'active_application_exists', params: { id: active.id } });
 
     // Folder first: if Drive fails here nothing has been written yet.

@@ -2,6 +2,7 @@ import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
 import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
 import { parseUrl } from './jobs/url';
+import { computeMenuMetrics, type MenuMetrics } from './menu-metrics';
 import { MAX_ASKED_SALARY } from './applications/application-factory';
 import type { Repository } from './repository';
 import { APPLICATION_STATUSES, type ApplicationStatus } from './status';
@@ -135,18 +136,14 @@ function countWaitingTasks(tasks: readonly AiTask[]): { total: number; byType: R
 }
 
 export interface MenuCounts {
-  /** Jobs whose status is new (unknown or empty codes resolve to new). */
-  newJobs: number;
+  /** AI tasks waiting or in progress; always present because it sets how fast the menu refreshes. */
   aiTasksWaiting: number;
-  /** Applications whose status is draft (an empty or unknown status is not draft). */
-  draftApplications: number;
+  /** Every number the menu can show, by menu item and number id (see menu-metrics.ts). */
+  metrics: MenuMetrics;
 }
 
 export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; applications: readonly Application[]; styles?: JobStatusStyles }): MenuCounts {
-  const styles = input.styles ?? DEFAULT_JOB_STATUS_STYLES;
-  const newJobs = input.jobs.filter((job) => jobStatusOf(styles, job.status) === 'new').length;
-  const draftApplications = input.applications.filter((application) => application.status === 'draft').length;
-  return { newJobs, aiTasksWaiting: countWaitingTasks(input.tasks).total, draftApplications };
+  return { aiTasksWaiting: countWaitingTasks(input.tasks).total, metrics: computeMenuMetrics(input) };
 }
 
 export function buildDashboard(input: {

@@ -17,6 +17,17 @@ import { createRawSnippet, tick } from 'svelte';
 import { app, reloadSetupStatus } from '../state/app.svelte';
 import Shell from './Shell.svelte';
 
+/** The answer of getMenuCounts for the three numbers these tests care about; every other number is 0. */
+const counts = (v: { newJobs?: number; aiTasksWaiting?: number; draftApplications?: number }) => ({
+  aiTasksWaiting: v.aiTasksWaiting ?? 0,
+  metrics: {
+    jobs: { new: v.newJobs ?? 0, new_no_application: 0, no_application: 0, all: 0 },
+    applications: { draft: v.draftApplications ?? 0, waiting: 0, sent: 0, active: 0 },
+    tasks: { waiting: v.aiTasksWaiting ?? 0, needs_input: 0, failed: 0 },
+  },
+});
+
+
 it('shows the version in small text next to the application name', () => {
   app.version = '0.5.0';
   render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
@@ -65,7 +76,7 @@ describe('menu counts', () => {
     expect(count('tasks')).toBeNull();
     expect(count('jobs')).toHaveAttribute('aria-hidden', 'true');
     expect(count('jobs')).toHaveAttribute('title', `New jobs: ${expected}`);
-    expect(screen.getByRole('link', { name: `Jobs, ${expected} new` })).toHaveAttribute('data-ui', 'nav.jobs');
+    expect(screen.getByRole('link', { name: `Jobs, New jobs: ${expected}` })).toHaveAttribute('data-ui', 'nav.jobs');
     expect(count('jobs')!.closest('a.item')).toBeNull();
   });
 
@@ -79,7 +90,7 @@ describe('menu counts', () => {
     await waitFor(() => expect(count('tasks')).toHaveTextContent('1'));
     expect(count('tasks')).toHaveAttribute('title', 'AI tasks waiting: 1');
     expect(count('jobs')).toHaveTextContent(String(expected));
-    expect(screen.getByRole('link', { name: 'AI tasks, 1 waiting' })).toHaveAttribute('data-ui', 'nav.tasks');
+    expect(screen.getByRole('link', { name: 'AI tasks, AI tasks waiting: 1' })).toHaveAttribute('data-ui', 'nav.tasks');
   });
 
   it('renders no element for zero counts', async () => {
@@ -95,7 +106,7 @@ describe('menu counts', () => {
   });
 
   it('shows 99+ above 99', async () => {
-    const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ newJobs: 150, aiTasksWaiting: 100, draftApplications: 0 });
+    const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(counts({ newJobs: 150, aiTasksWaiting: 100, draftApplications: 0 }));
     render(Shell, { children: body() });
     await waitFor(() => expect(count('jobs')).toHaveTextContent('99+'));
     expect(count('tasks')).toHaveTextContent('99+');
@@ -128,12 +139,12 @@ describe('menu counts', () => {
       await waitFor(() => expect(draftCount()).toHaveTextContent(String(expected)));
       expect(draftCount()).toHaveAttribute('aria-hidden', 'true');
       expect(draftCount()).toHaveAttribute('title', `Applications in draft: ${expected}`);
-      expect(screen.getByRole('link', { name: `Applications, ${expected} in draft` })).toHaveAttribute('data-ui', 'nav.applications');
+      expect(screen.getByRole('link', { name: `Applications, Applications in draft: ${expected}` })).toHaveAttribute('data-ui', 'nav.applications');
       expect(draftCount()!.closest('a.item')).not.toBeNull();
     });
 
     it('renders no element at zero', async () => {
-      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ ...zero, newJobs: 3 });
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(counts({ ...zero, newJobs: 3 }));
       render(Shell, { children: body() });
       await waitFor(() => expect(count('jobs')).toHaveTextContent('3'));
       expect(draftCount()).toBeNull();
@@ -142,7 +153,7 @@ describe('menu counts', () => {
     });
 
     it('shows 99+ above 99', async () => {
-      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue({ ...zero, draftApplications: 120 });
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(counts({ ...zero, draftApplications: 120 }));
       render(Shell, { children: body() });
       await waitFor(() => expect(draftCount()).toHaveTextContent('99+'));
       expect(draftCount()).toHaveAttribute('title', 'Applications in draft: 120');
@@ -171,6 +182,49 @@ describe('menu counts', () => {
     });
   });
 
+  describe('chosen numbers', () => {
+    const jobsBadge = () => count('jobs');
+    const metrics = (jobs: Record<string, number>) => ({
+      aiTasksWaiting: 0,
+      metrics: { ...counts({}).metrics, jobs: { new: 0, new_no_application: 0, no_application: 0, all: 0, ...jobs } },
+    });
+    async function choose(numbers: Record<string, string[]>): Promise<void> {
+      useDevBackend();
+      await api.updateSettings({ menu_numbers: JSON.stringify(numbers) });
+      app.settings = (await api.getSettings()).settings;
+    }
+
+    it('shows the first and the second number as "first / second", with one line of explanation each on hover', async () => {
+      await choose({ jobs: ['new_no_application', 'new'] });
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(metrics({ new_no_application: 3, new: 12 }));
+      render(Shell, { children: body() });
+      await waitFor(() => expect(jobsBadge()).toHaveTextContent('3 / 12'));
+      expect(jobsBadge()).toHaveAttribute('title', 'New jobs with no application: 3\nNew jobs: 12');
+      expect(screen.getByRole('link', { name: 'Jobs, New jobs with no application: 3, New jobs: 12' })).toHaveAttribute('data-ui', 'nav.jobs');
+      spy.mockRestore();
+    });
+
+    it('shows a zero next to a number that is not zero, and hides the badge only when every chosen number is zero', async () => {
+      await choose({ jobs: ['new_no_application', 'new'] });
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(metrics({ new_no_application: 0, new: 12 }));
+      render(Shell, { children: body() });
+      await waitFor(() => expect(jobsBadge()).toHaveTextContent('0 / 12'));
+      spy.mockResolvedValue(metrics({ new_no_application: 0, new: 0, all: 40 }));
+      invalidate();
+      await waitFor(() => expect(jobsBadge()).toBeNull());
+      spy.mockRestore();
+    });
+
+    it('shows nothing for an item with no number chosen and the default numbers when nothing was chosen', async () => {
+      await choose({ jobs: [] });
+      const spy = vi.spyOn(api, 'getMenuCounts').mockResolvedValue(counts({ newJobs: 5, draftApplications: 2 }));
+      render(Shell, { children: body() });
+      await waitFor(() => expect(document.querySelector('[data-ui="nav.count.applications"]')).toHaveTextContent('2'));
+      expect(jobsBadge()).toBeNull();
+      spy.mockRestore();
+    });
+  });
+
   it('gives the plus link a tooltip', () => {
     render(Shell, { children: body() });
     expect(screen.getByRole('link', { name: 'Add job' })).toHaveAttribute('title', 'Add job');
@@ -180,7 +234,7 @@ describe('menu counts', () => {
 describe('menu counts auto-refresh', () => {
   const body = () => createRawSnippet(() => ({ render: () => '<p>Body</p>' }));
   const count = (kind: 'jobs' | 'tasks') => document.querySelector(`[data-ui="nav.count.${kind}"]`);
-  const nums = (newJobs: number, aiTasksWaiting = 0) => ({ newJobs, aiTasksWaiting, draftApplications: 0 });
+  const nums = (newJobs: number, aiTasksWaiting = 0) => counts({ newJobs, aiTasksWaiting });
   let spy: ReturnType<typeof vi.spyOn>;
   let hidden = false;
 

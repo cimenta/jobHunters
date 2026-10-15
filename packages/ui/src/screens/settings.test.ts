@@ -273,6 +273,31 @@ describe('Settings: menu numbers', () => {
   const busy = () => document.querySelector('[data-ui="settings.menu-refresh.busy"]') as HTMLInputElement;
   const save = () => document.querySelector('[data-ui="settings.menu-refresh.save"]') as HTMLButtonElement;
 
+  const pick = (item: string, which: 'first' | 'second') => document.querySelector(`[data-ui="settings.menu-numbers.${item}.${which}"]`) as HTMLSelectElement;
+
+  it('offers the numbers of every menu item, starts with the default ones and saves a choice at once', async () => {
+    await open();
+    expect(pick('jobs', 'first')).toHaveValue('new');
+    expect(pick('jobs', 'second')).toHaveValue('');
+    expect(pick('applications', 'first')).toHaveValue('draft');
+    expect(pick('tasks', 'first')).toHaveValue('waiting');
+    expect([...pick('jobs', 'first').options].map((o) => o.textContent)).toEqual(['(nothing)', 'New jobs', 'New jobs with no application', 'All jobs with no application', 'All jobs']);
+    await fireEvent.change(pick('jobs', 'first'), { target: { value: 'new_no_application' } });
+    await waitFor(async () => expect((await api.getSettings()).settings.menu_numbers.jobs).toEqual(['new_no_application']));
+    await fireEvent.change(pick('jobs', 'second'), { target: { value: 'new' } });
+    await waitFor(async () => expect((await api.getSettings()).settings.menu_numbers.jobs).toEqual(['new_no_application', 'new']));
+    expect((await api.getSettings()).settings.menu_numbers.applications).toEqual(['draft']);
+    expect(toasts.map((t) => t.text)).toContain('Menu numbers saved');
+  });
+
+  it('does not offer the first number again as the second one', async () => {
+    await open();
+    expect([...pick('jobs', 'second').options].map((o) => o.value)).not.toContain('new');
+    await fireEvent.change(pick('jobs', 'first'), { target: { value: 'all' } });
+    await waitFor(() => expect([...pick('jobs', 'second').options].map((o) => o.value)).toContain('new'));
+    expect([...pick('jobs', 'second').options].map((o) => o.value)).not.toContain('all');
+  });
+
   it('shows the current values and saves new ones with a notice', async () => {
     await open();
     expect(card()).not.toBeNull();

@@ -11,6 +11,9 @@ export const APPLICATION_STATUSES = [
 
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
+/** Statuses in which an application is over: it no longer counts as active. */
+export const INACTIVE_APPLICATION_STATUSES: readonly string[] = ['rejected', 'withdrawn', 'ghosted'];
+
 export function isApplicationStatus(value: unknown): value is ApplicationStatus {
   return typeof value === 'string' && (APPLICATION_STATUSES as readonly string[]).includes(value);
 }

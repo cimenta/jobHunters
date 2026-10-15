@@ -124,7 +124,9 @@ describe('buildMenuCounts', () => {
       tasks: [task('1', 'pending'), task('2', 'in_progress'), task('3', 'done'), task('4', 'needs_input'), task('5', 'failed')],
       applications: [],
     });
-    expect(result).toEqual({ newJobs: 4, aiTasksWaiting: 2, draftApplications: 0 });
+    expect(result.aiTasksWaiting).toBe(2);
+    expect(result.metrics.jobs.new).toBe(4);
+    expect(result.metrics.tasks).toEqual({ waiting: 2, needs_input: 1, failed: 1 });
   });
   it('counts only applications in draft status', () => {
     const result = buildMenuCounts({
@@ -135,10 +137,13 @@ describe('buildMenuCounts', () => {
         makeApplication({ id: 'd', status: 'waiting' }), makeApplication({ id: 'e', status: '' }), makeApplication({ id: 'f', status: 'weird' }),
       ],
     });
-    expect(result.draftApplications).toBe(2);
+    expect(result.metrics.applications.draft).toBe(2);
   });
   it('is zero without data', () => {
-    expect(buildMenuCounts({ jobs: [], tasks: [], applications: [] })).toEqual({ newJobs: 0, aiTasksWaiting: 0, draftApplications: 0 });
+    expect(buildMenuCounts({ jobs: [], tasks: [], applications: [] })).toEqual({
+      aiTasksWaiting: 0,
+      metrics: { jobs: { new: 0, new_no_application: 0, no_application: 0, all: 0 }, applications: { draft: 0, waiting: 0, sent: 0, active: 0 }, tasks: { waiting: 0, needs_input: 0, failed: 0 } },
+    });
   });
 });
 

@@ -100,7 +100,8 @@ stays in the timeline of the application, so you are prepared for the next step 
 - **AI prompts**: the full text of every AI task is editable, each on its own tab, with a button to go back to the
   defaults. The app tells you when the built-in prompts changed in a new version.
 - **Settings with built-in explanations**: a "?" next to a setting says what it does and which values are allowed.
-- Interface language, light or dark mode, how often the numbers in the menu refresh, time zone of the script.
+- Interface language, light or dark mode, which numbers the menu shows (for example new jobs with no application, or
+  two numbers as "first / second") and how often they refresh, time zone of the script.
 
 ## How it works
 

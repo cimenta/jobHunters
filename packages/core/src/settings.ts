@@ -7,6 +7,7 @@ import type { AppWarning } from './row-codec';
 import { DEFAULT_PROMPTS, type PromptType } from './seed';
 import type { HistorySource } from './types';
 import { parseJobStatusStyles, type JobStatusStyles } from './job-status';
+import { DEFAULT_MENU_NUMBERS, parseMenuNumbers, stringifyMenuNumbers, type MenuNumbers } from './menu-metrics';
 import { parseStatusTransitions, type StatusTransitions } from './status';
 import { parseUiState, type UiState } from './ui-state';
 import { parseStatusStyles, type StatusStyles } from './status-style';
@@ -25,6 +26,7 @@ export const SETTING_KEYS = [
   'availability_immediate_rules',
   'menu_refresh_seconds',
   'menu_refresh_busy_seconds',
+  'menu_numbers',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -67,6 +69,8 @@ export interface Settings {
   menu_refresh_seconds: number;
   /** The same while AI tasks are waiting. */
   menu_refresh_busy_seconds: number;
+  /** Which numbers the main menu shows next to Jobs, Applications and AI tasks (none, one, or two each). */
+  menu_numbers: MenuNumbers;
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -111,6 +115,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   availability_immediate_rules: 'offline_text',
   menu_refresh_seconds: '60',
   menu_refresh_busy_seconds: '15',
+  menu_numbers: stringifyMenuNumbers(DEFAULT_MENU_NUMBERS),
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -172,6 +177,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   },
   menu_refresh_seconds: parseRefreshSeconds,
   menu_refresh_busy_seconds: parseRefreshSeconds,
+  menu_numbers: parseMenuNumbers,
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),
   default_document_set: (raw) => {

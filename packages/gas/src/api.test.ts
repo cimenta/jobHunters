@@ -491,17 +491,17 @@ describe('job import api', () => {
     const { api } = setup(pages());
     api('importJob', { url: BLOCKED });
     const jobs = (api('listJobs') as { data: { status: string }[] }).data;
-    const result = api('getMenuCounts') as { ok: true; data: { newJobs: number; aiTasksWaiting: number } };
+    const result = api('getMenuCounts') as { ok: true; data: { aiTasksWaiting: number; metrics: { jobs: { new: number } } } };
     expect(result.ok).toBe(true);
     expect(result.data.aiTasksWaiting).toBeGreaterThanOrEqual(1);
-    expect(result.data.newJobs).toBe(jobs.filter((j) => j.status === 'new').length);
+    expect(result.data.metrics.jobs.new).toBe(jobs.filter((j) => j.status === 'new').length);
   });
 
   it('getMenuCounts counts applications in draft and follows status changes and new applications', () => {
     const { api } = setup(pages());
     const saved = api('saveJob', { url: CLEAN_URL }) as { ok: true; data: { job: { id: string } } };
     const jobId = saved.data.job.id;
-    const draftCount = () => (api('getMenuCounts') as { data: { draftApplications: number } }).data.draftApplications;
+    const draftCount = () => (api('getMenuCounts') as { data: { metrics: { applications: { draft: number } } } }).data.metrics.applications.draft;
     const listedDrafts = () => (api('listApplications') as { data: { status: string }[] }).data.filter((a) => a.status === 'draft').length;
     expect(draftCount()).toBe(0);
     const first = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
