@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.12] - 2026-10-15
+
+- Two new built-in statuses of an ad: **Applied** and **Archived**. Creating an application for a New job makes it Applied (an Archived job becomes Applied again when you apply again); an application that moves to Rejected makes its job Archived. A job with the status No or a status of your own stays as it is, and nothing moves back by itself: set a job to New by hand when you want it there. The new statuses are not checked for availability. The count of new jobs in the menu now counts only jobs that are really New.
+- **Setup moves the ads that already have an application** from New to Applied once (to Archived when their latest application is rejected). Run Setup after the update (Settings > General > Run setup). The red "!" by Settings says how many ads wait for it. It runs only once, so a later Setup never undoes a status you set by hand.
+- A job without a link (for example an imported one) shows a **red icon** instead of the icon that opens the ad, on its card, in its detail and in the detail of its application. A click opens a window where you add the link; a link that is not a web address, or that another job already has, is refused with the name of the other job. Refresh and the availability check are off for a job without a link, the scheduled check skips it, and the detail of a job has a field **Link** that a double-click changes.
+- Prepares the import of old jobs and applications (no import is part of the app).
+
 ## [0.16.11] - 2026-10-15
 
 - The job detail had two buttons that delete the job (the trash icon under the status and a red button at the bottom). The red button is gone; the trash icon stays. A job that waits for the AI keeps its own delete button in its notice.

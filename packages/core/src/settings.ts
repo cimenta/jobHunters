@@ -27,6 +27,7 @@ export const SETTING_KEYS = [
   'menu_refresh_seconds',
   'menu_refresh_busy_seconds',
   'menu_numbers',
+  'job_status_migration',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -71,6 +72,8 @@ export interface Settings {
   menu_refresh_busy_seconds: number;
   /** Which numbers the main menu shows next to Jobs, Applications and AI tasks (none, one, or two each). */
   menu_numbers: MenuNumbers;
+  /** 1 once the one-time move of the statuses of ads that already have an application ran (see job-lifecycle.ts). */
+  job_status_migration: string;
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -116,6 +119,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   menu_refresh_seconds: '60',
   menu_refresh_busy_seconds: '15',
   menu_numbers: stringifyMenuNumbers(DEFAULT_MENU_NUMBERS),
+  job_status_migration: '',
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -178,6 +182,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   menu_refresh_seconds: parseRefreshSeconds,
   menu_refresh_busy_seconds: parseRefreshSeconds,
   menu_numbers: parseMenuNumbers,
+  job_status_migration: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),
   default_document_set: (raw) => {

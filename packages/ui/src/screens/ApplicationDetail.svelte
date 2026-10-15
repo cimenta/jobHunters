@@ -15,6 +15,8 @@
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { invalidate } from '../state/invalidate.svelte';
+  import Button from '../components/Button.svelte';
+  import AddLinkDialog from './AddLinkDialog.svelte';
   import StatusControl from './StatusControl.svelte';
   import AdTab from './tabs/AdTab.svelte';
   import CommunicationsTab from './tabs/CommunicationsTab.svelte';
@@ -27,6 +29,8 @@
 
   const detail = useResource(() => api.getApplication(id), () => id);
   let tab = $state('ad');
+  /** Whether the window that asks for the link of an ad without one is open. */
+  let linking = $state(false);
 
   const items = $derived(
     detail.data
@@ -68,6 +72,8 @@
             {/if}
             {#if adUrl !== ''}
               <a class="btn tool" data-ui="application-detail.ad-link" href={adUrl} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.app.openAdWeb')} title={tr('ui.app.openAdWeb')}><Icon name="external" size={18} /></a>
+            {:else if job}
+              <Button variant="alert" label={tr('ui.job.noLink')} ui="application-detail.ad-link" onclick={() => (linking = true)}><Icon name="external" size={18} /></Button>
             {/if}
             {#if application.folder_url !== ''}
               <a class="btn tool" data-ui="application-detail.folder-link" href={application.folder_url} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.app.folder')} title={tr('ui.app.folder')}><Icon name="folder" size={18} /></a>
@@ -112,6 +118,10 @@
         </div>
       </div>
     </Card>
+
+    {#if job}
+      <AddLinkDialog open={linking} job={{ id: job.id, title: job.title }} onclose={() => (linking = false)} />
+    {/if}
 
     <Card ui="application-detail.tabs">
       <Tabs {items} bind:active={tab} label={tr('ui.app.tabs')} />

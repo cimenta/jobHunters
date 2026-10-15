@@ -3,8 +3,9 @@ import { ApplicationService } from './application-service';
 import { NotFoundError, ValidationError } from './errors';
 import type { Locale } from './i18n';
 import { InMemoryAppendLog, InMemoryRepository } from './repository';
-import { makeApplication, makeReminder, sequentialIds } from './testing/fixtures';
-import type { Application, Reminder, StatusHistoryEntry } from './types';
+import { DEFAULT_JOB_STATUS_STYLES } from './job-status';
+import { makeApplication, makeJob, makeReminder, sequentialIds } from './testing/fixtures';
+import type { Application, Job, Reminder, StatusHistoryEntry } from './types';
 import type { ApplicationStatus } from './status';
 
 const NOW = '2026-10-10T08:00:00.000Z';
@@ -16,6 +17,41 @@ function setup(application: Partial<Application> = {}, extraReminders: Reminder[
   const service = new ApplicationService({ applications, reminders, history, newId: sequentialIds('r'), now: () => NOW, locale: () => locale });
   return { applications, reminders, history, service };
 }
+
+describe('an application that moves to rejected archives its ad', () => {
+  function withJob(status: string) {
+    const jobs = new InMemoryRepository<Job>([makeJob({ id: 'j1', status })]);
+    const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', status: 'sent' })]);
+    const service = new ApplicationService({
+      applications, reminders: new InMemoryRepository<Reminder>(), history: new InMemoryAppendLog<StatusHistoryEntry>(),
+      newId: sequentialIds('r'), now: () => NOW, locale: () => 'en', jobs, jobStatusStyles: () => DEFAULT_JOB_STATUS_STYLES,
+    });
+    return { jobs, service };
+  }
+
+  it('turns an applied or new ad into archived', () => {
+    for (const status of ['applied', 'new']) {
+      const { jobs, service } = withJob(status);
+      service.setStatus('a1', 'rejected');
+      expect(jobs.get('j1')!.status).toBe('archived');
+    }
+  });
+
+  it('leaves No and the statuses the user chose alone, and any other move of the application', () => {
+    const { jobs, service } = withJob('no');
+    service.setStatus('a1', 'rejected');
+    expect(jobs.get('j1')!.status).toBe('no');
+    const { jobs: other, service: otherService } = withJob('applied');
+    otherService.setStatus('a1', 'interview');
+    expect(other.get('j1')!.status).toBe('applied');
+  });
+
+  it('archives through a move on the Kanban board too', () => {
+    const { jobs, service } = withJob('applied');
+    service.move('a1', 'rejected', 0);
+    expect(jobs.get('j1')!.status).toBe('archived');
+  });
+});
 
 describe('setStatus basics', () => {
   it('moves draft to sent, sets applied_at and last_activity_at, and records history', () => {

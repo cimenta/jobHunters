@@ -386,6 +386,26 @@ describe('JobsList sort and hide', () => {
     expect(titles()).toEqual([without[0]!.title]);
   });
 
+  it('shows a red add-link icon on the card of a job without a link, and disables its check', async () => {
+    const { backend, rows } = await open();
+    const target = rows.find((job) => job.status !== 'awaiting')!;
+    backend.container.jobs.update(target.id, { url: '' });
+    render(JobsList);
+    await screen.findByText(target.title);
+    const icon = await waitFor(() => {
+      const found = document.querySelector(`[data-ui="job.${target.id}.link"]`) as HTMLElement | null;
+      expect(found).not.toBeNull();
+      expect(found).toHaveClass('alert');
+      return found!;
+    });
+    expect(document.querySelector(`[data-ui="job.${target.id}.check"]`)).toBeDisabled();
+    await fireEvent.click(icon);
+    const dialog = screen.getByRole('dialog', { name: 'Add link' });
+    await fireEvent.input(within(dialog).getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/jobs/from-the-card' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getJob(target.id)).job.url).toBe('https://example.com/jobs/from-the-card'));
+  });
+
   it('hides the jobs with the status No with the Hide No checkbox, which is remembered and cleared by Clear filters', async () => {
     const { rows } = await open();
     const target = rows.find((job) => job.status !== 'no' && job.status !== 'awaiting')!;

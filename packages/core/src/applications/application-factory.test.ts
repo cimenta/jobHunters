@@ -53,6 +53,24 @@ function setup(options: { drive?: FakeDrive; templates?: boolean; settings?: Rec
 
 const contentOf = (drive: FakeDrive, doc: ApplicationDocument) => drive.documents.get(fileIdFromUrl(doc.doc_url))!.content;
 
+describe('create and the status of the ad', () => {
+  it('turns a new ad into applied, and an archived one back into applied; No stays', () => {
+    for (const [before, after] of [['new', 'applied'], ['', 'applied'], ['archived', 'applied'], ['applied', 'applied'], ['no', 'no']] as const) {
+      const { factory, deps } = setup();
+      deps.jobs.update('j1', { status: before });
+      factory.create({ jobId: 'j1' });
+      expect(deps.jobs.get('j1')!.status, before).toBe(after);
+    }
+  });
+
+  it('turns the ad into applied even when a document of the application cannot be created', () => {
+    const { factory, deps } = setup({ drive: new BlankFailsDrive(), templates: false });
+    deps.jobs.update('j1', { status: 'new' });
+    factory.create({ jobId: 'j1' });
+    expect(deps.jobs.get('j1')!.status).toBe('applied');
+  });
+});
+
 describe('create', () => {
   it('keeps the salary the user asks for, trimmed and cut to 200 characters; none given means empty', () => {
     const { factory } = setup();

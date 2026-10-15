@@ -29,6 +29,16 @@ function runSetupForApp(): SetupResult {
   cachedContainer = undefined;
   cached = undefined;
   let ok = verdict === 'OK';
+  // One-time step: the ads that already have an application are moved from New to Applied or Archived.
+  if (ok) {
+    try {
+      const moved = getContainer().jobStatusMigration.run();
+      lines.push(`Job statuses: ${moved} ads with an application moved from New to Applied or Archived`);
+    } catch (error) {
+      lines.push(`Job statuses could not be moved: ${error instanceof Error ? error.message : String(error)}`);
+      ok = false;
+    }
+  }
   // Ask again, so a setup that did not fix everything says so instead of leaving the red mark unexplained.
   try {
     const after = checkSetup();

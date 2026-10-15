@@ -5,6 +5,7 @@ import { buildLabel } from '../label';
 import type { AppendLog, Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
 import type { Settings } from '../settings';
+import { jobStatusOnApplication } from '../job-lifecycle';
 import { INACTIVE_APPLICATION_STATUSES } from '../status';
 import type { Application, ApplicationDocument, Company, Job, StatusHistoryEntry, Template } from '../types';
 import { buildPlaceholders } from './placeholders';
@@ -108,6 +109,9 @@ export class ApplicationFactory {
       board_position: null,
     });
     history.append({ application_id: application.id, from: '', to: 'draft', at: timestamp });
+    // A new ad (or an archived one the user applies for again) becomes applied.
+    const jobStatus = jobStatusOnApplication(settings.job_status_styles, job.status);
+    if (jobStatus !== undefined) jobs.update(job.id, { status: jobStatus });
 
     const created: ApplicationDocument[] = [];
     const tryCreate = (type: string, build: () => ApplicationDocument): void => {

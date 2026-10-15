@@ -1,7 +1,7 @@
 import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
 import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
-import { parseUrl } from './jobs/url';
+import { jobUrlKey, normalizeJobUrl, parseUrl } from './jobs/url';
 import { computeMenuMetrics, type MenuMetrics } from './menu-metrics';
 import { MAX_ASKED_SALARY } from './applications/application-factory';
 import type { Repository } from './repository';
@@ -196,13 +196,14 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; url?: string; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
     if (patch.is_remote !== undefined) change.is_remote = patch.is_remote;
     if (patch.is_hybrid !== undefined) change.is_hybrid = patch.is_hybrid;
+    if (patch.url !== undefined) Object.assign(change, this.urlChange(id, patch.url));
     if (patch.contact_person !== undefined) change.contact_person = patch.contact_person.trim().slice(0, MAX_CONTACT_PERSON);
     if (patch.no_reason !== undefined) change.no_reason = patch.no_reason.trim().slice(0, MAX_NO_REASON);
     if (patch.status !== undefined) {
@@ -213,6 +214,25 @@ export class CatalogService {
       change.status = patch.status;
     }
     return this.deps.jobs.update(id, change);
+  }
+
+  /**
+   * The new link of an ad: a web address that no other ad has. An empty text clears it. The availability of the old
+   * address says nothing about the new one, so it starts again as unknown.
+   */
+  private urlChange(id: string, raw: string): Partial<Omit<Job, 'id'>> {
+    const text = raw.trim();
+    const fresh = { availability: 'unknown' as const, availability_reason: '', offline_strikes: 0, last_checked_at: '' };
+    if (text === '') return { url: '', source: '', ...fresh };
+    const parsed = parseUrl(text);
+    if (parsed === undefined || (parsed.protocol !== 'http' && parsed.protocol !== 'https')) {
+      throw new ValidationError('job_url_invalid', 'The link is not a web address', {});
+    }
+    const url = normalizeJobUrl(text);
+    const key = jobUrlKey(url);
+    const other = this.deps.jobs.list().find((job) => job.id !== id && job.url !== '' && jobUrlKey(job.url) === key);
+    if (other) throw new ValidationError('job_url_duplicate', `Job ${other.id} already has this link`, { id: other.id, title: other.title });
+    return { url, source: parsed.host.replace(/^www\./, ''), ...fresh };
   }
 
   /** The salary the user asks for in an application; an empty text clears it. */

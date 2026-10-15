@@ -234,6 +234,27 @@ describe('ApplicationDetail summary', () => {
     expect((await api.getJob(jobId)).job.contact_person).toBe('Petr Svoboda, HR');
   });
 
+  it('shows a red add-link icon when the job has no link, and saves the link from the window', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    backend.container.jobs.update(jobId, { url: '' });
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const icon = await waitFor(() => {
+      const found = ui('application-detail.ad-link') as HTMLElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(icon).toHaveClass('alert');
+    await fireEvent.click(icon);
+    const dialog = screen.getByRole('dialog', { name: 'Add link' });
+    await fireEvent.input(within(dialog).getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/jobs/from-application' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getJob(jobId)).job.url).toBe('https://example.com/jobs/from-application'));
+    await waitFor(() => expect(ui('application-detail.ad-link')).toHaveAttribute('href', 'https://example.com/jobs/from-application'));
+  });
+
   it('has editable Remote and Hybrid checkboxes of the job', async () => {
     useDevBackend();
     const id = await androidApplicationId();

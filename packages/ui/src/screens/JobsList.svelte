@@ -47,6 +47,8 @@
   /** Jobs just prepared: the box stays ticked and locked until the refreshed list drops it. */
   let prepared = $state<string[]>([]);
   let deleting = $state<{ id: string; title: string; folder_url: string } | undefined>();
+  /** The job whose link is being added (the red icon of a job without a link). */
+  let linking = $state<{ id: string; title: string } | undefined>();
 
   /** The checkbox is offered only for an ad that was never evaluated and has no application. */
   function canEvaluate(job: JobRow): boolean {
@@ -120,6 +122,7 @@
     saveUiState({ jobs_hide_applied: false, jobs_hide_no: false });
     document.getElementById('job-search')?.focus();
   }
+  import AddLinkDialog from './AddLinkDialog.svelte';
   import DeleteJobDialog from './DeleteJobDialog.svelte';
 </script>
 
@@ -202,9 +205,11 @@
                 <div class="icons">
                   {#if safeHttpUrl(job.url) !== ''}
                     <a data-ui="job.{job.id}.link" class="icon-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.jobs.card.open')} title={tr('ui.jobs.card.open')}><Icon name="external" size={18} /></a>
+                  {:else if job.status !== 'awaiting'}
+                    <Button variant="alert" label={tr('ui.job.noLink')} ui="job.{job.id}.link" onclick={() => (linking = { id: job.id, title: job.title })}><Icon name="external" size={18} /></Button>
                   {/if}
                   {#if job.status !== 'awaiting'}
-                    <Button variant="ghost" label={tr('ui.jobs.card.check')} ui="job.{job.id}.check" onclick={() => check(job)}><Icon name="check" size={18} /></Button>
+                    <Button variant="ghost" label={safeHttpUrl(job.url) === '' ? tr('ui.job.addLinkFirst') : tr('ui.jobs.card.check')} ui="job.{job.id}.check" disabled={safeHttpUrl(job.url) === ''} onclick={() => check(job)}><Icon name="check" size={18} /></Button>
                   {/if}
                   {#if job.application_count === 0}
                     <Button variant="ghost" label={tr('ui.jobs.card.delete')} ui="job.{job.id}.delete" onclick={() => (deleting = { id: job.id, title: job.title, folder_url: job.folder_url })}><Icon name="trash" size={18} /></Button>
@@ -246,6 +251,10 @@
 
 {#if deleting !== undefined}
   <DeleteJobDialog open={true} job={deleting} onclose={() => (deleting = undefined)} />
+{/if}
+
+{#if linking !== undefined}
+  <AddLinkDialog open={true} job={linking} onclose={() => (linking = undefined)} />
 {/if}
 
 <style>

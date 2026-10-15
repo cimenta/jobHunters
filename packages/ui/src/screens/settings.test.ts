@@ -248,7 +248,7 @@ describe('Settings ad statuses', () => {
     await fireEvent.input(within(card).getByLabelText('Name of a new status'), { target: { value: 'Maybe' } });
     await fireEvent.click(within(card).getByRole('button', { name: 'Add status' }));
     await fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
-    await waitFor(async () => expect(Object.keys((await api.getSettings()).settings.job_status_styles)).toHaveLength(4));
+    await waitFor(async () => expect(Object.keys((await api.getSettings()).settings.job_status_styles)).toHaveLength(6));
     const code = Object.keys((await api.getSettings()).settings.job_status_styles).find((key) => key.startsWith('s_'))!;
     const job = (await api.listJobs())[0]!;
     await api.updateJob(job.id, { status: code });

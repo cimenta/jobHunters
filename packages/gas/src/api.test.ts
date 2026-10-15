@@ -231,6 +231,20 @@ describe('applications api', () => {
     return { ...ctx, jobId: saved.data.job.id };
   }
 
+  it('updateJob sets and validates the link, and getSetupStatus names the ads the one-time status move would still change', () => {
+    const { api, jobId } = prepared();
+    expect(api('updateJob', { id: jobId, url: 'https://example.com/jobs/api-link' })).toMatchObject({ ok: true, data: { url: 'https://example.com/jobs/api-link' } });
+    expect(api('updateJob', { id: jobId, url: 'nope' })).toMatchObject({ ok: false, error: { code: 'job_url_invalid' } });
+    const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    expect((api('getJob', { id: jobId }) as { data: { job: { status: string } } }).data.job.status).toBe('applied');
+    expect(api('getSetupStatus')).toMatchObject({ ok: true, data: { needed: false } });
+    api('updateJob', { id: jobId, status: 'new' });
+    expect(api('getSetupStatus')).toMatchObject({ ok: true, data: { needed: true, reasons: [expect.stringContaining('still have the status New')] } });
+    api('setApplicationStatus', { id: applicationId, to: 'sent' });
+    api('setApplicationStatus', { id: applicationId, to: 'rejected' });
+    expect((api('getJob', { id: jobId }) as { data: { job: { status: string } } }).data.job.status).toBe('archived');
+  });
+
   it('creates an application with documents filled from the templates and the profile', () => {
     const { api, drive, jobId } = prepared();
     const created = api('createApplication', { jobId }) as { ok: true; data: { application: { id: string; status: string }; documents: { doc_url: string }[]; warnings: unknown[] } };

@@ -23,6 +23,7 @@
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
   import CreateApplicationDialog from './CreateApplicationDialog.svelte';
+  import AddLinkDialog from './AddLinkDialog.svelte';
   import DeleteJobDialog from './DeleteJobDialog.svelte';
   import MatchTab from './tabs/MatchTab.svelte';
 
@@ -33,6 +34,8 @@
   let gig = $state(false);
   let creating = $state(false);
   let deleting = $state(false);
+  /** Whether the window that asks for the link of an ad without one is open. */
+  let linking = $state(false);
   let tab = $state('applications');
   /** Whether the field "Reason why not" is open for typing; it opens right after the status was changed to No. */
   let reasonEditing = $state(false);
@@ -102,11 +105,13 @@
           {#if job.status !== 'awaiting' || jobUrl !== '' || job.folder_url !== '' || canDelete}
             <div class="actions" role="group" aria-label={tr('ui.job.actions')} data-ui="job-detail.actions">
               {#if job.status !== 'awaiting'}
-                <Button label={tr('ui.job.refresh')} ui="job-detail.refresh" onclick={refresh}><Icon name="refresh" size={18} /></Button>
-                <Button label={tr('ui.job.checkAvailability')} ui="job-detail.check-availability" onclick={checkAvailability}><Icon name="check" size={18} /></Button>
+                <Button label={jobUrl === '' ? tr('ui.job.addLinkFirst') : tr('ui.job.refresh')} ui="job-detail.refresh" disabled={jobUrl === ''} onclick={refresh}><Icon name="refresh" size={18} /></Button>
+                <Button label={jobUrl === '' ? tr('ui.job.addLinkFirst') : tr('ui.job.checkAvailability')} ui="job-detail.check-availability" disabled={jobUrl === ''} onclick={checkAvailability}><Icon name="check" size={18} /></Button>
               {/if}
               {#if jobUrl !== ''}
                 <a class="btn tool" data-ui="job-detail.url-link" href={jobUrl} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.job.open')} title={tr('ui.job.open')}><Icon name="external" size={18} /></a>
+              {:else if job.status !== 'awaiting'}
+                <Button variant="alert" label={tr('ui.job.noLink')} ui="job-detail.url-link" onclick={() => (linking = true)}><Icon name="external" size={18} /></Button>
               {/if}
               {#if job.folder_url !== ''}
                 <a class="btn tool" data-ui="job-detail.folder-link" href={job.folder_url} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.job.folder')} title={tr('ui.job.folder')}><Icon name="folder" size={18} /></a>
@@ -139,6 +144,7 @@
               {/each}
               {#if job.status !== 'awaiting'}
                 <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="job-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
+                <InlineText wide="full" label={tr('ui.job.link')} value={job.url ?? ''} maxlength={2000} placeholder="https://" ui="job-detail.link" onsave={(text) => api.updateJob(job.id, { url: text })} />
                 {#if current.code === 'no' || (job.no_reason ?? '') !== ''}
                   <InlineText wide="full" label={tr('ui.job.noReason')} value={job.no_reason ?? ''} maxlength={1000} placeholder={tr('ui.job.noReasonPlaceholder')} ui="job-detail.no-reason" bind:editing={reasonEditing} onsave={(text) => api.updateJob(job.id, { no_reason: text })} />
                 {/if}
@@ -155,6 +161,7 @@
         <div><Button variant="danger" ui="job-detail.delete" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.job.delete')}</Button></div>
       </Card>
     {/if}
+    <AddLinkDialog open={linking} job={{ id: job.id, title: job.title }} onclose={() => (linking = false)} />
     {#if canDelete}
       <DeleteJobDialog open={deleting} job={{ id: job.id, title: job.title, folder_url: job.folder_url }} onclose={() => (deleting = false)} ondeleted={() => navigate(paths.jobs)} />
     {/if}

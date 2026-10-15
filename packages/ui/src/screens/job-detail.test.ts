@@ -299,6 +299,75 @@ describe('JobDetail status', () => {
   });
 });
 
+describe('JobDetail link', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('shows a red add-link icon for a job without a link, disables refresh and the check, and saves the link from the window', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { url: '' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const icon = await waitFor(() => {
+      const found = ui('job-detail.url-link') as HTMLButtonElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(icon).toHaveClass('alert');
+    expect(icon).toHaveAttribute('title', 'No link. Click to add it');
+    expect(ui('job-detail.refresh')).toBeDisabled();
+    expect(ui('job-detail.check-availability')).toBeDisabled();
+    await fireEvent.click(icon);
+    const dialog = screen.getByRole('dialog', { name: 'Add link' });
+    const input = within(dialog).getByLabelText('Link to the job ad');
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    await fireEvent.input(input, { target: { value: 'not a link' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText(/not a web address/)).toBeInTheDocument();
+    await fireEvent.input(input, { target: { value: 'https://example.com/jobs/new-link' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getJob(id)).job.url).toBe('https://example.com/jobs/new-link'));
+    await waitFor(() => expect(ui('job-detail.url-link')).toHaveAttribute('href', 'https://example.com/jobs/new-link'));
+    expect(ui('job-detail.url-link')).not.toHaveClass('alert');
+    expect(ui('job-detail.refresh')).toBeEnabled();
+  });
+
+  it('refuses a link that another job already has and names that job', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    const rival = (await api.listJobs()).find((job) => job.id !== id && job.url !== '' && job.status !== 'awaiting')!;
+    const taken = rival.url;
+    backend.container.jobs.update(id, { url: '' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(await waitFor(() => {
+      const found = ui('job-detail.url-link') as HTMLElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    }));
+    const dialog = screen.getByRole('dialog', { name: 'Add link' });
+    await fireEvent.input(within(dialog).getByLabelText('Link to the job ad'), { target: { value: taken } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    expect(await within(dialog).findByText(new RegExp(`already exists: "${rival.title.replace(/[()]/g, '.')}"`))).toBeInTheDocument();
+    expect((await api.getJob(id)).job.url).toBe('');
+  });
+
+  it('shows the link as a field of the facts and changes it on a double-click', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const text = () => ui('job-detail.link.text')!;
+    await waitFor(() => expect(text()).toHaveTextContent('https://example.com/jobs/android'));
+    await fireEvent.dblClick(text());
+    const input = ui('job-detail.link.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'https://example.com/jobs/android-2' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('https://example.com/jobs/android-2'));
+    expect((await api.getJob(id)).job.url).toBe('https://example.com/jobs/android-2');
+  });
+});
+
 describe('JobDetail contact person and reason why not', () => {
   const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
 

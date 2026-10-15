@@ -3,7 +3,7 @@
   import { notifyError } from '../lib/notify';
 
   interface Props {
-    variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
+    variant?: 'primary' | 'secondary' | 'danger' | 'ghost' | 'alert';
     type?: 'button' | 'submit';
     disabled?: boolean;
     loading?: boolean;
@@ -71,6 +71,9 @@
   .danger { color: var(--danger); border-color: var(--danger); }
   .danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
   .ghost { background: transparent; border-color: transparent; }
+  /* Solid red: something is missing and a click fixes it (the ad has no link). */
+  .alert { color: #fff; background: var(--danger); border-color: var(--danger); }
+  .alert:hover:not(:disabled) { filter: brightness(0.92); border-color: var(--danger); }
   .full { width: 100%; }
   .spinner {
     width: 16px;

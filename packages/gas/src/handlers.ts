@@ -104,7 +104,17 @@ export function createHandlers(c: Container): Record<string, Handler> {
 
     getWarnings: () => c.collectWarnings(),
 
-    getSetupStatus: () => (c.setupStatus ? c.setupStatus() : { needed: false, reasons: [] }),
+    getSetupStatus: () => {
+      const status = c.setupStatus ? c.setupStatus() : { needed: false, reasons: [] };
+      // The statuses of the ads that already have an application are moved once; until Setup did it, the red mark says so.
+      let pending = 0;
+      try {
+        pending = c.jobStatusMigration.pending();
+      } catch {
+        // A sheet that lacks columns is already reported by the setup check itself.
+      }
+      return pending > 0 ? { needed: true, reasons: [...status.reasons, `${pending} ads that already have an application still have the status New (Setup moves them to Applied or Archived)`] } : status;
+    },
 
     runSetup: () => (c.runSetup ? c.lock.run(() => c.runSetup!()) : { ok: false, lines: ['Setup cannot run here.'] }),
 

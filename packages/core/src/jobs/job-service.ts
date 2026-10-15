@@ -131,6 +131,7 @@ export class JobService {
     const job = jobs.get(jobId);
     if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
     if (job.status === 'awaiting') throw new ValidationError('job_awaiting', `Job ${jobId} is waiting for the AI`, { id: jobId });
+    if (job.url.trim() === '') throw new ValidationError('job_no_url', `Job ${jobId} has no link`, { id: jobId });
 
     const acquired = this.acquire(normalizeJobUrl(job.url), { url: job.url, text: undefined });
     const { missing } = acquired.parsed;

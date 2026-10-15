@@ -3,7 +3,9 @@ import { NotFoundError, ValidationError } from './errors';
 import type { AppendLog, Repository } from './repository';
 import { sortBoard } from './board';
 import { canTransition, isApplicationStatus, type ApplicationStatus, type StatusTransitions } from './status';
-import type { Application, Reminder, StatusHistoryEntry } from './types';
+import { DEFAULT_JOB_STATUS_STYLES, type JobStatusStyles } from './job-status';
+import { jobStatusOnRejection } from './job-lifecycle';
+import type { Application, Job, Reminder, StatusHistoryEntry } from './types';
 
 export interface ApplicationServiceDeps {
   applications: Repository<Application>;
@@ -16,6 +18,9 @@ export interface ApplicationServiceDeps {
   locale: () => Locale;
   /** The allowed moves between statuses; the built-in rules when not given. */
   transitions?: () => StatusTransitions;
+  /** With these, an application that moves to rejected archives its ad (see job-lifecycle.ts). */
+  jobs?: Repository<Job>;
+  jobStatusStyles?: () => JobStatusStyles;
 }
 
 export interface SetStatusOptions {
@@ -76,6 +81,7 @@ export class ApplicationService {
     const updated = applications.update(applicationId, patch);
 
     history.append({ application_id: applicationId, from, to, at: timestamp });
+    if (to === 'rejected') this.archiveJob(updated.job_id);
     return updated;
   }
 
@@ -95,6 +101,14 @@ export class ApplicationService {
       if (card.board_position !== position + 1) applications.update(card.id, { board_position: position + 1 });
     });
     return applications.get(applicationId)!;
+  }
+
+  private archiveJob(jobId: string): void {
+    const { jobs, jobStatusStyles } = this.deps;
+    const job = jobs?.get(jobId);
+    if (jobs === undefined || job === undefined) return;
+    const next = jobStatusOnRejection(jobStatusStyles?.() ?? DEFAULT_JOB_STATUS_STYLES, job.status);
+    if (next !== undefined) jobs.update(jobId, { status: next });
   }
 
   private closeWaitingReminders(applicationId: string, timestamp: string): void {

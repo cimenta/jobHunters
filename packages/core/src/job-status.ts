@@ -1,7 +1,7 @@
 import { isLocale, t, type Locale } from './i18n';
 import { readableTextColor, STATUS_TEXT_MAX, UNKNOWN_STATUS_COLOR } from './status-style';
 
-export const BUILTIN_JOB_STATUSES = ['new', 'no', 'awaiting'] as const;
+export const BUILTIN_JOB_STATUSES = ['new', 'applied', 'archived', 'no', 'awaiting'] as const;
 
 export interface JobStatusStyle {
   /** Display name per language; the catalog text is used for a built-in status where none is given. */
@@ -15,6 +15,8 @@ export type JobStatusStyles = Record<string, JobStatusStyle>;
 
 export const DEFAULT_JOB_STATUS_STYLES: Readonly<JobStatusStyles> = {
   new: { color: '#2563eb', check: true },
+  applied: { color: '#4f46e5', check: false },
+  archived: { color: '#64748b', check: false },
   no: { color: '#6b7280', check: false },
   awaiting: { color: '#d97706', check: false },
 };

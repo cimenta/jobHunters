@@ -180,6 +180,23 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { contact_person: '', no_reason: '' })).toMatchObject({ contact_person: '', no_reason: '' });
   });
 
+  it('sets the link of a job: a web address no other job has, trimmed, with the availability starting again', () => {
+    const jobRepo = new InMemoryRepository<Job>([
+      makeJob({ id: 'j1', url: '', availability: 'offline', offline_strikes: 2, last_checked_at: '2026-10-01T00:00:00.000Z' }),
+      makeJob({ id: 'j2', title: 'Other job', url: 'https://example.com/job/2' }),
+    ]);
+    const service = new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: new InMemoryRepository<Company>() });
+    expect(service.updateJob('j1', { url: '  https://www.example.com/job/1  ' })).toMatchObject({
+      url: 'https://www.example.com/job/1', source: 'example.com', availability: 'unknown', offline_strikes: 0, last_checked_at: '',
+    });
+    expect(errorOf(() => service.updateJob('j1', { url: 'not a link' }))).toMatchObject({ code: 'job_url_invalid' });
+    expect(errorOf(() => service.updateJob('j1', { url: 'ftp://example.com/x' }))).toMatchObject({ code: 'job_url_invalid' });
+    expect(errorOf(() => service.updateJob('j1', { url: 'https://example.com/job/2' }))).toMatchObject({ code: 'job_url_duplicate', params: { id: 'j2', title: 'Other job' } });
+    expect(jobRepo.get('j1')!.url).toBe('https://www.example.com/job/1');
+    expect(service.updateJob('j1', { url: 'https://www.example.com/job/1' }).url).toBe('https://www.example.com/job/1');
+    expect(service.updateJob('j1', { url: '' })).toMatchObject({ url: '', source: '' });
+  });
+
   it('updates a company and validates the name and website', () => {
     const { service } = setup();
     expect(service.updateCompany('c1', { name: ' New name ', website: 'https://example.com', notes: 'n' })).toMatchObject({ name: 'New name', website: 'https://example.com', notes: 'n' });

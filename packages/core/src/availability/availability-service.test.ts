@@ -85,6 +85,21 @@ describe('AvailabilityService.check', () => {
   });
 });
 
+describe('jobs without a link', () => {
+  it('refuses a manual check with a clear error and never fetches anything', () => {
+    const { service, fetcher } = setup([makeJob({ id: 'j1', url: '' })]);
+    expect(errorOf(() => service.check('j1'))).toMatchObject({ code: 'job_no_url' });
+    expect(fetcher.calls).toEqual([]);
+  });
+
+  it('leaves them out of the scheduled check', () => {
+    const { service, fetcher } = setup([makeJob({ id: 'j1', url: '' }), makeJob({ id: 'j2', url: URL1 })], { [URL1]: OK });
+    expect(service.eligibleJobs().map((job) => job.id)).toEqual(['j2']);
+    service.checkDue(10_000);
+    expect(fetcher.calls).toEqual([URL1]);
+  });
+});
+
 describe('AvailabilityService.checkDue', () => {
   const jobs = [
     makeJob({ id: 'new', url: 'https://example.com/new', last_checked_at: '' }),

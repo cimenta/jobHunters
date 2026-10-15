@@ -8,7 +8,7 @@ const custom = '{"s_abc123":{"text":{"en":"Maybe","cs":"Možná"},"color":"#AA00
 describe('parseJobStatusStyles', () => {
   it('always holds the built-in statuses with their defaults', () => {
     for (const raw of ['', '{}']) {
-      expect(parseJobStatusStyles(raw)).toEqual({ new: { color: '#2563eb', check: true }, no: { color: '#6b7280', check: false }, awaiting: { color: '#d97706', check: false } });
+      expect(parseJobStatusStyles(raw)).toEqual({ new: { color: '#2563eb', check: true }, applied: { color: '#4f46e5', check: false }, archived: { color: '#64748b', check: false }, no: { color: '#6b7280', check: false }, awaiting: { color: '#d97706', check: false } });
     }
   });
 

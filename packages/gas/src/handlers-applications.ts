@@ -186,8 +186,9 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const isHybrid = optionalBoolean(input, 'is_hybrid', 'updateJob');
       const contactPerson = optionalString(input, 'contact_person', 'updateJob');
       const noReason = optionalString(input, 'no_reason', 'updateJob');
+      const url = optionalString(input, 'url', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, url, status }));
     },
 
     saveJobStatuses: (args) => {
