@@ -7,6 +7,7 @@
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
   import Tabs from '../components/Tabs.svelte';
+  import InlineText from '../components/InlineText.svelte';
   import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
@@ -33,6 +34,8 @@
   let creating = $state(false);
   let deleting = $state(false);
   let tab = $state('applications');
+  /** Whether the field "Reason why not" is open for typing; it opens right after the status was changed to No. */
+  let reasonEditing = $state(false);
 
   $effect(() => {
     const job = detail.data?.job;
@@ -53,6 +56,7 @@
     const from = job ? jobStatus(job).text : '';
     const to = jobStatusOptions().find((option) => option.code === status)?.text ?? status;
     await api.updateJob(id, { status });
+    if (status === 'no') reasonEditing = true;
     toast.success(tr('ui.job.statusChanged', { title: job?.title ?? '', from, to }));
     invalidate();
   }
@@ -133,6 +137,12 @@
                   <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="job-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                 {/if}
               {/each}
+              {#if job.status !== 'awaiting'}
+                <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="job-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
+                {#if current.code === 'no' || (job.no_reason ?? '') !== ''}
+                  <InlineText wide="full" label={tr('ui.job.noReason')} value={job.no_reason ?? ''} maxlength={1000} placeholder={tr('ui.job.noReasonPlaceholder')} ui="job-detail.no-reason" bind:editing={reasonEditing} onsave={(text) => api.updateJob(job.id, { no_reason: text })} />
+                {/if}
+              {/if}
             </dl>
           {/if}
         </div>

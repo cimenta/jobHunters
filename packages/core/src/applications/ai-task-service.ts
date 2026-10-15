@@ -183,7 +183,7 @@ export class AiTaskService {
    * Queues one AI task that reads an ad the app did not download, fills in its job and evaluates the match, so the AI
    * has all the information at once. Needs the candidate experience.
    */
-  requestImportAndMatch(jobId: string): AiTask {
+  requestImportAndMatch(jobId: string, notes = ''): AiTask {
     const { tasks, jobs, newId, now, language } = this.deps;
     const job = jobs.get(jobId);
     if (!job) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
@@ -191,9 +191,14 @@ export class AiTaskService {
     const current = tasks.list().filter((t) => t.type === 'import_match_job' && t.job_id === jobId && ACTIVE.includes(t.status)).at(0);
     if (current) return current;
     const id = newId();
+    const extra = notes.trim() === '' ? '' : `Instructions from the user: ${notes.trim()}`;
+    const template = this.deps.prompt('import_match_job');
+    let instructions = renderPrompt(template, { task_id: id, job_id: jobId, url: job.url, language: LANGUAGE_NAMES[language()] ?? 'English', notes: extra });
+    // A prompt the user kept from an older version has no {{notes}} place: the instructions are added at its end, never lost.
+    if (extra !== '' && !/\{\{\s*notes\s*\}\}/.test(template)) instructions = [instructions, '', extra].join('\n');
     return tasks.insert({
       id, created_at: now(), application_id: '', job_id: jobId, type: 'import_match_job', target_type: 'job', target_id: jobId,
-      instructions: renderPrompt(this.deps.prompt('import_match_job'), { task_id: id, job_id: jobId, url: job.url, language: LANGUAGE_NAMES[language()] ?? 'English' }),
+      instructions,
       status: 'pending', ai_note: '', completed_at: '',
     });
   }

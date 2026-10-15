@@ -299,6 +299,68 @@ describe('JobDetail status', () => {
   });
 });
 
+describe('JobDetail contact person and reason why not', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('shows the contact person in the facts and changes it on a double-click', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const text = () => ui('job-detail.contact-person.text')!;
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    expect(ui('job-detail.info')).toContainElement(ui('job-detail.contact-person'));
+    await fireEvent.dblClick(text());
+    const input = ui('job-detail.contact-person.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: '  Jana Novakova, recruiter  ' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Jana Novakova, recruiter'));
+    expect((await api.getJob(id)).job.contact_person).toBe('Jana Novakova, recruiter');
+  });
+
+  it('has no reason field until the status is No; then it opens for typing at once and keeps the text', async () => {
+    useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(ui('job-detail.no-reason')).toBeNull();
+    await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    const input = await waitFor(() => {
+      const found = ui('job-detail.no-reason.input') as HTMLInputElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    expect(input).toHaveFocus();
+    await fireEvent.input(input, { target: { value: 'Salary below what I need' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(async () => expect((await api.getJob(id)).job.no_reason).toBe('Salary below what I need'));
+    await waitFor(() => expect(ui('job-detail.no-reason.text')).toHaveTextContent('Salary below what I need'));
+    // Another status hides an empty field but not a written reason.
+    await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'new' } });
+    await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('new'));
+    expect(ui('job-detail.no-reason.text')).toHaveTextContent('Salary below what I need');
+  });
+
+  it('lets Escape skip the reason: nothing is saved', async () => {
+    useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    const input = await waitFor(() => {
+      const found = ui('job-detail.no-reason.input') as HTMLInputElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    await fireEvent.input(input, { target: { value: 'not saved' } });
+    await fireEvent.keyDown(input, { key: 'Escape' });
+    expect(ui('job-detail.no-reason.text')).toHaveTextContent('Double-click to add');
+    expect((await api.getJob(id)).job.no_reason).toBe('');
+  });
+});
+
 describe('JobDetail awaiting the AI', () => {
   async function awaiting() {
     await api.importJob('https://blocked.example/job/1');

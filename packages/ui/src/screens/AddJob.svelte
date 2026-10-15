@@ -26,6 +26,8 @@
   let usedText = $state(false);
   /** The ad could not be downloaded: let the AI read it, fill in the job and evaluate the match in one task. */
   let aiJob = $state(false);
+  /** Extra instructions for the AI of "Create AI job to import". */
+  let aiNotes = $state('');
   /** What the AI does as soon as the job is saved: nothing, a match evaluation, or the application with its documents. Only one. */
   let afterSave = $state<'' | 'match' | 'documents'>('');
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
@@ -63,7 +65,7 @@
   async function createAiJob(): Promise<void> {
     loading = true;
     try {
-      const result = await api.importAiJob(url.trim());
+      const result = await api.importAiJob(url.trim(), aiNotes.trim());
       invalidate();
       if (result.status === 'queued') {
         toast.success(tr('ui.addJob.aiJobCreated', { title: result.job.title }));
@@ -141,6 +143,11 @@
             {/if}
           </span>
         </label>
+        {#if aiJob}
+          <Field label={tr('ui.addJob.aiNotes')} for="ai-notes">
+            <textarea id="ai-notes" data-ui="add-job.ai-notes" class="input" rows="3" maxlength="2000" placeholder={tr('ui.addJob.aiNotesPlaceholder')} bind:value={aiNotes}></textarea>
+          </Field>
+        {/if}
         <div class="row wrap">
           <Button type="submit" variant="primary" ui={aiJob ? 'add-job.create-ai-job' : 'add-job.read'} {loading} disabled={url.trim() === ''}>{aiJob ? tr('ui.addJob.createAiJob') : tr('ui.addJob.find')}</Button>
           {#if !pasting && preview && preview.duplicateOf === '' && !aiJob}

@@ -171,6 +171,15 @@ describe('CatalogService', () => {
     expect(errorOf(() => service.updateApplication('ghost', { salary: 'x' }))).toMatchObject({ code: 'application_not_found' });
   });
 
+  it('changes the contact person and the reason why not of a job, trims them and keeps them when another field changes', () => {
+    const { service, jobRepo } = setup();
+    expect(service.updateJob('j1', { contact_person: '  Jana Novakova, recruiter  ', no_reason: ' Salary too low ' })).toMatchObject({ contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' });
+    service.updateJob('j1', { notes: 'x' });
+    expect(jobRepo.get('j1')).toMatchObject({ contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' });
+    expect(service.updateJob('j1', { contact_person: 'x'.repeat(500), no_reason: 'y'.repeat(2000) })).toMatchObject({ contact_person: 'x'.repeat(300), no_reason: 'y'.repeat(1000) });
+    expect(service.updateJob('j1', { contact_person: '', no_reason: '' })).toMatchObject({ contact_person: '', no_reason: '' });
+  });
+
   it('updates a company and validates the name and website', () => {
     const { service } = setup();
     expect(service.updateCompany('c1', { name: ' New name ', website: 'https://example.com', notes: 'n' })).toMatchObject({ name: 'New name', website: 'https://example.com', notes: 'n' });

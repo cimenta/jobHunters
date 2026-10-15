@@ -208,6 +208,26 @@ describe('AddJob', () => {
     expect(toasts.map((t) => t.text).some((text) => /AI job created for .*1 AI task queued \(import and match\)/.test(text))).toBe(true);
   });
 
+  it('shows the extra instructions field only while the AI job box is ticked and sends them with the task', async () => {
+    useDevBackend({ seed: false });
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    await loadApp();
+    render(AddJob);
+    const notes = () => document.querySelector('[data-ui="add-job.ai-notes"]') as HTMLTextAreaElement | null;
+    expect(notes()).toBeNull();
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
+    await fireEvent.click(aiBox()!);
+    await fireEvent.input(notes()!, { target: { value: 'The contact person is at the bottom of the page.' } });
+    await fireEvent.click(aiBox()!);
+    expect(notes()).toBeNull();
+    await fireEvent.click(aiBox()!);
+    expect(notes()).toHaveValue('The contact person is at the bottom of the page.');
+    await fireEvent.click(screen.getByRole('button', { name: 'Create AI job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const task = (await api.listAiTasks())[0]!;
+    expect(task.instructions).toContain('Instructions from the user: The contact person is at the bottom of the page.');
+  });
+
   it('after a failed download the same checkbox still queues ONE import-and-match task', async () => {
     await failedDownload('Ten years of Kotlin');
     expect(aiBox()).toBeEnabled();

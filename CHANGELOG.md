@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.16.10] - 2026-10-15
+
+- A job has a new field "Contact person" (the person the ad names as responsible for the position or as a contact, free text). It is shown in the facts of the job detail and of the application detail and changed by a double-click (Enter or leaving the field saves, Esc cancels).
+- When you set the status of a job to No, the new field "Reason why not" opens at once so you can write why (Esc skips it). It stays visible while it has text, and a double-click changes it.
+- "Create AI job to import" in Add job has a field "Extra instructions for the AI (optional)". The text goes into the task. A prompt kept from an older version has no place for it, so the text is added at the end of the task.
+- The AI prompts changed: the evaluation of the match (match_job) now also ticks is_remote and is_hybrid from the ad (it never clears them) and fills contact_person when the cell is empty and the ad names a person; the import prompts fill contact_person too, and the import-and-match prompt has the place for the extra instructions. This also brings the earlier change of the work mode columns (is_remote, is_hybrid instead of remote) into your prompts.
+- **Run Setup after the update** (Settings > General > Run setup): the sheet Jobs gets the columns contact_person and no_reason. Until then the screens that read jobs fail with a missing-column error. **Then update the prompts yourself**: the red "!" by Settings (tab AI prompts) says the built-in prompts changed; press "Reset all to default" to take them (it replaces your own edits of the prompts) or "Keep my prompts" to hide the notice (the AI then does not fill the new fields).
+
 ## [0.16.9] - 2026-10-15
 
 - You choose which numbers the main menu shows. In Settings > General, on the card "Menu numbers", each of Jobs, Applications and AI tasks has two choices: a first number and an optional second one, shown as "first / second". Jobs can show new jobs, new jobs with no application, all jobs with no application or all jobs; Applications drafts, waiting for a reply, sent or all active; AI tasks waiting, needing your answer or failed. The choice is saved at once. The defaults are what the menu showed before (new jobs, drafts, waiting tasks), so nothing changes until you pick something else.

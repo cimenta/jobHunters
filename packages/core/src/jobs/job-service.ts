@@ -168,7 +168,7 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null, ai_salary: '',
+      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '',
     });
   }
 
@@ -224,6 +224,8 @@ export class JobService {
       status: 'new',
       match_percent: null,
       ai_salary: '',
+      contact_person: '',
+      no_reason: '',
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

@@ -42,6 +42,14 @@ describe('api', () => {
     expect(result.data.task.instructions).not.toContain('My old import prompt');
   });
 
+  it('importAiJob passes the extra instructions of the user into the task', () => {
+    const { api } = setup();
+    api('updateSettings', { candidate_experience: 'Ten years of Kotlin' });
+    const result = api('importAiJob', { url: 'https://example.com/jobs/3', notes: 'Ignore the second position' }) as { ok: true; data: { task: { instructions: string } } };
+    expect(result.data.task.instructions).toContain('Instructions from the user: Ignore the second position');
+    expect(api('importAiJob', { url: 'https://example.com/jobs/4', notes: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
   it('rejects unknown methods, including inherited property names', () => {
     const { api } = setup();
     expect(api('nope')).toMatchObject({ ok: false, error: { code: 'unknown_method', params: { method: 'nope' } } });
@@ -351,6 +359,8 @@ describe('overview api', () => {
       data: { job: { title: 'Data Analyst' }, company: { name: 'Example Ltd' }, applications: [{ id: applicationId, job_title: 'Data Analyst' }] },
     });
     expect(api('updateJob', { id: jobId, notes: 'Hello', is_gig: true })).toMatchObject({ ok: true, data: { notes: 'Hello', is_gig: true } });
+    expect(api('updateJob', { id: jobId, contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' })).toMatchObject({ ok: true, data: { contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' } });
+    expect(api('updateJob', { id: jobId, contact_person: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 

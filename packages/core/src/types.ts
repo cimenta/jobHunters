@@ -45,6 +45,10 @@ export interface Job {
   match_percent: number | null;
   /** `<ask> (<min>-<max>)`, whole monthly amounts in salary_currency; written by the AI only while empty. */
   ai_salary: string;
+  /** The person the ad names as responsible for the position or as a contact, free text; written by the AI or the user. */
+  contact_person: string;
+  /** Why the user does not want this job (status No), free text. */
+  no_reason: string;
 }
 
 export interface Application {

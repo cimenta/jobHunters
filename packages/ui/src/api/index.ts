@@ -44,7 +44,7 @@ export const api = {
   saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
   refreshJob: (id: string) => call<RefreshResult>('refreshJob', { id }),
-  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; status?: string }) => call<Job>('updateJob', { id, ...patch }),
+  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
   requestQuestionAi: (questionId: string, notes: string) => call<AiTask>('requestQuestionAi', { questionId, notes }),
@@ -54,7 +54,7 @@ export const api = {
   cancelAiTask: (id: string) => call<null>('cancelAiTask', { id }),
   previewJob: (input: { url: string; text?: string }) => call<JobPreview>('previewJob', input),
   importJob: (url: string) => call<ImportResult>('importJob', { url }),
-  importAiJob: (url: string) => call<ImportResult>('importAiJob', { url }),
+  importAiJob: (url: string, notes = '') => call<ImportResult>('importAiJob', { url, notes }),
   deleteJob: (id: string, trashFolder: boolean) => call<JobRemoveResult>('deleteJob', { id, trashFolder }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 

@@ -218,6 +218,22 @@ describe('ApplicationDetail summary', () => {
     expect((await api.getApplication(id)).application.salary).toBe('80 000 CZK / month');
   });
 
+  it('shows the contact person of the job and edits it on a double-click', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const text = () => ui('application-detail.contact-person.text') as HTMLElement | null;
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    await fireEvent.dblClick(text()!);
+    const input = ui('application-detail.contact-person.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Petr Svoboda, HR' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Petr Svoboda, HR'));
+    expect((await api.getJob(jobId)).job.contact_person).toBe('Petr Svoboda, HR');
+  });
+
   it('has editable Remote and Hybrid checkboxes of the job', async () => {
     useDevBackend();
     const id = await androidApplicationId();

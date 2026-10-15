@@ -1,16 +1,28 @@
 <script lang="ts">
-  import { api } from '../api';
   import { tr } from '../lib/i18n.svelte';
   import { notifyError } from '../lib/notify';
   import { invalidate } from '../state/invalidate.svelte';
 
   /**
-   * The salary the user asks for in an application, as one cell of the facts grid (put it inside the `dl`). A double-click
-   * (or Enter on the focused text) turns it into a field: Enter or leaving the field saves, Escape cancels.
+   * A labelled text of the facts grid (put it inside the `dl`) that is changed in place: a double-click, or Enter on the
+   * focused text, turns it into a field; Enter or leaving the field saves, Escape cancels. A parent can open it by
+   * binding `editing`, for example to ask for a reason right after a status was chosen.
    */
-  let { applicationId, value, ui }: { applicationId: string; value: string; ui: string } = $props();
+  let {
+    value, label, ui, maxlength = 200, wide, placeholder = '', editing = $bindable(false), onsave,
+  }: {
+    value: string;
+    label: string;
+    /** Base of the data-ui identifiers: `<ui>`, `<ui>.text` and `<ui>.input`. */
+    ui: string;
+    maxlength?: number;
+    /** Takes two columns of the grid, or the whole row. */
+    wide?: 'two' | 'full';
+    placeholder?: string;
+    editing?: boolean;
+    onsave: (text: string) => Promise<unknown>;
+  } = $props();
 
-  let editing = $state(false);
   let draft = $state('');
   let saving = false;
 
@@ -30,7 +42,7 @@
     if (draft.trim() === value.trim()) return;
     saving = true;
     try {
-      await api.updateApplication(applicationId, { salary: draft });
+      await onsave(draft);
     } catch (error) {
       notifyError(error);
     } finally {
@@ -40,15 +52,16 @@
   }
 </script>
 
-<div class="fact" data-ui="{ui}.asked-salary">
-  <dt class="muted small">{tr('ui.app.askedSalary')}</dt>
+<div class="fact" style:grid-column={wide === 'full' ? '1 / -1' : wide === 'two' ? 'span 2' : undefined} data-ui={ui}>
+  <dt class="muted small">{label}</dt>
   <dd>
     {#if editing}
       <input
         class="input"
-        data-ui="{ui}.asked-salary.input"
-        aria-label={tr('ui.app.askedSalary')}
-        maxlength="200"
+        data-ui="{ui}.input"
+        aria-label={label}
+        {maxlength}
+        {placeholder}
         bind:value={draft}
         use:focusOnMount
         onblur={save}
@@ -63,13 +76,13 @@
         class:empty={value === ''}
         role="button"
         tabindex="0"
-        data-ui="{ui}.asked-salary.text"
-        title={value === '' ? tr('ui.app.askedSalaryAdd') : tr('ui.app.askedSalaryEdit')}
+        data-ui="{ui}.text"
+        title={value === '' ? tr('ui.inline.add') : tr('ui.inline.edit')}
         ondblclick={edit}
         onkeydown={(event) => {
           if (event.key === 'Enter') edit();
         }}
-      >{value === '' ? tr('ui.app.askedSalaryAdd') : value}</span>
+      >{value === '' ? tr('ui.inline.add') : value}</span>
     {/if}
   </dd>
 </div>

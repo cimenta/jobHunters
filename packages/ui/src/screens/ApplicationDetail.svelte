@@ -4,7 +4,7 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
-  import AskedSalary from '../components/AskedSalary.svelte';
+  import InlineText from '../components/InlineText.svelte';
   import Badge from '../components/Badge.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import Tabs from '../components/Tabs.svelte';
@@ -95,14 +95,17 @@
                   <!-- The salary asked for sits right next to the AI estimate, on the same row. -->
                   <div class="pair">
                     <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
-                    <AskedSalary applicationId={application.id} value={application.salary ?? ''} ui="application-detail" />
+                    <InlineText label={tr('ui.app.askedSalary')} value={application.salary ?? ''} ui="application-detail.asked-salary" onsave={(text) => api.updateApplication(application.id, { salary: text })} />
                   </div>
                 {:else}
                   <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                 {/if}
               {/each}
               {#if !facts.some((fact) => fact.key === 'ai-salary')}
-                <AskedSalary applicationId={application.id} value={application.salary ?? ''} ui="application-detail" />
+                <InlineText label={tr('ui.app.askedSalary')} value={application.salary ?? ''} ui="application-detail.asked-salary" onsave={(text) => api.updateApplication(application.id, { salary: text })} />
+              {/if}
+              {#if job}
+                <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="application-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
               {/if}
             </dl>
           {/if}

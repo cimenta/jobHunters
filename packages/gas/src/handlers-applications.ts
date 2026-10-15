@@ -146,8 +146,10 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
     },
 
     importAiJob: (args) => {
-      const url = requireString(asRecord(args, 'importAiJob'), 'url', 'importAiJob');
-      return c.lock.run(() => c.jobImportService.importWithAi(url));
+      const input = asRecord(args, 'importAiJob');
+      const url = requireString(input, 'url', 'importAiJob');
+      const notes = optionalString(input, 'notes', 'importAiJob');
+      return c.lock.run(() => c.jobImportService.importWithAi(url, notes ?? ''));
     },
 
     deleteJob: (args) => {
@@ -182,8 +184,10 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const isGig = optionalBoolean(input, 'is_gig', 'updateJob');
       const isRemote = optionalBoolean(input, 'is_remote', 'updateJob');
       const isHybrid = optionalBoolean(input, 'is_hybrid', 'updateJob');
+      const contactPerson = optionalString(input, 'contact_person', 'updateJob');
+      const noReason = optionalString(input, 'no_reason', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, status }));
     },
 
     saveJobStatuses: (args) => {

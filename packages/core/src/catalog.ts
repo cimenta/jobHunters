@@ -181,6 +181,10 @@ export function buildDashboard(input: {
   };
 }
 
+/** Longest contact person and reason text kept; only to stop a pasted page, a cell holds far more. */
+export const MAX_CONTACT_PERSON = 300;
+export const MAX_NO_REASON = 1000;
+
 export interface CatalogServiceDeps {
   jobs: Repository<Job>;
   applications: Repository<Application>;
@@ -192,13 +196,15 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
     if (patch.is_remote !== undefined) change.is_remote = patch.is_remote;
     if (patch.is_hybrid !== undefined) change.is_hybrid = patch.is_hybrid;
+    if (patch.contact_person !== undefined) change.contact_person = patch.contact_person.trim().slice(0, MAX_CONTACT_PERSON);
+    if (patch.no_reason !== undefined) change.no_reason = patch.no_reason.trim().slice(0, MAX_NO_REASON);
     if (patch.status !== undefined) {
       const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
       if (patch.status === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, patch.status)) {

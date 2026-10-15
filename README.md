@@ -53,7 +53,8 @@ do the writing and the reading for you.
 - **Match evaluation by AI**: a percentage, the strengths, the gaps and a verdict, based only on the experience you
   wrote down. The percentage is shown as a coloured badge (suitable, partly, not suitable).
 - **AI salary estimate**: what to ask for and the realistic range, shown next to the salary of the ad.
-- **Your own ad statuses** with names and colours, flags for gigs and part-time work, notes.
+- **Your own ad statuses** with names and colours, flags for gigs and part-time work, notes, the contact person of an
+  ad, and a reason why not when you set a job to No.
 - Search, filters (availability, status, gig, jobs that already have an application), sorting by date or match, and a
   **Clear filters** button. The choices are remembered.
 
@@ -152,7 +153,7 @@ description and the AI evaluation.
 Paste a link and check what the app found. Above "Save job" you can already ask the AI to evaluate the match or to
 create the resume and the cover letter. When a page cannot be downloaded, or the app finds only a title, you paste
 its text, or tick "Create AI job to import" (always shown under the link) and let the AI read the ad and evaluate the
-match in one task.
+match in one task. You can add extra instructions for the AI there.
 
 ### Applications
 

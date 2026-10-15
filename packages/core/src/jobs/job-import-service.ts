@@ -37,7 +37,7 @@ export class JobImportService {
    * The user's choice for an ad the app could not read: no download here, a placeholder with ONE AI task that reads the
    * ad, fills in the job and evaluates the match. Needs the candidate experience.
    */
-  importWithAi(rawUrl: string): ImportResult {
+  importWithAi(rawUrl: string, notes = ''): ImportResult {
     const url = rawUrl.trim();
     const parsed = parseUrl(url);
     if (!parsed || (parsed.protocol !== 'http' && parsed.protocol !== 'https')) return { status: 'invalid' };
@@ -45,7 +45,7 @@ export class JobImportService {
     if (duplicate) return { status: 'duplicate', job: duplicate };
     this.deps.aiTasks.assertExperience();
     const job = this.deps.jobService.createPlaceholder(url);
-    const task = this.deps.aiTasks.requestImportAndMatch(job.id);
+    const task = this.deps.aiTasks.requestImportAndMatch(job.id, notes);
     return { status: 'queued', job, task, fetchStatus: 0 };
   }
 }
