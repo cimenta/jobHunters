@@ -235,6 +235,22 @@ describe('ApplicationDetail summary', () => {
     expect((await api.getJob(jobId)).job.contact_person).toBe('Petr Svoboda, HR');
   });
 
+  it('changes the location of the job on a double-click', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    render(ApplicationDetail, { id });
+    await screen.findByRole('heading', { level: 1 });
+    const text = () => ui('application-detail.location.text') as HTMLElement | null;
+    await waitFor(() => expect(text()).toHaveTextContent('Praha'));
+    await fireEvent.dblClick(text()!);
+    const input = ui('application-detail.location.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: 'Ostrava' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Ostrava'));
+    expect((await api.getJob(jobId)).job.location).toBe('Ostrava');
+  });
+
   it('shows a red add-link icon when the job has no link, and saves the link from the window', async () => {
     const backend = useDevBackend();
     const id = await androidApplicationId();

@@ -75,7 +75,7 @@
   }
 
   /** The labelled facts of the ad; only the filled ones are listed. */
-  const facts = $derived(detail.data ? jobFacts(detail.data.job) : []);
+  const facts = $derived(detail.data ? jobFacts(detail.data.job, { editableLocation: detail.data.job.status !== 'awaiting' }) : []);
 </script>
 
 <div class="stack" data-ui="job-detail">
@@ -138,6 +138,8 @@
               {#each facts as fact (fact.key)}
                 {#if fact.key === 'work-mode'}
                   {#if job.status !== 'awaiting'}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="job-detail" />{/if}
+                {:else if fact.key === 'location' && job.status !== 'awaiting'}
+                  <InlineText label={fact.label} value={job.location ?? ''} maxlength={300} ui="job-detail.location" onsave={(text) => api.updateJob(job.id, { location: text })} />
                 {:else}
                   <div class="fact" class:wide={fact.key === 'ai-salary'} data-ui="job-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                 {/if}

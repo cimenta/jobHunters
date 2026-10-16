@@ -465,3 +465,52 @@ describe('Delete application (Timeline tab)', () => {
     expect(router.current.name).not.toBe('applications');
   });
 });
+
+describe('Ad tab match', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('has a Match button that opens the text the AI wrote, with the percentage', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const task = await api.requestJobMatch(jobId);
+    backend.container.tasks.update(task.id, { status: 'done', ai_note: 'Strong match: Kotlin and Compose.\nGap: no Flutter.' });
+    backend.container.jobs.update(jobId, { match_percent: 82 });
+    render(ApplicationDetail, { id });
+    const button = await screen.findByRole('button', { name: 'Match 82 %' });
+    expect(button).toHaveAttribute('data-ui', 'ad.match');
+    expect(ui('match-dialog.text')).toBeNull();
+    await fireEvent.click(button);
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(ui('match-dialog.percent')).toHaveTextContent('Match 82 %');
+    expect(ui('match-dialog.text')!.textContent).toBe('Strong match: Kotlin and Compose.\nGap: no Flutter.');
+    await fireEvent.click(ui('match-dialog.close')!);
+    await waitFor(() => expect(ui('match-dialog.text')).toBeNull());
+  });
+
+  it('says what state the AI is in when there is no text yet, and that nothing was asked for when there is no evaluation', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Match' }));
+    expect(ui('match-dialog.none')).toHaveTextContent('no AI evaluation');
+    await fireEvent.click(ui('match-dialog.close')!);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    await api.requestJobMatch(jobId);
+    invalidate();
+    await fireEvent.click(await screen.findByRole('button', { name: 'Match' }));
+    await waitFor(() => expect(ui('match-dialog.status')).toHaveTextContent('Waiting for the AI'));
+    expect(ui('match-dialog.text')).toBeNull();
+  });
+
+  it('shows the button only on the Ad tab', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await screen.findByRole('button', { name: 'Match' });
+    await fireEvent.click(screen.getByRole('tab', { name: /Questions/ }));
+    expect(ui('ad.match')).toBeNull();
+  });
+});

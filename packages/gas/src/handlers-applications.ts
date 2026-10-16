@@ -191,9 +191,10 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const contactPerson = optionalString(input, 'contact_person', 'updateJob');
       const noReason = optionalString(input, 'no_reason', 'updateJob');
       const gigShift = optionalString(input, 'gig_shift', 'updateJob');
+      const location = optionalString(input, 'location', 'updateJob');
       const url = optionalString(input, 'url', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, url, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, location, url, status }));
     },
 
     saveJobStatuses: (args) => {
@@ -261,6 +262,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
         communications,
         reminders,
         tasks: c.aiTaskService.listForApplication(id),
+        match: job ? c.aiTaskService.matchFor(job.id) : undefined,
         timeline: buildTimeline({ applicationId: id, history: c.history.list(), communications, documents, reminders }),
       };
     },

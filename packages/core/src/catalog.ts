@@ -185,6 +185,7 @@ export function buildDashboard(input: {
 export const MAX_CONTACT_PERSON = 300;
 export const MAX_NO_REASON = 1000;
 export const MAX_GIG_SHIFT = 300;
+export const MAX_LOCATION = 300;
 
 export interface CatalogServiceDeps {
   jobs: Repository<Job>;
@@ -197,7 +198,7 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; url?: string; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; location?: string; url?: string; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
@@ -207,6 +208,7 @@ export class CatalogService {
     if (patch.url !== undefined) Object.assign(change, this.urlChange(id, patch.url));
     if (patch.contact_person !== undefined) change.contact_person = patch.contact_person.trim().slice(0, MAX_CONTACT_PERSON);
     if (patch.no_reason !== undefined) change.no_reason = patch.no_reason.trim().slice(0, MAX_NO_REASON);
+    if (patch.location !== undefined) change.location = patch.location.trim().slice(0, MAX_LOCATION);
     if (patch.gig_shift !== undefined) change.gig_shift = patch.gig_shift.trim().slice(0, MAX_GIG_SHIFT);
     if (patch.status !== undefined) {
       const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;

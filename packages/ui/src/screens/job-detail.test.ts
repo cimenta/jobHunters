@@ -168,7 +168,7 @@ describe('JobDetail layout', () => {
     expect(link.textContent?.trim()).toBe('');
   });
 
-  it('shows salary, location, type and the AI salary, each labelled and only when filled', async () => {
+  it('shows salary, location, type and the AI salary, each labelled and only when filled (the location can always be filled in)', async () => {
     const backend = useDevBackend();
     const id = await idOf('Android Developer');
     render(JobDetail, { id });
@@ -188,7 +188,10 @@ describe('JobDetail layout', () => {
     render(JobDetail, { id: analyst });
     await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
     const empty = document.querySelector('[data-ui="job-detail.info"]');
-    expect(empty === null || !/Salary|Location|Type|AI/.test(empty.textContent ?? '')).toBe(true);
+    // The location stays listed even when empty, because a double-click fills it in; the other facts are left out.
+    expect(empty).toHaveTextContent('Location');
+    expect(document.querySelector('[data-ui="job-detail.location.text"]')).toHaveTextContent('Double-click to add');
+    expect(/Salary|Type|AI/.test(empty!.textContent ?? '')).toBe(false);
   });
 
   it('always shows the Remote and Hybrid checkboxes, and a click is saved at once', async () => {
@@ -365,6 +368,31 @@ describe('JobDetail link', () => {
     await fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(text()).toHaveTextContent('https://example.com/jobs/android-2'));
     expect((await api.getJob(id)).job.url).toBe('https://example.com/jobs/android-2');
+  });
+});
+
+describe('JobDetail location', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('changes the location on a double-click, also when it was empty, and clears it', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const text = () => ui('job-detail.location.text')!;
+    await waitFor(() => expect(text()).toHaveTextContent('Praha'));
+    expect(ui('job-detail.info')).toContainElement(ui('job-detail.location'));
+    await fireEvent.dblClick(text());
+    const input = ui('job-detail.location.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: '  Brno  ' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Brno'));
+    expect((await api.getJob(id)).job.location).toBe('Brno');
+    await fireEvent.dblClick(text());
+    await fireEvent.input(ui('job-detail.location.input') as HTMLInputElement, { target: { value: '' } });
+    await fireEvent.keyDown(ui('job-detail.location.input') as HTMLInputElement, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    expect((await api.getJob(id)).job.location).toBe('');
   });
 });
 

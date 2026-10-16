@@ -393,6 +393,15 @@ describe('overview api', () => {
     return { ...ctx, jobId, applicationId };
   }
 
+  it('gives the application the match evaluation of its job, or nothing when there is none', () => {
+    const { api, jobId, applicationId, container } = seeded();
+    expect((api('getApplication', { id: applicationId }) as { data: { match?: unknown } }).data.match).toBeUndefined();
+    api('updateSettings', { candidate_experience: 'Ten years of Kotlin' });
+    const task = (api('requestJobMatch', { id: jobId }) as { data: { id: string } }).data;
+    container.tasks.update(task.id, { status: 'done', ai_note: 'Strong match.' });
+    expect(api('getApplication', { id: applicationId })).toMatchObject({ ok: true, data: { match: { id: task.id, status: 'done', ai_note: 'Strong match.' } } });
+  });
+
   it('shows a job with its company and applications and updates its notes', () => {
     const { api, jobId, applicationId } = seeded();
     expect(api('getJob', { id: jobId })).toMatchObject({
@@ -404,6 +413,8 @@ describe('overview api', () => {
     expect(api('updateJob', { id: jobId, contact_person: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
     expect(api('updateJob', { id: jobId, gig_shift: ' Sat-Sun 8-16 ' })).toMatchObject({ ok: true, data: { gig_shift: 'Sat-Sun 8-16' } });
     expect(api('updateJob', { id: jobId, gig_shift: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('updateJob', { id: jobId, location: ' Brno ' })).toMatchObject({ ok: true, data: { location: 'Brno' } });
+    expect(api('updateJob', { id: jobId, location: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 

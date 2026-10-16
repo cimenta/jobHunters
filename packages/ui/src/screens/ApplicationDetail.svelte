@@ -55,7 +55,7 @@
     {@const application = detail.data.application}
     {@const job = detail.data.job}
     {@const adUrl = job ? safeHttpUrl(job.url) : ''}
-    {@const facts = job ? jobFacts(job) : []}
+    {@const facts = job ? jobFacts(job, { editableLocation: true }) : []}
     <Card ui="application-detail.header">
       <div class="page-title">
         <h1>{application.label}</h1>
@@ -103,6 +103,8 @@
                     <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                     <InlineText label={tr('ui.app.askedSalary')} value={application.salary ?? ''} ui="application-detail.asked-salary" onsave={(text) => api.updateApplication(application.id, { salary: text })} />
                   </div>
+                {:else if fact.key === 'location' && job}
+                  <InlineText label={fact.label} value={job.location ?? ''} maxlength={300} ui="application-detail.location" onsave={(text) => api.updateJob(job.id, { location: text })} />
                 {:else}
                   <div class="fact" data-ui="application-detail.info.{fact.key}"><dt class="muted small">{fact.label}</dt><dd>{fact.value}</dd></div>
                 {/if}

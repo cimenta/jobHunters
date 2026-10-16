@@ -2,6 +2,16 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.4] - 2026-10-16
+
+- A double-click on the **Location** of a job changes it in place, in the detail of a job and in the detail of an application (Enter or leaving the field saves, Esc cancels). It works the same way as the contact person. The Location is now always listed in the facts, so an empty one can be filled in: it shows "Double-click to add". A job that waits for the AI keeps its location as plain text.
+- No Setup is needed for this update.
+
+## [0.17.3] - 2026-10-16
+
+- The detail of an application shows the AI match text. On the tab **Ad** there is a button **Match** in the top right corner (it shows the percentage when the AI has evaluated the job, for example "Match 82 %"); it opens a window with the percentage and the text the AI wrote, with its line breaks. When there is no text yet the window says what state the AI task is in (waiting, working, failed, needs input), and when no evaluation was ever asked for it says where to ask (the tab Match of the job). The button is only on the tab Ad.
+- No Setup is needed for this update.
+
 ## [0.17.2] - 2026-10-16
 
 - New menu item **Emails** (between Companies and AI tasks): a read-only viewer of the mail that a separate script copies from your mailbox into the sheet Emails. The list shows the newest first, who it is with (the sender of an incoming mail, the first recipient of an outgoing one), the subject, the date in your time zone, the number of attachments and a mark "bulk" for newsletters and other bulk mail. A search box looks in the sender, the subject, the attachment names and the start of the text; a menu filters incoming or outgoing mail, and "Hide bulk" hides bulk mail.

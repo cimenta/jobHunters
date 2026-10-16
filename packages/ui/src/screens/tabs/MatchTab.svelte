@@ -3,6 +3,7 @@
   import { api } from '../../api';
   import Button from '../../components/Button.svelte';
   import { tr } from '../../lib/i18n.svelte';
+  import { matchStatusText as statusText } from '../../lib/match-status';
   import { notifyError } from '../../lib/notify';
   import { toast } from '../../state/toast.svelte';
   import { paths } from '../../lib/route';
@@ -17,21 +18,6 @@
   const running = $derived(match?.status === 'in_progress');
   /** A finished task leaves the box unchecked, so ticking it asks for a fresh evaluation. */
   const active = $derived(waiting || running);
-
-  function statusText(task: AiTask): string {
-    switch (task.status) {
-      case 'pending':
-        return tr('ui.match.pending');
-      case 'in_progress':
-        return tr('ui.match.inProgress');
-      case 'failed':
-        return tr('ui.match.failed');
-      case 'needs_input':
-        return tr('ui.match.needsInput');
-      default:
-        return tr('ui.match.done');
-    }
-  }
 
   async function toggle(checked: boolean): Promise<void> {
     try {

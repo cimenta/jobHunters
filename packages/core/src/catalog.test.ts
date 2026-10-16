@@ -180,6 +180,15 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { contact_person: '', no_reason: '' })).toMatchObject({ contact_person: '', no_reason: '' });
   });
 
+  it('changes the location of a job, trims it, caps it and allows clearing it', () => {
+    const { service, jobRepo } = setup();
+    expect(service.updateJob('j1', { location: '  Brno  ' })).toMatchObject({ location: 'Brno' });
+    service.updateJob('j1', { notes: 'x' });
+    expect(jobRepo.get('j1')).toMatchObject({ location: 'Brno' });
+    expect(service.updateJob('j1', { location: 'z'.repeat(500) })).toMatchObject({ location: 'z'.repeat(300) });
+    expect(service.updateJob('j1', { location: '' })).toMatchObject({ location: '' });
+  });
+
   it('changes the shift of a gig, trims it and caps it', () => {
     const { service, jobRepo } = setup();
     expect(service.updateJob('j1', { gig_shift: '  Sat-Sun 8-16  ' })).toMatchObject({ gig_shift: 'Sat-Sun 8-16' });

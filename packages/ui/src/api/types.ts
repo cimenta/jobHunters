@@ -53,6 +53,8 @@ export interface ApplicationDetail {
   reminders: Reminder[];
   timeline: TimelineEvent[];
   tasks: AiTaskRow[];
+  /** The latest match evaluation of the job; Apps Script turns a missing one into null. */
+  match?: AiTask | null;
 }
 
 export type Profile = Record<'name' | 'email' | 'phone' | 'address' | 'portfolio' | 'linkedin' | 'github' | 'website' | 'links', string>;
