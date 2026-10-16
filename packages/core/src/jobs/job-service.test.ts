@@ -74,6 +74,14 @@ describe('save from a downloaded page', () => {
     expect(job).toMatchObject({ title: 'Custom', is_gig: true, salary_min: 1, salary_max: 80000, notes: 'n' });
   });
 
+  it('saves the contact person the user typed, and the shift only for a gig', () => {
+    const { service } = setup({ [URL1]: ok(), [URL2]: ok() });
+    const gig = service.save({ url: URL1, overrides: { contact_person: '  Jana Novakova, recruiter ', is_gig: true, gig_shift: ' Sat-Sun 8-16 ' } }).job;
+    expect(gig).toMatchObject({ contact_person: 'Jana Novakova, recruiter', gig_shift: 'Sat-Sun 8-16' });
+    const plain = service.save({ url: URL2, overrides: { gig_shift: 'Sat-Sun 8-16' } }).job;
+    expect(plain).toMatchObject({ contact_person: '', gig_shift: '' });
+  });
+
   it('reuses an existing company whose name differs only by legal suffix, case or diacritics', () => {
     const existing: Company = { id: 'c1', name: 'EXAMPLE', website: '', notes: '' };
     const { service, companies } = setup({ [URL1]: ok() }, new FakeDrive(), [existing]);

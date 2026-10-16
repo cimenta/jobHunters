@@ -1,6 +1,6 @@
 import { COMMUNICATION_KINDS } from './communication-kinds';
 import { APPLICATION_STATUSES } from './status';
-import type { Application, ApplicationDocument, Communication, Company, HistoryEntry, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
+import type { Application, ApplicationDocument, Communication, Company, Email, HistoryEntry, Job, LogEntry, Question, Reminder, StatusHistoryEntry, Template } from './types';
 
 /** Resolves to `true` when every key of T appears in the column list C, otherwise to `never`. */
 type Complete<T, C extends readonly string[]> = Exclude<keyof T, C[number]> extends never ? true : never;
@@ -12,7 +12,7 @@ const JOB_COLUMNS = [
   'is_gig', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
   'employment_type', 'remote', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'availability',
   'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes', 'status', 'match_percent', 'ai_salary',
-  'contact_person', 'no_reason',
+  'contact_person', 'no_reason', 'gig_shift',
 ] as const satisfies readonly (keyof Job)[];
 
 const APPLICATION_COLUMNS = [
@@ -35,6 +35,10 @@ const QUESTION_COLUMNS = [
 const COMMUNICATION_COLUMNS = [
   'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url', 'kind',
 ] as const satisfies readonly (keyof Communication)[];
+const EMAIL_COLUMNS = [
+  'id', 'thread_id', 'received_at', 'direction', 'from_email', 'from_name', 'to', 'cc', 'subject', 'body', 'attachments', 'is_bulk',
+  'type', 'type_confidence', 'signals', 'application_id', 'job_id', 'match_method', 'state', 'communication_id',
+] as const satisfies readonly (keyof Email)[];
 const TEMPLATE_COLUMNS = ['id', 'type', 'language', 'name', 'doc_url'] as const satisfies readonly (keyof Template)[];
 const LOG_COLUMNS = ['time', 'flow', 'entity', 'message'] as const satisfies readonly (keyof LogEntry)[];
 const HISTORY_COLUMNS = ['id', 'key', 'version', 'saved_at', 'source', 'restored_from', 'pinned', 'comment', 'text'] as const satisfies readonly (keyof HistoryEntry)[];
@@ -48,6 +52,7 @@ export const _statusHistoryComplete: Complete<StatusHistoryEntry, typeof STATUS_
 export const _documentComplete: Complete<ApplicationDocument, typeof DOCUMENT_COLUMNS> = true;
 export const _questionComplete: Complete<Question, typeof QUESTION_COLUMNS> = true;
 export const _communicationComplete: Complete<Communication, typeof COMMUNICATION_COLUMNS> = true;
+export const _emailComplete: Complete<Email, typeof EMAIL_COLUMNS> = true;
 export const _templateComplete: Complete<Template, typeof TEMPLATE_COLUMNS> = true;
 export const _logComplete: Complete<LogEntry, typeof LOG_COLUMNS> = true;
 export const _historyComplete: Complete<HistoryEntry, typeof HISTORY_COLUMNS> = true;
@@ -63,10 +68,7 @@ export const SHEETS = {
   Reminders: REMINDER_COLUMNS,
   Contacts: ['id', 'company_id', 'job_id', 'name', 'email', 'phone', 'role'],
   // Mail from the mailbox: a separate script appends the first twelve columns and never edits a row; the app fills the rest.
-  Emails: [
-    'id', 'thread_id', 'received_at', 'direction', 'from_email', 'from_name', 'to', 'cc', 'subject', 'body', 'attachments', 'is_bulk',
-    'type', 'type_confidence', 'signals', 'application_id', 'job_id', 'match_method', 'state', 'communication_id',
-  ],
+  Emails: EMAIL_COLUMNS,
   StatusHistory: STATUS_HISTORY_COLUMNS,
   Tasks: ['id', 'created_at', 'application_id', 'job_id', 'type', 'target_type', 'target_id', 'instructions', 'status', 'ai_note', 'completed_at'],
   Templates: TEMPLATE_COLUMNS,

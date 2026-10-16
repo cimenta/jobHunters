@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest';
 import { useDevBackend } from '../test/transport';
 import Help from './Help.svelte';
 
-const TABS = ['How it works', 'Dashboard', 'Jobs', 'Applications', 'Companies', 'AI tasks', 'Settings', 'Tips'];
+const TABS = ['How it works', 'Dashboard', 'Jobs', 'Applications', 'Companies', 'Emails', 'AI tasks', 'Settings', 'Tips'];
 
 it('has a tab per topic and shows the topic of the chosen tab', async () => {
   useDevBackend();
@@ -23,11 +23,11 @@ it('has a tab per topic and shows the topic of the chosen tab', async () => {
 it('links every part to its screen', async () => {
   render(Help);
   const hrefs: (string | null)[] = [];
-  for (const name of ['Dashboard', 'Jobs', 'Applications', 'Companies', 'AI tasks', 'Settings']) {
+  for (const name of ['Dashboard', 'Jobs', 'Applications', 'Companies', 'Emails', 'AI tasks', 'Settings']) {
     await fireEvent.click(screen.getByRole('tab', { name }));
     hrefs.push(document.querySelector('[data-ui^="help.open."]')!.getAttribute('href'));
   }
-  expect(hrefs).toEqual(['#/', '#/jobs', '#/applications', '#/companies', '#/tasks', '#/settings']);
+  expect(hrefs).toEqual(['#/', '#/jobs', '#/applications', '#/companies', '#/emails', '#/tasks', '#/settings']);
 });
 
 it('has every help text in both languages', () => {

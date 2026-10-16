@@ -1,5 +1,5 @@
-export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'tasks' | 'settings' | 'help' | 'not-found';
-export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'tasks' | 'settings' | 'help';
+export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'emails' | 'email' | 'tasks' | 'settings' | 'help' | 'not-found';
+export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'emails' | 'tasks' | 'settings' | 'help';
 export interface Route {
   name: RouteName;
   id?: string;
@@ -30,6 +30,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'jobs') return second === undefined ? route('jobs') : second === 'new' ? route('job-new') : route('job', second);
   if (first === 'applications') return second === undefined ? route('applications') : route('application', second);
   if (first === 'companies') return second === undefined ? route('companies') : route('company', second);
+  if (first === 'emails') return second === undefined ? route('emails') : route('email', second);
   if (first === 'tasks' && second === undefined) return route('tasks');
   if (first === 'settings' && second === undefined) return route('settings');
   if (first === 'help' && second === undefined) return route('help');
@@ -48,6 +49,9 @@ export function sectionOf(route: Route): Section {
     case 'companies':
     case 'company':
       return 'companies';
+    case 'emails':
+    case 'email':
+      return 'emails';
     case 'tasks':
       return 'tasks';
     case 'settings':
@@ -66,11 +70,13 @@ export const paths = {
   newJob: '#/jobs/new',
   applications: '#/applications',
   companies: '#/companies',
+  emails: '#/emails',
   tasks: '#/tasks',
   settings: '#/settings',
   help: '#/help',
   job: (id: string) => `#/jobs/${enc(id)}`,
   application: (id: string) => `#/applications/${enc(id)}`,
   company: (id: string) => `#/companies/${enc(id)}`,
+  email: (id: string) => `#/emails/${enc(id)}`,
   applicationsWithStatus: (status: string) => `#/applications?status=${enc(status)}`,
 };

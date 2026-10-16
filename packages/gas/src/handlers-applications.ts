@@ -6,6 +6,7 @@ import {
   buildMenuCounts,
   buildTimeline,
   companyRows,
+  emailRows,
   jobRows,
   reminderBuckets,
   type CommunicationInput,
@@ -189,14 +190,25 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const isHybrid = optionalBoolean(input, 'is_hybrid', 'updateJob');
       const contactPerson = optionalString(input, 'contact_person', 'updateJob');
       const noReason = optionalString(input, 'no_reason', 'updateJob');
+      const gigShift = optionalString(input, 'gig_shift', 'updateJob');
       const url = optionalString(input, 'url', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, url, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, url, status }));
     },
 
     saveJobStatuses: (args) => {
       const input = asRecord(args, 'saveJobStatuses');
       return c.lock.run(() => c.jobStatusService.save(input.styles));
+    },
+
+    // The sheet Emails is filled by a separate script; without it the two methods fail with sheet_missing and nothing else does.
+    listEmails: () => emailRows(c.emails.list()),
+
+    getEmail: (args) => {
+      const id = requireString(asRecord(args, 'getEmail'), 'id', 'getEmail');
+      const email = c.emails.get(id);
+      if (!email) throw new NotFoundError('email_not_found', `E-mail ${id} not found`, { id });
+      return email;
     },
 
     listCompanies: () => companyRows(c.companies.list(), c.jobs.list(), c.applications.list()),

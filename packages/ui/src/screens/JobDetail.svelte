@@ -144,6 +144,9 @@
               {/each}
               {#if job.status !== 'awaiting'}
                 <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="job-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
+                {#if job.is_gig}
+                  <InlineText wide="two" label={tr('ui.job.gigShift')} value={job.gig_shift ?? ''} maxlength={300} placeholder={tr('ui.job.gigShiftPlaceholder')} ui="job-detail.gig-shift" onsave={(text) => api.updateJob(job.id, { gig_shift: text })} />
+                {/if}
                 <InlineText wide="full" label={tr('ui.job.link')} value={job.url ?? ''} maxlength={2000} placeholder="https://" ui="job-detail.link" onsave={(text) => api.updateJob(job.id, { url: text })} />
                 {#if current.code === 'no' || (job.no_reason ?? '') !== ''}
                   <InlineText wide="full" label={tr('ui.job.noReason')} value={job.no_reason ?? ''} maxlength={1000} placeholder={tr('ui.job.noReasonPlaceholder')} ui="job-detail.no-reason" bind:editing={reasonEditing} onsave={(text) => api.updateJob(job.id, { no_reason: text })} />

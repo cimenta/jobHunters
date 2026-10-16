@@ -12,6 +12,8 @@ describe('parseRoute', () => {
     ['#/applications/a1', { name: 'application', id: 'a1', query: {} }],
     ['#/companies', { name: 'companies', query: {} }],
     ['#/companies/c1', { name: 'company', id: 'c1', query: {} }],
+    ['#/emails', { name: 'emails', query: {} }],
+    ['#/emails/m%201', { name: 'email', id: 'm 1', query: {} }],
     ['#/settings', { name: 'settings', query: {} }],
     ['#/help', { name: 'help', query: {} }],
     ['#/help/x', { name: 'not-found', query: {} }],
@@ -42,6 +44,7 @@ describe('sectionOf', () => {
     expect(sectionOf(parseRoute('#/jobs/new'))).toBe('jobs');
     expect(sectionOf(parseRoute('#/applications/a1'))).toBe('applications');
     expect(sectionOf(parseRoute('#/companies/c1'))).toBe('companies');
+    expect(sectionOf(parseRoute('#/emails/m1'))).toBe('emails');
     expect(sectionOf(parseRoute('#/help'))).toBe('help');
     expect(sectionOf(parseRoute('#/'))).toBe('dashboard');
     expect(sectionOf(parseRoute('#/nope'))).toBe('dashboard');

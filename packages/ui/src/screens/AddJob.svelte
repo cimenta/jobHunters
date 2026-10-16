@@ -191,6 +191,7 @@
           <Field label={tr('ui.job.location')} for="draft-location" hint={missing('location') ? tr('ui.addJob.missing') : undefined} warn>
             <input data-ui="add-job.location" id="draft-location" class="input" bind:value={draft.location} />
           </Field>
+          <Field label={tr('ui.job.contactPerson')} for="draft-contact"><input data-ui="add-job.contact-person" id="draft-contact" class="input" maxlength="300" bind:value={draft.contact_person} /></Field>
           <Field label={tr('ui.job.salaryMin')} for="draft-min"><input data-ui="add-job.salary-min" id="draft-min" class="input" inputmode="decimal" bind:value={draft.salary_min} /></Field>
           <Field label={tr('ui.job.salaryMax')} for="draft-max"><input data-ui="add-job.salary-max" id="draft-max" class="input" inputmode="decimal" bind:value={draft.salary_max} /></Field>
           <Field label={tr('ui.job.currency')} for="draft-currency"><input data-ui="add-job.currency" id="draft-currency" class="input" maxlength="3" bind:value={draft.salary_currency} /></Field>
@@ -210,6 +211,12 @@
           <label class="check"><input data-ui="add-job.remote" type="checkbox" bind:checked={draft.is_remote} />{tr('ui.job.remote')}</label>
           <label class="check"><input data-ui="add-job.hybrid" type="checkbox" bind:checked={draft.is_hybrid} />{tr('ui.job.hybrid')}</label>
         </div>
+        {#if draft.is_gig}
+          <fieldset class="gig" data-ui="add-job.gig-details">
+            <legend>{tr('ui.addJob.gigDetails')}</legend>
+            <Field label={tr('ui.job.gigShift')} for="draft-gig-shift"><input data-ui="add-job.gig-shift" id="draft-gig-shift" class="input" maxlength="300" placeholder={tr('ui.job.gigShiftPlaceholder')} bind:value={draft.gig_shift} /></Field>
+          </fieldset>
+        {/if}
         <Field label={tr('ui.job.description')} for="draft-description" hint={missing('description') ? tr('ui.addJob.missing') : undefined} warn>
           <textarea data-ui="add-job.description" id="draft-description" class="input" rows="8" bind:value={draft.description}></textarea>
         </Field>
@@ -243,4 +250,6 @@
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
   .error { color: var(--danger); }
+  .gig { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); margin: 0 0 var(--space-3); }
+  .gig legend { font-size: var(--text-s); color: var(--text-muted); padding: 0 var(--space-1); }
 </style>

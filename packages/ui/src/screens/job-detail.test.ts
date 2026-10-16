@@ -387,6 +387,26 @@ describe('JobDetail contact person and reason why not', () => {
     expect((await api.getJob(id)).job.contact_person).toBe('Jana Novakova, recruiter');
   });
 
+  it('shows the shift only for a gig and changes it on a double-click', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(ui('job-detail.gig-shift')).toBeNull();
+    cleanup();
+    await api.updateJob(id, { is_gig: true });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const text = () => ui('job-detail.gig-shift.text')!;
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    await fireEvent.dblClick(text());
+    const input = ui('job-detail.gig-shift.input') as HTMLInputElement;
+    await fireEvent.input(input, { target: { value: ' Sat-Sun 8-16 ' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('Sat-Sun 8-16'));
+    expect((await api.getJob(id)).job.gig_shift).toBe('Sat-Sun 8-16');
+  });
+
   it('has no reason field until the status is No; then it opens for typing at once and keeps the text', async () => {
     useDevBackend();
     await loadApp();

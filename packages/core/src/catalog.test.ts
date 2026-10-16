@@ -180,6 +180,15 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { contact_person: '', no_reason: '' })).toMatchObject({ contact_person: '', no_reason: '' });
   });
 
+  it('changes the shift of a gig, trims it and caps it', () => {
+    const { service, jobRepo } = setup();
+    expect(service.updateJob('j1', { gig_shift: '  Sat-Sun 8-16  ' })).toMatchObject({ gig_shift: 'Sat-Sun 8-16' });
+    service.updateJob('j1', { notes: 'x' });
+    expect(jobRepo.get('j1')).toMatchObject({ gig_shift: 'Sat-Sun 8-16' });
+    expect(service.updateJob('j1', { gig_shift: 'z'.repeat(500) })).toMatchObject({ gig_shift: 'z'.repeat(300) });
+    expect(service.updateJob('j1', { gig_shift: '' })).toMatchObject({ gig_shift: '' });
+  });
+
   it('sets the link of a job: a web address no other job has, trimmed, with the availability starting again', () => {
     const jobRepo = new InMemoryRepository<Job>([
       makeJob({ id: 'j1', url: '', availability: 'offline', offline_strikes: 2, last_checked_at: '2026-10-01T00:00:00.000Z' }),

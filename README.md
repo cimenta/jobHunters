@@ -54,7 +54,7 @@ do the writing and the reading for you.
   wrote down. The percentage is shown as a coloured badge (suitable, partly, not suitable).
 - **AI salary estimate**: what to ask for and the realistic range, shown next to the salary of the ad.
 - **Ad statuses that follow your work**: New, Applied (when you create an application) and Archived (when an application
-  is rejected), plus your own ad statuses with names and colours, flags for gigs and part-time work, notes, the contact person of an
+  is rejected), plus your own ad statuses with names and colours, flags for gigs (with the shift) and part-time work, notes, the contact person of an
   ad, and a reason why not when you set a job to No.
 - Search, filters (availability, status, gig, jobs that already have an application, jobs set to No), sorting by date or match, and a
   **Clear filters** button. The choices are remembered.
@@ -86,6 +86,7 @@ do the writing and the reading for you.
   portal), **reminders** with a Dashboard of what is
   overdue and what is coming, and a **timeline** of everything that happened to an application.
 - **Companies** with their website, notes, jobs and applications.
+- **Emails**: a read-only viewer of the mail that a separate script copies from your mailbox into the sheet Emails (search, direction filter, bulk mail hidden on request).
 
 The record of what happened and when is the core of this part: every status change, message, reminder and document
 stays in the timeline of the application, so you are prepared for the next step and for the interview.

@@ -1,6 +1,7 @@
 import { ensureFolderPath, type DriveGateway, type FolderRef } from '../drive';
 import type { Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
+import { MAX_CONTACT_PERSON, MAX_GIG_SHIFT } from '../catalog';
 import { NotFoundError, ValidationError } from '../errors';
 import type { Company, Job } from '../types';
 import { foldDiacritics, truncateForCell } from './html';
@@ -11,11 +12,11 @@ import { jobUrlKey, normalizeJobUrl, parseUrl, titleFromUrl } from './url';
 
 export const EDITABLE_JOB_FIELDS = [
   'title', 'company', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
-  'employment_type', 'is_gig', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'notes',
+  'employment_type', 'is_gig', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'notes', 'contact_person', 'gig_shift',
 ] as const;
 
 /** Values the user confirmed or corrected in the form; they win over the parsed ones. */
-export type JobOverrides = Partial<Omit<ParsedJob, 'missing'>> & { notes?: string };
+export type JobOverrides = Partial<Omit<ParsedJob, 'missing'>> & { notes?: string; contact_person?: string; gig_shift?: string };
 
 export interface JobInput {
   url: string;
@@ -169,13 +170,13 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '',
+      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '',
     });
   }
 
   private persist(url: string, acquired: Acquired, input: JobInput): SaveResult {
     const { jobs, newId, now } = this.deps;
-    const fields = { ...acquired.parsed, ...definedOnly(input.overrides) } as ParsedJob & { notes?: string };
+    const fields = { ...acquired.parsed, ...definedOnly(input.overrides) } as ParsedJob & { notes?: string; contact_person?: string; gig_shift?: string };
     const warnings: AppWarning[] = [];
     if (!acquired.fetched && acquired.content === undefined) {
       warnings.push({ code: 'page_not_fetched', params: { status: acquired.fetchStatus } });
@@ -225,8 +226,9 @@ export class JobService {
       status: 'new',
       match_percent: null,
       ai_salary: '',
-      contact_person: '',
+      contact_person: (fields.contact_person ?? '').trim().slice(0, MAX_CONTACT_PERSON),
       no_reason: '',
+      gig_shift: fields.is_gig ? (fields.gig_shift ?? '').trim().slice(0, MAX_GIG_SHIFT) : '',
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

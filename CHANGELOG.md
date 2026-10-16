@@ -2,6 +2,19 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.2] - 2026-10-16
+
+- New menu item **Emails** (between Companies and AI tasks): a read-only viewer of the mail that a separate script copies from your mailbox into the sheet Emails. The list shows the newest first, who it is with (the sender of an incoming mail, the first recipient of an outgoing one), the subject, the date in your time zone, the number of attachments and a mark "bulk" for newsletters and other bulk mail. A search box looks in the sender, the subject, the attachment names and the start of the text; a menu filters incoming or outgoing mail, and "Hide bulk" hides bulk mail.
+- A click opens the whole e-mail: sender, recipients, copy, date, the names of the attachments and the text with its line breaks. Nothing can be changed here yet.
+- The list does not carry the body of the e-mails (only a short excerpt to search in), so it stays fast while the sheet grows. Without the sheet Emails the screen shows the usual "sheet is missing" message and the rest of the app works.
+- Help has a new tab **Emails**. No Setup is needed for this update (the sheet comes from 0.17.0).
+
+## [0.17.1] - 2026-10-16
+
+- The step **Check the details** of Add job has a new field **Contact person** (next to Location). It is optional and is saved with the job, in the same place the job detail already shows it.
+- When you tick **Gig** in that step, a block **Gig details** appears with a free-text field **Shift** (for example "Sat-Sun 8-16"); more gig fields can follow later. Un-ticking Gig drops the text. The job detail shows the same field **Shift** for a gig, and a double-click changes it.
+- **Run Setup after the update** (Settings > General > Run setup): it adds the column gig_shift to the sheet Jobs. The red "!" by Settings shows until it ran; without it the shift cannot be saved.
+
 ## [0.17.0] - 2026-10-16
 
 - New sheet **Emails** for mail from the mailbox. A separate script only appends rows to it (id, thread, date, direction, sender, recipients, subject, body, attachment names and a bulk-mail flag); the app will fill the other columns (type, confidence, signals, matched job and application, state). Nothing in the screens uses it yet: this release only prepares the sheet.

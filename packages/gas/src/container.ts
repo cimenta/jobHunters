@@ -29,6 +29,7 @@ import {
   type ApplicationDocument,
   type Communication,
   type Company,
+  type Email,
   type DriveGateway,
   type FolderRef,
   type HistoryEntry,
@@ -102,6 +103,7 @@ export function buildContainer(deps: ContainerDeps) {
     appendRow: (values) => deps.grid(sheet).appendRow(values),
     deleteRows: (start, count) => deps.grid(sheet).deleteRows(start, count),
   });
+  const emails = new SheetRepository<Email>('Emails', SHEETS.Emails, lazyGrid('Emails'), lock, collect);
   const historyEntries = new SheetRepository<HistoryEntry>('History', SHEETS.History, lazyGrid('History'), lock, collect);
   const historyService = new HistoryService({
     entries: historyEntries,
@@ -213,6 +215,7 @@ export function buildContainer(deps: ContainerDeps) {
     documents,
     questions,
     communications,
+    emails,
     templates,
     profile,
     settings,

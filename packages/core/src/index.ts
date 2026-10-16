@@ -8,6 +8,7 @@ export * from './job-lifecycle';
 export * from './test-data';
 export * from './communication-kinds';
 export * from './drive';
+export * from './emails';
 export * from './errors';
 export * from './history';
 export * from './i18n';

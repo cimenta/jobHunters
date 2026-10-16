@@ -2,12 +2,13 @@ import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRem
 import { call } from './client';
 import type {
   AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, Email, EmailRow, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
   title: string; company: string; location: string; salary_min: number | null; salary_max: number | null; salary_currency: string;
   salary_period: string; employment_type: string; is_gig: boolean; is_remote: boolean; is_hybrid: boolean; description: string; language: string; notes: string;
+  contact_person: string; gig_shift: string;
 }>;
 
 export interface CommunicationInput {
@@ -45,7 +46,7 @@ export const api = {
   saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
   refreshJob: (id: string) => call<RefreshResult>('refreshJob', { id }),
-  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; url?: string; status?: string }) => call<Job>('updateJob', { id, ...patch }),
+  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; url?: string; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
   requestQuestionAi: (questionId: string, notes: string) => call<AiTask>('requestQuestionAi', { questionId, notes }),
@@ -59,6 +60,8 @@ export const api = {
   deleteJob: (id: string, trashFolder: boolean) => call<JobRemoveResult>('deleteJob', { id, trashFolder }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 
+  listEmails: () => call<EmailRow[]>('listEmails'),
+  getEmail: (id: string) => call<Email>('getEmail', { id }),
   listCompanies: () => call<CompanyRow[]>('listCompanies'),
   getCompany: (id: string) => call<CompanyDetail>('getCompany', { id }),
   updateCompany: (id: string, patch: { name?: string; website?: string; notes?: string }) => call<Company>('updateCompany', { id, ...patch }),

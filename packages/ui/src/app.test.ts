@@ -12,7 +12,7 @@ describe('startup', () => {
     expect(screen.getByRole('status', { name: 'Loading…' })).toBeInTheDocument();
     const nav = await screen.findByRole('navigation', { name: 'Main navigation' });
     expect(nav).toBeInTheDocument();
-    for (const name of ['Dashboard', 'Jobs', 'Applications', 'Companies', 'Settings']) {
+    for (const name of ['Dashboard', 'Jobs', 'Applications', 'Companies', 'Emails', 'Settings']) {
       expect(screen.getByRole('link', { name })).toBeInTheDocument();
     }
   });

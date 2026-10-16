@@ -26,9 +26,13 @@ describe('toDraft / toOverrides', () => {
       valid: true,
       overrides: {
         title: 'Dev', company: 'Acme', location: '', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month',
-        is_gig: true, is_remote: false, is_hybrid: false, description: 'Text', notes: '',
+        contact_person: '', gig_shift: '', is_gig: true, is_remote: false, is_hybrid: false, description: 'Text', notes: '',
       },
     });
+  });
+  it('sends the shift only while Gig is ticked', () => {
+    expect(toOverrides({ ...emptyDraft(), contact_person: 'Jana', gig_shift: 'Sat', is_gig: true }).overrides).toMatchObject({ contact_person: 'Jana', gig_shift: 'Sat' });
+    expect(toOverrides({ ...emptyDraft(), gig_shift: 'Sat', is_gig: false }).overrides).toMatchObject({ gig_shift: '' });
   });
   it('sends null for an empty salary and reports an invalid one', () => {
     expect(toOverrides({ ...emptyDraft(), salary_min: '', salary_max: '' }).overrides).toMatchObject({ salary_min: null, salary_max: null });

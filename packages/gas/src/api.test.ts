@@ -402,6 +402,8 @@ describe('overview api', () => {
     expect(api('updateJob', { id: jobId, notes: 'Hello', is_gig: true })).toMatchObject({ ok: true, data: { notes: 'Hello', is_gig: true } });
     expect(api('updateJob', { id: jobId, contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' })).toMatchObject({ ok: true, data: { contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' } });
     expect(api('updateJob', { id: jobId, contact_person: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('updateJob', { id: jobId, gig_shift: ' Sat-Sun 8-16 ' })).toMatchObject({ ok: true, data: { gig_shift: 'Sat-Sun 8-16' } });
+    expect(api('updateJob', { id: jobId, gig_shift: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 
@@ -421,6 +423,25 @@ describe('overview api', () => {
     expect(api('getCompany', { id })).toMatchObject({ ok: true, data: { company: { id }, jobs: [{ title: 'Data Analyst' }], applications: [{ company_name: 'Example Ltd' }] } });
     expect(api('updateCompany', { id, name: 'Renamed', website: 'https://example.com' })).toMatchObject({ ok: true, data: { name: 'Renamed' } });
     expect(api('updateCompany', { id, name: '' })).toMatchObject({ ok: false, error: { code: 'company_name_required' } });
+  });
+
+  it('lists e-mails without the body, newest first, and reads one whole', () => {
+    const { api, container } = setup();
+    const blank = { thread_id: '', cc: '', attachments: '', is_bulk: false, type: '', type_confidence: '', signals: '', application_id: '', job_id: '', match_method: '', state: '', communication_id: '' };
+    container.emails.insert({ ...blank, id: 'm1', received_at: '2026-10-01T08:00:00.000Z', direction: 'incoming', from_email: 'a@example.com', from_name: 'Anna', to: 'you@example.invalid', subject: 'Old', body: 'Old text' });
+    container.emails.insert({ ...blank, id: 'm2', received_at: '2026-10-02T08:00:00.000Z', direction: 'outgoing', from_email: 'you@example.invalid', from_name: '', to: 'Bob <b@example.com>', subject: 'New', attachments: 'cv.pdf', body: 'New text' });
+    const list = api('listEmails') as { ok: true; data: Record<string, unknown>[] };
+    expect(list.data.map((row) => [row.id, row.counterpart, row.attachment_list])).toEqual([['m2', 'Bob', ['cv.pdf']], ['m1', 'Anna', []]]);
+    expect(list.data[0]).not.toHaveProperty('body');
+    expect(api('getEmail', { id: 'm1' })).toMatchObject({ ok: true, data: { id: 'm1', body: 'Old text' } });
+    expect(api('getEmail', { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'email_not_found' } });
+    expect(api('getEmail', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
+  it('fails only the e-mail methods while the sheet Emails is missing', () => {
+    const { api } = setup({}, { missingSheets: ['Emails'] });
+    expect(api('listEmails')).toMatchObject({ ok: false, error: { code: 'sheet_missing', params: { sheet: 'Emails' } } });
+    expect(api('listJobs')).toMatchObject({ ok: true });
   });
 
   it('builds the dashboard', () => {

@@ -3,6 +3,7 @@
   import ApplicationsScreen from './ApplicationsScreen.svelte';
   import CompaniesScreen from './CompaniesScreen.svelte';
   import Dashboard from './Dashboard.svelte';
+  import EmailsScreen from './EmailsScreen.svelte';
   import Help from './Help.svelte';
   import JobsScreen from './JobsScreen.svelte';
   import NotFound from './NotFound.svelte';
@@ -18,6 +19,8 @@
   <ApplicationsScreen />
 {:else if router.current.name === 'companies' || router.current.name === 'company'}
   <CompaniesScreen />
+{:else if router.current.name === 'emails' || router.current.name === 'email'}
+  <EmailsScreen />
 {:else if router.current.name === 'tasks'}
   <TasksScreen />
 {:else if router.current.name === 'settings'}

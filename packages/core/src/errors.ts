@@ -41,6 +41,7 @@ export const ERROR_CODES = [
   'reminder_not_found',
   'reminder_text_required',
   'company_not_found',
+  'email_not_found',
   'company_name_required',
   'company_website_invalid',
   'match_experience_required',

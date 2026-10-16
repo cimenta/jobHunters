@@ -81,6 +81,23 @@ describe('AddJob', () => {
     expect(toasts.map((t) => t.text)).toContain('Job saved: "Demo Engineer"');
   });
 
+  it('has a contact person field, and a shift field only while Gig is ticked; both are saved with the job', async () => {
+    useDevBackend({ seed: false });
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: DEMO } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByDisplayValue('Demo Engineer');
+    expect(document.querySelector('[data-ui="add-job.gig-shift"]')).toBeNull();
+    await fireEvent.input(screen.getByLabelText('Contact person'), { target: { value: 'Jana Novakova, recruiter' } });
+    const gig = document.querySelector('[data-ui="add-job.gig"]') as HTMLInputElement;
+    if (!gig.checked) await fireEvent.click(gig);
+    await fireEvent.input(screen.getByLabelText('Shift'), { target: { value: 'Sat-Sun 8-16' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const saved = (await api.listJobs()).find((job) => job.title === 'Demo Engineer')!;
+    expect(saved).toMatchObject({ contact_person: 'Jana Novakova, recruiter', is_gig: true, gig_shift: 'Sat-Sun 8-16' });
+  });
+
   it('sends the page it already downloaded back with the save, so the ad is not downloaded twice', async () => {
     useDevBackend({ seed: false });
     const spy = vi.spyOn(api, 'saveJob');

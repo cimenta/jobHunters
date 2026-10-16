@@ -49,6 +49,8 @@ export interface Job {
   contact_person: string;
   /** Why the user does not want this job (status No), free text. */
   no_reason: string;
+  /** The shift of a gig (Job.is_gig), free text; the user fills it in. */
+  gig_shift: string;
 }
 
 export interface Application {
@@ -137,6 +139,37 @@ export interface Question {
   status: string;
   created_at: string;
   updated_at: string;
+}
+
+/** A mail from the mailbox. The first twelve fields are appended by a separate script; the rest belongs to the app (empty for now). */
+export interface Email {
+  /** The Gmail message id. */
+  id: string;
+  thread_id: string;
+  /** ISO 8601 date-time (UTC). */
+  received_at: string;
+  /** incoming or outgoing. */
+  direction: string;
+  from_email: string;
+  from_name: string;
+  to: string;
+  cc: string;
+  subject: string;
+  /** Plain text, quoted earlier messages and signature already removed, at most 10000 characters. */
+  body: string;
+  /** File names separated by " | "; empty when there are none. */
+  attachments: string;
+  /** Looks like bulk mail (newsletter, job alert, no-reply sender). */
+  is_bulk: boolean;
+  type: string;
+  type_confidence: string;
+  signals: string;
+  application_id: string;
+  job_id: string;
+  match_method: string;
+  /** Empty means new. */
+  state: string;
+  communication_id: string;
 }
 
 export interface Communication {
