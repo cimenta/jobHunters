@@ -16,12 +16,14 @@
     onclose: () => void;
     children?: Snippet;
     footer?: Snippet;
+    /** Small controls next to the title (left of the close button). */
+    headerExtra?: Snippet;
     /** Identifier shown by the identifier labels (data-ui). */
     ui?: string;
     /** Wider panel (up to 960px) on large screens. */
     wide?: boolean;
   }
-  let { open, title, onclose, children, footer, ui, wide = false }: Props = $props();
+  let { open, title, onclose, children, footer, headerExtra, ui, wide = false }: Props = $props();
 
   let panel = $state<HTMLElement>();
 
@@ -72,7 +74,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="panel" class:wide role="dialog" aria-modal="true" aria-label={title} data-ui={ui} tabindex="-1" bind:this={panel} {onkeydown}>
       <header>
-        <h2>{title}</h2>
+        <div class="title"><h2>{title}</h2>{@render headerExtra?.()}</div>
         <Button ui={ui ? `${ui}.close` : undefined} variant="ghost" label={tr('ui.close')} onclick={onclose}><Icon name="close" /></Button>
       </header>
       <div class="body">{@render children?.()}</div>
@@ -103,6 +105,7 @@
   header, footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); }
   footer { justify-content: flex-end; flex-wrap: wrap; border-top: 1px solid var(--border); }
   header { border-bottom: 1px solid var(--border); }
+  .title { display: flex; align-items: center; gap: var(--space-3); min-width: 0; flex-wrap: wrap; }
   .body { padding: var(--space-4); overflow-y: auto; }
   @media (min-width: 640px) {
     .backdrop { align-items: center; padding: var(--space-4); }

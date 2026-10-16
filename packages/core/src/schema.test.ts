@@ -7,7 +7,7 @@ describe('sheet schema', () => {
   it('defines every sheet of the spec, in order', () => {
     expect(Object.keys(SHEETS)).toEqual([
       'Companies', 'Jobs', 'Applications', 'Documents', 'Questions', 'Communications', 'Reminders',
-      'Contacts', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log', 'History',
+      'Contacts', 'Emails', 'StatusHistory', 'Tasks', 'Templates', 'Profile', 'Settings', 'INSTRUCTIONS', 'Log', 'History',
     ]);
   });
 
@@ -56,6 +56,14 @@ describe('sheet schema', () => {
       const [sheet, column] = key.split('.') as [keyof typeof SHEETS, string];
       expect((SHEETS[sheet] as readonly string[]).includes(column), key).toBe(true);
     }
+  });
+});
+
+describe('Emails', () => {
+  it('lists the columns the mailbox script writes first, then the ones the app fills', () => {
+    expect(SHEETS.Emails.slice(0, 12)).toEqual(['id', 'thread_id', 'received_at', 'direction', 'from_email', 'from_name', 'to', 'cc', 'subject', 'body', 'attachments', 'is_bulk']);
+    expect(SHEETS.Emails.slice(12)).toEqual(['type', 'type_confidence', 'signals', 'application_id', 'job_id', 'match_method', 'state', 'communication_id']);
+    expect(columnType('is_bulk')).toBe('boolean');
   });
 });
 

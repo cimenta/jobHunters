@@ -13,8 +13,9 @@ export type JobOverrides = Partial<{
 export interface CommunicationInput {
   kind?: string;
   direction: string;
-  channel: string;
-  summary: string;
+  /** Not given for an entry after a meeting. */
+  channel?: string;
+  summary?: string;
   details?: string;
   datetime?: string;
 }

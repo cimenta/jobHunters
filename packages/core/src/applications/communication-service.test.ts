@@ -33,14 +33,42 @@ describe('CommunicationService', () => {
     expect(service.listFor('a1').map((c) => c.summary)).toEqual(['new', 'old']);
   });
 
-  it('rejects bad direction, channel, kind, empty summary and bad datetime', () => {
+  it('rejects bad direction, channel, kind and bad datetime', () => {
     const { service } = setup();
     expect(errorOf(() => service.add({ ...base, direction: 'sideways' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'direction' } });
     expect(errorOf(() => service.add({ ...base, channel: 'pigeon' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'channel' } });
     expect(errorOf(() => service.add({ ...base, kind: 'party' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'kind' } });
-    expect(errorOf(() => service.add({ ...base, summary: ' ' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'summary' } });
     expect(errorOf(() => service.add({ ...base, datetime: 'yesterday' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'datetime' } });
     expect(errorOf(() => service.add({ ...base, applicationId: 'ghost' }))).toMatchObject({ code: 'application_not_found' });
+  });
+
+  it('accepts an entry without a summary and trims the summary', () => {
+    const { service } = setup();
+    expect(service.add({ ...base, summary: ' ' }).summary).toBe('');
+    const { summary: _omitted, ...withoutSummary } = base;
+    expect(service.add(withoutSummary).summary).toBe('');
+    const entry = service.add({ ...base, summary: '  Called  ' });
+    expect(entry.summary).toBe('Called');
+    expect(service.update(entry.id, { summary: '' }).summary).toBe('');
+  });
+
+  it('stores an entry after a meeting with no channel and only the direction note', () => {
+    const { service } = setup();
+    const { channel: _unused, ...noChannel } = base;
+    const entry = service.add({ ...noChannel, kind: 'after_meeting', direction: 'note', summary: 'It went well' });
+    expect(entry).toMatchObject({ kind: 'after_meeting', direction: 'note', channel: '', summary: 'It went well' });
+    // Whatever channel arrives, this kind keeps it empty.
+    expect(service.add({ ...base, kind: 'after_meeting', direction: 'note' }).channel).toBe('');
+    expect(errorOf(() => service.add({ ...noChannel, kind: 'after_meeting', direction: 'incoming' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'direction' } });
+    expect(errorOf(() => service.add({ ...noChannel }))).toMatchObject({ code: 'communication_invalid', params: { field: 'channel' } });
+  });
+
+  it('empties the channel when an entry becomes an after-meeting entry and asks for one when it stops being it', () => {
+    const { service } = setup();
+    const entry = service.add(base);
+    expect(service.update(entry.id, { kind: 'after_meeting', direction: 'note' })).toMatchObject({ kind: 'after_meeting', channel: '' });
+    expect(errorOf(() => service.update(entry.id, { kind: 'message', direction: 'incoming' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'channel' } });
+    expect(service.update(entry.id, { kind: 'message', direction: 'incoming', channel: 'phone' })).toMatchObject({ kind: 'message', channel: 'phone' });
   });
 
   it('accepts the video channel and the kinds with their directions', () => {

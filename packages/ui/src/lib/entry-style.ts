@@ -22,6 +22,8 @@ export function typeIcon(type: TimelineType): IconName {
       return 'mail';
     case 'meeting':
       return 'calendar';
+    case 'after_meeting':
+      return 'chat';
     case 'homework':
       return 'task';
     case 'confirmation':

@@ -89,7 +89,7 @@ export function createDevBackend(options: { seed?: boolean; showcase?: boolean; 
     },
   });
   const api = createApi({ handlers: createHandlers(container), log: container.log });
-  container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION), sheet_formats_repaired: '1' });
+  container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION), sheet_formats_repaired: '1', communication_kinds_listed: '1' });
   const backend: DevBackend = { call: (method, args) => api(method, args), container, drive };
   if (options.showcase) seedShowcase(backend, now);
   else if (options.seed) seed(backend, now);

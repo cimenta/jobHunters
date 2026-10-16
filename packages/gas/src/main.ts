@@ -33,7 +33,7 @@ function runSetupForApp(): SetupResult {
   // formats of the sheet columns (which this Setup has just put right by column name) are remembered as repaired.
   if (ok) {
     try {
-      getContainer().settings.update({ sheet_formats_repaired: '1' });
+      getContainer().settings.update({ sheet_formats_repaired: '1', communication_kinds_listed: '1' });
       const moved = getContainer().jobStatusMigration.run();
       lines.push(`Job statuses: ${moved} ads with an application moved from New to Applied or Archived`);
     } catch (error) {

@@ -21,6 +21,15 @@ describe('api', () => {
     expect(setup().api('getSetupStatus')).toEqual({ ok: true, data: { needed: false, reasons: [] } });
   });
 
+  it('getSetupStatus asks for Setup until the list of communication types in the sheet was updated', () => {
+    const { container } = setup();
+    (container as { setupStatus?: () => { needed: boolean; reasons: string[] } }).setupStatus = () => ({ needed: false, reasons: [] });
+    const api = createApi({ handlers: createHandlers(container), log: container.log });
+    expect(api('getSetupStatus')).toMatchObject({ ok: true, data: { needed: true, reasons: expect.arrayContaining([expect.stringContaining('communication types')]) } });
+    container.settings.update({ sheet_formats_repaired: '1', communication_kinds_listed: '1' });
+    expect(api('getSetupStatus')).toEqual({ ok: true, data: { needed: false, reasons: [] } });
+  });
+
   it('runSetup reports that setup cannot run where no runner is given', () => {
     expect(setup().api('runSetup')).toEqual({ ok: true, data: { ok: false, lines: ['Setup cannot run here.'] } });
   });
@@ -315,9 +324,12 @@ describe('applications api', () => {
     const meeting = api('addCommunication', { applicationId, kind: 'meeting', direction: 'incoming', channel: 'video', summary: 'Technical interview', datetime: '2099-01-01T10:00' });
     expect(meeting).toMatchObject({ ok: true, data: { kind: 'meeting', channel: 'video' } });
     expect(api('addCommunication', { applicationId, direction: 'outgoing', channel: 'email', summary: 'Plain' })).toMatchObject({ ok: true, data: { kind: 'message' } });
+    expect(api('addCommunication', { applicationId, direction: 'incoming', channel: 'email' })).toMatchObject({ ok: true, data: { summary: '' } });
+    expect(api('addCommunication', { applicationId, kind: 'after_meeting', direction: 'note', summary: 'Went well' })).toMatchObject({ ok: true, data: { kind: 'after_meeting', channel: '' } });
+    expect(api('addCommunication', { applicationId, direction: 'incoming' })).toMatchObject({ ok: false, error: { code: 'communication_invalid', params: { field: 'channel' } } });
     expect(api('addCommunication', { applicationId, kind: 'confirmation', direction: 'outgoing', channel: 'email', summary: 'Received' })).toMatchObject({ ok: false, error: { code: 'communication_invalid', params: { field: 'direction' } } });
     const detail = api('getApplication', { id: applicationId }) as { data: { communications: { kind: string }[]; timeline: { type: string }[] } };
-    expect(detail.data.communications.map((c) => c.kind).sort()).toEqual(['meeting', 'message']);
+    expect(detail.data.communications.map((c) => c.kind).sort()).toEqual(['after_meeting', 'meeting', 'message', 'message']);
     expect(detail.data.timeline.map((e) => e.type)).toEqual(expect.arrayContaining(['meeting', 'message']));
   });
 
@@ -359,7 +371,7 @@ describe('applications api', () => {
       ['createApplication', undefined], ['createApplication', { jobId: 5 }], ['createApplication', { jobId: 'j', language: 5 }],
       ['addTemplate', { type: 'resume' }], ['updateProfile', { password: 'x' }], ['updateProfile', { name: 5 }],
       ['addQuestion', { applicationId: 'a', question: 5 }], ['addQuestion', { applicationId: 'a', question: 'q', maxSentences: 'x' }],
-      ['addCommunication', { applicationId: 'a', direction: 'incoming', channel: 'email' }],
+      ['addCommunication', { applicationId: 'a', direction: 'incoming', channel: 'email', summary: 5 }],
       ['addReminder', { applicationId: 'a', dueAt: 5, text: 'x' }], ['postponeReminder', { id: 'r' }], ['exportDocumentPdf', {}],
     ] as const) {
       expect(api(method, args), `${method} ${JSON.stringify(args)}`).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });

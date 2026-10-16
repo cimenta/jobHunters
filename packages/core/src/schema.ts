@@ -62,6 +62,11 @@ export const SHEETS = {
   Communications: COMMUNICATION_COLUMNS,
   Reminders: REMINDER_COLUMNS,
   Contacts: ['id', 'company_id', 'job_id', 'name', 'email', 'phone', 'role'],
+  // Mail from the mailbox: a separate script appends the first twelve columns and never edits a row; the app fills the rest.
+  Emails: [
+    'id', 'thread_id', 'received_at', 'direction', 'from_email', 'from_name', 'to', 'cc', 'subject', 'body', 'attachments', 'is_bulk',
+    'type', 'type_confidence', 'signals', 'application_id', 'job_id', 'match_method', 'state', 'communication_id',
+  ],
   StatusHistory: STATUS_HISTORY_COLUMNS,
   Tasks: ['id', 'created_at', 'application_id', 'job_id', 'type', 'target_type', 'target_id', 'instructions', 'status', 'ai_note', 'completed_at'],
   Templates: TEMPLATE_COLUMNS,
@@ -78,7 +83,7 @@ export type ColumnType = 'string' | 'number' | 'boolean';
 
 const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent', 'board_position', 'version']);
 const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences', 'match_percent', 'board_position']);
-const BOOLEAN_COLUMNS = new Set(['is_gig', 'is_remote', 'is_hybrid', 'pinned']);
+const BOOLEAN_COLUMNS = new Set(['is_gig', 'is_remote', 'is_hybrid', 'pinned', 'is_bulk']);
 
 export function columnType(column: string): ColumnType {
   if (NUMBER_COLUMNS.has(column)) return 'number';
@@ -100,6 +105,12 @@ export const ALLOWED_VALUES: Readonly<Record<string, readonly string[]>> = {
   'Communications.direction': ['incoming', 'outgoing', 'note'],
   'Communications.channel': ['email', 'phone', 'video', 'linkedin', 'in_person', 'portal', 'other'],
   'Communications.kind': [...COMMUNICATION_KINDS],
+  'Emails.direction': ['incoming', 'outgoing'],
+  'Emails.type': ['rejection', 'offer', 'interview_invite', 'homework', 'confirmation', 'outreach', 'info_request', 'noise', 'other'],
+  'Emails.type_confidence': ['high', 'low'],
+  'Emails.match_method': ['thread', 'contact', 'url', 'domain', 'company', 'title', 'manual'],
+  // An empty state means new.
+  'Emails.state': ['new', 'suggested', 'confirmed', 'ignored'],
   'Reminders.status': ['open', 'done', 'dismissed'],
   'Reminders.source': ['manual', 'waiting'],
   'Tasks.type': ['cover_letter', 'resume_tailor', 'answer_question', 'rewrite', 'summarize_job', 'extract_job', 'match_job', 'import_job', 'import_match_job', 'other'],

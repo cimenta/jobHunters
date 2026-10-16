@@ -1,4 +1,4 @@
-import { COMMUNICATION_KINDS, DIRECTIONS_BY_KIND, communicationKind, type CommunicationKind } from '../communication-kinds';
+import { COMMUNICATION_KINDS, DIRECTIONS_BY_KIND, KINDS_WITHOUT_CHANNEL, communicationKind, type CommunicationKind } from '../communication-kinds';
 import { NotFoundError, ValidationError } from '../errors';
 import type { Repository } from '../repository';
 import { ALLOWED_VALUES } from '../schema';
@@ -7,9 +7,11 @@ import type { Application, Communication } from '../types';
 export interface CommunicationInput {
   applicationId: string;
   direction: string;
-  channel: string;
+  /** Required, except for the kinds that have no channel (then it is stored empty). */
+  channel?: string;
   kind?: string;
-  summary: string;
+  /** Optional; may be empty. */
+  summary?: string;
   details?: string;
   /** ISO 8601 date-time; defaults to now. */
   datetime?: string;
@@ -31,7 +33,8 @@ function invalid(field: string, value: string): never {
   throw new ValidationError('communication_invalid', `Invalid ${field}`, { field, value: value.slice(0, 100) });
 }
 
-function checkChannel(value: string): string {
+function checkChannel(kind: CommunicationKind, value: string): string {
+  if (KINDS_WITHOUT_CHANNEL.includes(kind)) return '';
   if (!ALLOWED_VALUES['Communications.channel']!.includes(value)) invalid('channel', value);
   return value;
 }
@@ -62,9 +65,9 @@ export class CommunicationService {
       application_id: input.applicationId,
       datetime: this.checkDatetime(input.datetime ?? timestamp),
       direction: checkDirection(kind, input.direction),
-      channel: checkChannel(input.channel),
+      channel: checkChannel(kind, input.channel ?? ''),
       contact_id: input.contactId ?? '',
-      summary: this.checkSummary(input.summary),
+      summary: this.checkSummary(input.summary ?? ''),
       details: input.details ?? '',
       attachment_url: input.attachmentUrl ?? '',
       kind,
@@ -79,12 +82,14 @@ export class CommunicationService {
     const existing = this.deps.communications.get(id);
     if (!existing) throw new NotFoundError('communication_not_found', `Communication ${id} not found`, { id });
     const change: Partial<Omit<Communication, 'id'>> = {};
+    const kind = patch.kind !== undefined ? checkKind(patch.kind) : communicationKind(existing.kind);
     if (patch.kind !== undefined || patch.direction !== undefined) {
-      const kind = patch.kind !== undefined ? checkKind(patch.kind) : communicationKind(existing.kind);
       change.direction = checkDirection(kind, patch.direction ?? existing.direction);
       if (patch.kind !== undefined) change.kind = kind;
     }
-    if (patch.channel !== undefined) change.channel = checkChannel(patch.channel);
+    // A kind without a channel empties it; moving to a kind that needs one asks for it.
+    if (patch.channel !== undefined) change.channel = checkChannel(kind, patch.channel);
+    else if (patch.kind !== undefined) change.channel = checkChannel(kind, existing.channel);
     if (patch.summary !== undefined) change.summary = this.checkSummary(patch.summary);
     if (patch.datetime !== undefined) change.datetime = this.checkDatetime(patch.datetime);
     if (patch.details !== undefined) change.details = patch.details;
@@ -115,10 +120,9 @@ export class CommunicationService {
     if (application && !application.applied_at) applications.update(entry.application_id, { applied_at: entry.datetime });
   }
 
+  /** The summary is optional: an empty one is stored as an empty cell. */
   private checkSummary(summary: string): string {
-    const trimmed = summary.trim();
-    if (trimmed === '') invalid('summary', summary);
-    return trimmed;
+    return summary.trim();
   }
 
   private checkDatetime(value: string): string {

@@ -117,6 +117,8 @@ export function createHandlers(c: Container): Record<string, Handler> {
       if (pending > 0) reasons.push(`${pending} ads that already have an application still have the status New (Setup moves them to Applied or Archived)`);
       // Older sheets got formats on the wrong columns; Setup puts them right once and remembers it.
       if (c.setupStatus && c.settings.raw('sheet_formats_repaired') !== '1') reasons.push('The formats of the sheet columns have to be put right (Setup does it)');
+      // The new communication type (after a meeting) has to be in the dropdown of the sheet Communications.
+      if (c.setupStatus && c.settings.raw('communication_kinds_listed') !== '1') reasons.push('The list of communication types in the sheet Communications has to be updated (Setup does it)');
       return reasons.length > status.reasons.length ? { needed: true, reasons } : status;
     },
 

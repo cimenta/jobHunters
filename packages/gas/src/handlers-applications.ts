@@ -296,10 +296,8 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const input = asRecord(args, 'addCommunication');
       const applicationId = requireString(input, 'applicationId', 'addCommunication');
       const direction = requireString(input, 'direction', 'addCommunication');
-      const channel = requireString(input, 'channel', 'addCommunication');
-      const summary = requireString(input, 'summary', 'addCommunication');
       const rest = communicationPatch(input, 'addCommunication');
-      return c.lock.run(() => c.communicationService.add({ ...rest, applicationId, direction, channel, summary }));
+      return c.lock.run(() => c.communicationService.add({ ...rest, applicationId, direction }));
     },
 
     updateCommunication: (args) => {

@@ -27,7 +27,7 @@ describe('buildTimeline', () => {
       'status:a1', 'document:d1', 'pdf:d1', 'status:a1', 'reminder:r1', 'message:m1', 'reminder:r1',
     ]);
     expect(events[0]).toEqual({ at: '2026-10-01T08:00:00.000Z', type: 'status', ref: 'a1', data: { from: '', to: 'draft' } });
-    expect(events.find((e) => e.type === 'message')!.data).toEqual({ direction: 'incoming', channel: 'email', summary: 'They replied' });
+    expect(events.find((e) => e.type === 'message')!.data).toEqual({ direction: 'incoming', channel: 'email', summary: 'They replied', details: '' });
     expect(events.filter((e) => e.type === 'reminder').map((e) => e.data.state)).toEqual(['created', 'done']);
   });
 

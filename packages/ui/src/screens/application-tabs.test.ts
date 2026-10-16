@@ -134,7 +134,7 @@ describe('Communication tab', () => {
     let dialog = screen.getByRole('dialog', { name: 'Add entry' });
     await fireEvent.change(within(dialog).getByLabelText('Direction'), { target: { value: 'incoming' } });
     await fireEvent.change(within(dialog).getByLabelText('Channel'), { target: { value: 'phone' } });
-    await fireEvent.input(within(dialog).getByLabelText('Summary'), { target: { value: 'HR called' } });
+    await fireEvent.input(within(dialog).getByLabelText(/^Summary/), { target: { value: 'HR called' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     await waitFor(async () => expect((await api.getApplication(id)).communications).toHaveLength(2));
     expect(toasts.some((item) => item.kind === 'success')).toBe(true);
@@ -143,7 +143,7 @@ describe('Communication tab', () => {
     const item = screen.getByText('HR called').closest('li')!;
     await fireEvent.click(within(item).getByRole('button', { name: 'Edit' }));
     dialog = screen.getByRole('dialog', { name: 'Edit entry' });
-    await fireEvent.input(within(dialog).getByLabelText('Summary'), { target: { value: 'HR called back' } });
+    await fireEvent.input(within(dialog).getByLabelText(/^Summary/), { target: { value: 'HR called back' } });
     await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
     expect(await screen.findByText('HR called back')).toBeInTheDocument();
 
@@ -197,11 +197,104 @@ describe('Communication tab', () => {
     await waitFor(async () => expect((await api.getApplication(id)).communications.find((c) => c.summary === 'Sent the application')).toMatchObject({ kind: 'confirmation', direction: 'incoming' }));
   });
 
-  it('requires a summary', async () => {
-    await open(/Communication/);
+  it('saves an entry without a summary', async () => {
+    const id = await open(/Communication/);
     await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
     const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    expect(within(dialog).getByLabelText(/^Summary \(optional\)/)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    await fireEvent.input(within(dialog).getByLabelText('Details'), { target: { value: 'Only a note' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.find((c) => c.details === 'Only a note')).toMatchObject({ summary: '' }));
+  });
+
+  it('the Rejection button fills the form, can be undone and sets the status Rejected only after saving', async () => {
+    const id = await open(/Communication/);
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    const button = within(dialog).getByRole('button', { name: 'Rejection' });
+    await fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'true');
+    expect(within(dialog).getByLabelText('Direction')).toHaveValue('incoming');
+    expect(within(dialog).getByLabelText(/^Summary/)).toHaveValue('Rejection from the company');
+    expect(within(dialog).getByText(/status of the application changes to Rejected/)).toBeInTheDocument();
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+
+    await fireEvent.click(button);
+    expect(button).toHaveAttribute('aria-pressed', 'false');
+    expect(within(dialog).getByLabelText('Direction')).toHaveValue('outgoing');
+    expect(within(dialog).getByLabelText(/^Summary/)).toHaveValue('');
+
+    await fireEvent.click(button);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('rejected'));
+    const saved = (await api.getApplication(id)).communications.find((c) => c.summary === 'Rejection from the company');
+    expect(saved).toMatchObject({ kind: 'message', direction: 'incoming' });
+  });
+
+  it('the Rejection button is plain text without an icon', async () => {
+    await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const button = within(screen.getByRole('dialog', { name: 'Add entry' })).getByRole('button', { name: 'Rejection' });
+    expect(button.querySelector('svg')).toBeNull();
+  });
+
+  it('adds an entry after a meeting: no direction and channel, the channel stays empty in the data', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    const kinds = within(dialog).getAllByRole('button').map((button) => button.textContent?.trim());
+    expect(kinds.indexOf('After meeting')).toBe(kinds.indexOf('Meeting') + 1);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'After meeting' }));
+    expect(within(dialog).queryByLabelText('Direction')).toBeNull();
+    expect(within(dialog).queryByLabelText('Channel')).toBeNull();
+    await fireEvent.input(within(dialog).getByLabelText(/^How the meeting went/), { target: { value: 'They liked the demo' } });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.find((c) => c.summary === 'They liked the demo')).toMatchObject({ kind: 'after_meeting', direction: 'note', channel: '' }));
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+    const item = (await screen.findByText('They liked the demo')).closest('li')!;
+    expect(within(item).queryByText('Note')).toBeNull();
+    expect(within(item).getByText('After meeting')).toBeInTheDocument();
+  });
+
+  it('sets the status Waiting after saving an entry after a meeting, with a reminder date that is required', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    expect(within(dialog).queryByLabelText('Set the status Waiting')).toBeNull();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'After meeting' }));
+    const box = within(dialog).getByLabelText('Set the status Waiting');
+    expect(within(dialog).queryByLabelText('Remind me on')).toBeNull();
+    await fireEvent.click(box);
+    const date = within(dialog).getByLabelText('Remind me on') as HTMLInputElement;
+    expect(date.value).not.toBe('');
+    await fireEvent.input(date, { target: { value: '' } });
     expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    await fireEvent.input(date, { target: { value: '2099-01-01' } });
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('waiting'));
+    expect((await api.getApplication(id)).communications.some((c) => c.kind === 'after_meeting')).toBe(true);
+  });
+
+  it('keeps the status when the checkbox is not ticked and drops the rejection when another type is picked', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Rejection' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'After meeting' }));
+    expect(within(dialog).getByRole('button', { name: 'Rejection' })).toHaveAttribute('aria-pressed', 'false');
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.some((c) => c.kind === 'after_meeting')).toBe(true));
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+  });
+
+  it('has no Rejection button in the edit dialog', async () => {
+    await open(/Communication/);
+    const item = (await screen.findByText('Sent the application')).closest('li')!;
+    await fireEvent.click(within(item).getByRole('button', { name: 'Edit' }));
+    expect(within(screen.getByRole('dialog', { name: 'Edit entry' })).queryByRole('button', { name: 'Rejection' })).toBeNull();
   });
 });
 
@@ -286,6 +379,46 @@ describe('Timeline tab entry kinds', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Meetings' }));
     expect(screen.queryByText('Meeting: Technical interview')).toBeNull();
     expect(screen.getByText('Homework received: Take-home task')).toBeInTheDocument();
+  });
+});
+
+describe('Timeline tab after a meeting', () => {
+  it('shows the entry with its own filter chip', async () => {
+    const id = await open(/Timeline/);
+    await api.addCommunication(id, { kind: 'after_meeting', direction: 'note', summary: 'Good talk' });
+    invalidate();
+    expect(await screen.findByText('After the meeting: Good talk')).toBeInTheDocument();
+    const chip = screen.getByRole('button', { name: 'After meetings' });
+    await fireEvent.click(chip);
+    expect(screen.queryByText('After the meeting: Good talk')).toBeNull();
+  });
+});
+
+describe('Timeline tab hover card', () => {
+  it('shows the summary and the details of a communication entry on its icon and none for other events', async () => {
+    const id = await open(/Timeline/);
+    await api.addCommunication(id, { direction: 'incoming', channel: 'email', summary: 'Rejection from the company', details: 'We chose another candidate.' });
+    await api.addCommunication(id, { direction: 'incoming', channel: 'phone', details: 'Short call' });
+    invalidate();
+    const fullRow = (await screen.findByText(/Incoming · E-mail: Rejection from the company/)).closest('li')!;
+    expect(document.querySelector('[data-ui$=".tip"]')).toBeNull();
+    const fullIcon = fullRow.querySelector('[data-ui$=".icon"]')!;
+    await fireEvent.mouseEnter(fullIcon);
+    const full = fullRow.querySelector('[data-ui$=".tip"]')!;
+    expect(full.querySelector('strong')).toHaveTextContent('Rejection from the company');
+    expect(full).toHaveTextContent('We chose another candidate.');
+    await fireEvent.mouseLeave(fullIcon);
+    expect(document.querySelector('[data-ui$=".tip"]')).toBeNull();
+
+    const bareRow = screen.getByText('Incoming · Phone').closest('li')!;
+    await fireEvent.focus(bareRow.querySelector('[data-ui$=".icon"]')!);
+    const bare = bareRow.querySelector('[data-ui$=".tip"]')!;
+    expect(bare.querySelector('strong')).toBeNull();
+    expect(bare).toHaveTextContent('Short call');
+
+    const statusIcon = document.querySelector('[data-ui^="timeline.event."][data-type="status"] [data-ui$=".icon"]')!;
+    await fireEvent.mouseEnter(statusIcon);
+    expect(statusIcon.querySelector('[data-ui$=".tip"]')).toBeNull();
   });
 });
 

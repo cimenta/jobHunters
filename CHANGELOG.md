@@ -2,6 +2,25 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.0] - 2026-10-16
+
+- New sheet **Emails** for mail from the mailbox. A separate script only appends rows to it (id, thread, date, direction, sender, recipients, subject, body, attachment names and a bulk-mail flag); the app will fill the other columns (type, confidence, signals, matched job and application, state). Nothing in the screens uses it yet: this release only prepares the sheet.
+- **Run Setup after the update** (Settings > General > Run setup): it creates the sheet Emails with its dropdown lists and a checkbox column. The red "!" by Settings shows until it ran.
+
+## [0.16.15] - 2026-10-16
+
+- New communication type **After meeting** (right after Meeting in the type list and in the timeline filters, with its own icon). It is your own note on how a meeting went: it has no direction and no channel in the window (the data keeps the direction "note" and an empty channel), and its summary is called "How the meeting went".
+- Under that type the window has a checkbox **Set the status Waiting**. Ticking it shows the date "Remind me on" (7 days from today at first, not in the past, required); after the entry is saved the application moves to Waiting with that reminder. It is shown only when the status can move to Waiting under your rules (or the application already waits, then the reminder moves).
+- The **Rejection** button has no cross any more, only the text. Picking another type than Message switches the rejection off.
+- **Run Setup after the update** (Settings > General > Run setup): it puts the new type into the dropdown list of the sheet Communications. The red "!" by Settings shows until it ran. The app works without it, but the sheet would flag the new value.
+
+## [0.16.14] - 2026-10-16
+
+- The summary of a communication entry is no longer required. The field says "(optional)", Save is always enabled, and an entry with only details or nothing at all is allowed. The timeline shows such an entry as "Incoming · E-mail" (or "Meeting") without a dangling colon.
+- The window "Add entry" has a small light red button **Rejection** next to its title. It fills the form for a rejection (type Message, direction Incoming, summary "Rejection from the company") and, **after you save the entry**, sets the status of the application to Rejected. Press it again to undo the fill. It is not shown when the status cannot move to Rejected under your rules (for example a Draft) or when you edit an entry.
+- In the timeline, hovering (or focusing with the keyboard) the icon of a communication entry shows its summary and details.
+- No Setup is needed for this update.
+
 ## [0.16.13] - 2026-10-15
 
 - Fix: Setup put the formats of the sheet columns (plain text, checkboxes, dropdown lists) on the columns of an OLD sheet by their number in the template, not by their name. Since 0.16.4 that put checkboxes on `posted_at` and `valid_until` of the sheet Jobs (their empty cells showed FALSE) and left `is_remote` and `is_hybrid` without them, and shifted the other formats of that sheet by two columns. Setup now finds every column by its name in the first row of the sheet, and puts the old mistake right once: it takes the checkboxes off the date columns, turns their FALSE back into empty cells, and sets the checkboxes and dropdown lists on the right columns. No data of yours changes except those FALSE cells.
