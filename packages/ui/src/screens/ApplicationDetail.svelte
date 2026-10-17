@@ -31,6 +31,8 @@
   let tab = $state('ad');
   /** Whether the window that asks for the link of an ad without one is open. */
   let linking = $state(false);
+  /** Whether the field "Reason why not" is open for typing; it opens right after the status was changed to Withdrawn. */
+  let reasonEditing = $state(false);
 
   const items = $derived(
     detail.data
@@ -62,7 +64,7 @@
       </div>
       <div class="summary">
         <div class="side">
-          <StatusControl {application} />
+          <StatusControl {application} onchanged={(to) => { if (to === 'withdrawn') reasonEditing = true; }} />
           <div class="actions" role="group" aria-label={tr('ui.job.actions')} data-ui="application-detail.actions">
             {#if job}
               <a class="btn tool" data-ui="application-detail.job-link" href={paths.job(job.id)} aria-label={tr('ui.app.openJob')} title={tr('ui.app.openJob')}><Icon name="briefcase" size={18} /></a>
@@ -114,6 +116,9 @@
               {/if}
               {#if job}
                 <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="application-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
+                {#if application.status === 'withdrawn' || reasonEditing || (job.no_reason ?? '') !== ''}
+                  <InlineText wide="full" label={tr('ui.job.noReason')} value={job.no_reason ?? ''} maxlength={1000} placeholder={tr('ui.job.noReasonPlaceholder')} ui="application-detail.no-reason" bind:editing={reasonEditing} onsave={(text) => api.updateJob(job.id, { no_reason: text })} />
+                {/if}
               {/if}
             </dl>
           {/if}

@@ -11,7 +11,8 @@
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
 
-  let { application }: { application: Application } = $props();
+  /** `onchanged` is told the status that was just set, so the screen can ask for what belongs to it (the reason of a withdrawal). */
+  let { application, onchanged }: { application: Application; onchanged?: (to: string) => void } = $props();
 
   let target = $state('');
   let remindAt = $state('');
@@ -36,7 +37,9 @@
   async function change(): Promise<void> {
     const from = statusStyle(application.status).text;
     const date = needsDate ? remindAt : '';
+    const to = target;
     await api.setApplicationStatus(application.id, target, needsDate ? remindAt : undefined);
+    onchanged?.(to);
     toast.success(tr(date === '' ? 'ui.statusChanged' : 'ui.statusChangedRemind', { label: application.label, from, to: statusStyle(target).text, date: formatDate(date) }));
     invalidate();
   }

@@ -342,6 +342,37 @@ describe('ApplicationDetail summary', () => {
     await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('interview'));
   });
 
+  it('opens the field Reason why not right after the status Withdrawn is confirmed, saves it on the job and archives the job', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    render(ApplicationDetail, { id });
+    const select = await screen.findByLabelText('New status');
+    expect(ui('application-detail.no-reason')).toBeNull();
+    await fireEvent.change(select, { target: { value: 'interview' } });
+    await fireEvent.click(ui('status-control.change')!);
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('interview'));
+    expect(ui('application-detail.no-reason')).toBeNull();
+    await fireEvent.change(await screen.findByLabelText('New status'), { target: { value: 'withdrawn' } });
+    await fireEvent.click(ui('status-control.change')!);
+    const input = (await waitFor(() => ui('application-detail.no-reason.input'))) as HTMLInputElement;
+    expect(document.activeElement).toBe(input);
+    await fireEvent.input(input, { target: { value: 'Salary too low' } });
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(ui('application-detail.no-reason.text')).toHaveTextContent('Salary too low'));
+    const job = (await api.getJob(jobId)).job;
+    expect(job).toMatchObject({ no_reason: 'Salary too low', status: 'archived' });
+  });
+
+  it('shows the reason of a withdrawn application even when it was not typed yet, and the reason typed on the job', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    backend.container.jobs.update(jobId, { no_reason: 'Not a fit' });
+    render(ApplicationDetail, { id });
+    await waitFor(() => expect(ui('application-detail.no-reason.text')).toHaveTextContent('Not a fit'));
+  });
+
   it('leaves the delete button on the Timeline tab, not among the icons', async () => {
     useDevBackend();
     const id = await androidApplicationId();

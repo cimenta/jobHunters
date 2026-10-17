@@ -13,7 +13,7 @@ export function jobStatusOnApplication(styles: JobStatusStyles, status: string):
 }
 
 /**
- * The status of an ad after one of its applications moved to rejected: a new or an applied ad becomes archived. The
+ * The status of an ad after one of its applications moved to rejected or withdrawn: a new or an applied ad becomes archived. The
  * statuses the user chose (No, own ones) stay. Undefined means no change.
  */
 export function jobStatusOnRejection(styles: JobStatusStyles, status: string): string | undefined {

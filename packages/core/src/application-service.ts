@@ -81,7 +81,7 @@ export class ApplicationService {
     const updated = applications.update(applicationId, patch);
 
     history.append({ application_id: applicationId, from, to, at: timestamp });
-    if (to === 'rejected') this.archiveJob(updated.job_id);
+    if (to === 'rejected' || to === 'withdrawn') this.archiveJob(updated.job_id);
     return updated;
   }
 

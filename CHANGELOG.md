@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.5] - 2026-10-17
+
+- Changing an application to **Withdrawn** now behaves like Rejected for its job: a New or Applied job becomes Archived (No and your own statuses stay as they are). This also holds when you drag the card to the Withdrawn column of the Kanban board.
+- Right after you confirm the status **Withdrawn**, the field **Reason why not** opens in the detail of the application, the same way it opens after you set a job to No. It is the same field as on the job (it is stored on the job), so the reason is also shown in the detail of the job. The field is also shown for a withdrawn application and whenever the job already has a reason.
+- No Setup is needed for this update.
+
 ## [0.17.4] - 2026-10-16
 
 - A double-click on the **Location** of a job changes it in place, in the detail of a job and in the detail of an application (Enter or leaving the field saves, Esc cancels). It works the same way as the contact person. The Location is now always listed in the facts, so an empty one can be filled in: it shows "Double-click to add". A job that waits for the AI keeps its location as plain text.

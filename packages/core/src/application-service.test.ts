@@ -18,7 +18,7 @@ function setup(application: Partial<Application> = {}, extraReminders: Reminder[
   return { applications, reminders, history, service };
 }
 
-describe('an application that moves to rejected archives its ad', () => {
+describe('an application that moves to rejected or withdrawn archives its ad', () => {
   function withJob(status: string) {
     const jobs = new InMemoryRepository<Job>([makeJob({ id: 'j1', status })]);
     const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1', status: 'sent' })]);
@@ -44,6 +44,17 @@ describe('an application that moves to rejected archives its ad', () => {
     const { jobs: other, service: otherService } = withJob('applied');
     otherService.setStatus('a1', 'interview');
     expect(other.get('j1')!.status).toBe('applied');
+  });
+
+  it('archives an applied or new ad when the application is withdrawn, and leaves No alone', () => {
+    for (const status of ['applied', 'new']) {
+      const { jobs, service } = withJob(status);
+      service.setStatus('a1', 'withdrawn');
+      expect(jobs.get('j1')!.status).toBe('archived');
+    }
+    const { jobs, service } = withJob('no');
+    service.setStatus('a1', 'withdrawn');
+    expect(jobs.get('j1')!.status).toBe('no');
   });
 
   it('archives through a move on the Kanban board too', () => {
