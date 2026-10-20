@@ -2,7 +2,8 @@
   import Card from '../components/Card.svelte';
   import Screenshot from '../components/Screenshot.svelte';
   import Tabs from '../components/Tabs.svelte';
-  import { tr } from '../lib/i18n.svelte';
+  import { MAX_INTERVIEW_PREP } from '@jobhunters/core';
+  import { tr, ui } from '../lib/i18n.svelte';
   import { paths } from '../lib/route';
   import dashboardShot from '../assets/help/dashboard.jpg';
   import jobsShot from '../assets/help/jobs.jpg';
@@ -120,6 +121,7 @@
       <li>{tr('ui.help.applications.i8')}</li>
       <li>{tr('ui.help.applications.i9')}</li>
       <li>{tr('ui.help.applications.i10')}</li>
+      <li>{tr('ui.help.applications.interview', { max: MAX_INTERVIEW_PREP.toLocaleString(ui.locale) })}</li>
     </ul>
     <Screenshot ui="help.shot.applications" src={applicationsShot} caption={tr('ui.help.shot.applications')} />
     <p><a data-ui="help.open.applications" href={paths.applications}>{tr('ui.help.open', { name: tr('ui.help.applications.title') })}</a></p>

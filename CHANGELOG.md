@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.6] - 2026-10-20
+
+- New tab **Interview** in the detail of an application (after Communication): a text box for your preparation for the interview, with a **Save** button and a note "Unsaved changes" while the text differs from the saved one.
+- The text has a limit of **49,000 characters**, what a cell of the sheet can hold, so anything you can type can also be saved. A counter shows how much is used (it turns to a warning near the limit), the box takes no more text at the limit, a longer paste is cut and a notice says so. The server refuses a longer text as well, and never cuts it.
+- The text is **Markdown**, in a simple editor: a toolbar (bold, italic, heading, list, link, code; Ctrl+B and Ctrl+I work too) and the buttons **Edit** and **Preview**. The preview shows headings, bold, italic, lists, quotes, code, rules and http(s) links. It never uses HTML: the typed text is turned into a tree and drawn with ordinary elements, so raw HTML (`<script>`, `<img onerror=...>`) is shown as text and a link that is not http or https stays text. The limit counts the Markdown you typed.
+- The lists of applications do not carry this text, only the detail does.
+- **Run Setup after the update** (Settings > General > Run setup): it adds the column interview_prep to the sheet Applications. The red "!" by Settings shows until it ran; without it the text cannot be saved.
+
 ## [0.17.5] - 2026-10-17
 
 - Changing an application to **Withdrawn** now behaves like Rejected for its job: a New or Applied job becomes Archived (No and your own statuses stay as they are). This also holds when you drag the card to the Withdrawn column of the Kanban board.

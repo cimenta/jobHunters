@@ -1,6 +1,7 @@
 import { reminderBuckets } from './applications/reminder-service';
 import { NotFoundError, ValidationError } from './errors';
 import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
+import { CELL_LIMIT } from './jobs/html';
 import { jobUrlKey, normalizeJobUrl, parseUrl } from './jobs/url';
 import { computeMenuMetrics, type MenuMetrics } from './menu-metrics';
 import { MAX_ASKED_SALARY } from './applications/application-factory';
@@ -10,7 +11,8 @@ import type { AiTask, Application, Company, Job, Reminder, StatusHistoryEntry } 
 
 export type JobRow = Job & { company_name: string; application_count: number; match_task_status: string; match_task_id: string };
 export type CompanyRow = Company & { job_count: number; application_count: number };
-export type ApplicationRow = Application & {
+/** A row of the lists: without the interview preparation, which can be long and is only read in the detail. */
+export type ApplicationRow = Omit<Application, 'interview_prep'> & {
   job_title: string;
   company_name: string;
   /** Of the job. */
@@ -86,7 +88,7 @@ export function applicationRows(applications: readonly Application[], jobs: read
       if (latest === undefined || entry.at > latest) waitingStart.set(entry.application_id, entry.at);
     }
   }
-  return applications.map((application) => {
+  return applications.map(({ interview_prep: _preparation, ...application }) => {
     const job = byId.get(application.job_id);
     return {
       ...application,
@@ -186,6 +188,8 @@ export const MAX_CONTACT_PERSON = 300;
 export const MAX_NO_REASON = 1000;
 export const MAX_GIG_SHIFT = 300;
 export const MAX_LOCATION = 300;
+/** Longest interview preparation: what a cell of the sheet holds, so a text that was accepted can always be saved. */
+export const MAX_INTERVIEW_PREP = CELL_LIMIT;
 
 export interface CatalogServiceDeps {
   jobs: Repository<Job>;
@@ -239,11 +243,17 @@ export class CatalogService {
     return { url, source: parsed.host.replace(/^www\./, ''), ...fresh };
   }
 
-  /** The salary the user asks for in an application; an empty text clears it. */
-  updateApplication(id: string, patch: { salary?: string }): Application {
+  /** The salary the user asks for and the interview preparation of an application; an empty text clears either. A preparation over the cell limit is refused, never cut. */
+  updateApplication(id: string, patch: { salary?: string; interview_prep?: string }): Application {
     if (!this.deps.applications.get(id)) throw new NotFoundError('application_not_found', `Application ${id} not found`, { id });
     const change: Partial<Omit<Application, 'id'>> = {};
     if (patch.salary !== undefined) change.salary = patch.salary.trim().slice(0, MAX_ASKED_SALARY);
+    if (patch.interview_prep !== undefined) {
+      if (patch.interview_prep.length > MAX_INTERVIEW_PREP) {
+        throw new ValidationError('interview_prep_too_long', `The interview preparation has ${patch.interview_prep.length} characters, the limit is ${MAX_INTERVIEW_PREP}`, { max: MAX_INTERVIEW_PREP });
+      }
+      change.interview_prep = patch.interview_prep;
+    }
     return this.deps.applications.update(id, change);
   }
 

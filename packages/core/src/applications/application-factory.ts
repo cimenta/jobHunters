@@ -107,6 +107,7 @@ export class ApplicationFactory {
       notes: '',
       salary: (input.salary ?? '').trim().slice(0, MAX_ASKED_SALARY),
       board_position: null,
+      interview_prep: '',
     });
     history.append({ application_id: application.id, from: '', to: 'draft', at: timestamp });
     // A new ad (or an archived one the user applies for again) becomes applied.

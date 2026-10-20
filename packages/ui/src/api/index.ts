@@ -68,7 +68,7 @@ export const api = {
 
   listApplications: () => call<ApplicationRow[]>('listApplications'),
   getApplication: (id: string) => call<ApplicationDetail>('getApplication', { id }),
-  updateApplication: (id: string, patch: { salary?: string }) => call<Application>('updateApplication', { id, ...patch }),
+  updateApplication: (id: string, patch: { salary?: string; interview_prep?: string }) => call<Application>('updateApplication', { id, ...patch }),
   prepareApplication: (jobId: string) => call<PrepareResult>('prepareApplication', { jobId }),
   createTestJob: () => call<TestJobResult>('createTestJob'),
   createTestJobWithApplication: () => call<TestApplicationResult>('createTestJobWithApplication'),

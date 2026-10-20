@@ -22,6 +22,7 @@
   import CommunicationsTab from './tabs/CommunicationsTab.svelte';
   import DocumentsTab from './tabs/DocumentsTab.svelte';
   import QuestionsTab from './tabs/QuestionsTab.svelte';
+  import InterviewTab from './tabs/InterviewTab.svelte';
   import RemindersTab from './tabs/RemindersTab.svelte';
   import TimelineTab from './tabs/TimelineTab.svelte';
 
@@ -41,6 +42,7 @@
           { id: 'documents', label: tr('ui.app.tab.documents'), count: detail.data.documents.length },
           { id: 'questions', label: tr('ui.app.tab.questions'), count: detail.data.questions.length },
           { id: 'communications', label: tr('ui.app.tab.communications'), count: detail.data.communications.length },
+          { id: 'interview', label: tr('ui.app.tab.interview') },
           { id: 'reminders', label: tr('ui.app.tab.reminders'), count: detail.data.reminders.filter((r) => r.status === 'open').length },
           { id: 'timeline', label: tr('ui.app.tab.timeline') },
         ]
@@ -141,6 +143,8 @@
           <QuestionsTab detail={detail.data} />
         {:else if tab === 'communications'}
           <CommunicationsTab detail={detail.data} />
+        {:else if tab === 'interview'}
+          <InterviewTab detail={detail.data} />
         {:else if tab === 'reminders'}
           <RemindersTab detail={detail.data} />
         {:else}

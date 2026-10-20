@@ -53,7 +53,7 @@ describe('ApplicationDetail', () => {
     const tabs = screen.getAllByRole('tab');
     expect(tabs.map((t) => t.textContent ?? '')).toEqual([
       expect.stringMatching(/^Ad/), expect.stringMatching(/^Documents/), expect.stringMatching(/^Questions/),
-      expect.stringMatching(/^Communication/), expect.stringMatching(/^Reminders/), expect.stringMatching(/^Timeline/),
+      expect.stringMatching(/^Communication/), expect.stringMatching(/^Interview/), expect.stringMatching(/^Reminders/), expect.stringMatching(/^Timeline/),
     ]);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     const options = within(screen.getByLabelText('New status')).getAllByRole('option').map((option) => option.textContent);

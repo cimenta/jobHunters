@@ -393,6 +393,16 @@ describe('overview api', () => {
     return { ...ctx, jobId, applicationId };
   }
 
+  it('saves the interview preparation of an application, refuses one over the cell limit and keeps it out of the lists', () => {
+    const { api, applicationId } = seeded();
+    expect(api('updateApplication', { id: applicationId, interview_prep: 'Ask about the team.' })).toMatchObject({ ok: true, data: { interview_prep: 'Ask about the team.' } });
+    expect(api('getApplication', { id: applicationId })).toMatchObject({ ok: true, data: { application: { interview_prep: 'Ask about the team.' } } });
+    expect((api('listApplications') as { data: Record<string, unknown>[] }).data[0]).not.toHaveProperty('interview_prep');
+    expect(api('updateApplication', { id: applicationId, interview_prep: 'x'.repeat(49001) })).toMatchObject({ ok: false, error: { code: 'interview_prep_too_long', params: { max: 49000 } } });
+    expect(api('updateApplication', { id: applicationId, interview_prep: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('getApplication', { id: applicationId })).toMatchObject({ data: { application: { interview_prep: 'Ask about the team.' } } });
+  });
+
   it('gives the application the match evaluation of its job, or nothing when there is none', () => {
     const { api, jobId, applicationId, container } = seeded();
     expect((api('getApplication', { id: applicationId }) as { data: { match?: unknown } }).data.match).toBeUndefined();

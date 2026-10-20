@@ -514,3 +514,106 @@ describe('Ad tab match', () => {
     expect(ui('ad.match')).toBeNull();
   });
 });
+
+describe('Interview tab', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('is a tab after Communications, saves the preparation and keeps it after a reload', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    const tabs = (await screen.findAllByRole('tab')).map((tab) => tab.textContent?.trim().replace(/\s*\d+$/, ''));
+    expect(tabs.indexOf('Interview')).toBe(tabs.indexOf('Communication') + 1);
+    await fireEvent.click(screen.getByRole('tab', { name: /Interview/ }));
+    const field = (await screen.findByLabelText('Interview preparation')) as HTMLTextAreaElement;
+    expect(ui('interview.save')).toBeDisabled();
+    expect(ui('interview.count')).toHaveTextContent('0 /');
+    await fireEvent.input(field, { target: { value: 'Ask about the team.\nStory: the migration.' } });
+    expect(ui('interview.unsaved')).not.toBeNull();
+    expect(ui('interview.save')).toBeEnabled();
+    await fireEvent.click(ui('interview.save')!);
+    await waitFor(async () => expect((await api.getApplication(id)).application.interview_prep).toBe('Ask about the team.\nStory: the migration.'));
+    await waitFor(() => expect(ui('interview.unsaved')).toBeNull());
+    expect(toasts.map((t) => t.text).some((text) => text.startsWith('Interview preparation saved'))).toBe(true);
+  });
+
+  it('shows the limit: a counter, a notice at the limit, and a field that takes no more text', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: /Interview/ }));
+    const field = (await screen.findByLabelText('Interview preparation')) as HTMLTextAreaElement;
+    expect(field.maxLength).toBe(49000);
+    expect(ui('interview.limit')).toBeNull();
+    await fireEvent.input(field, { target: { value: 'x'.repeat(49500) } });
+    expect(field.value).toHaveLength(49000);
+    expect(ui('interview.limit')).not.toBeNull();
+    expect(ui('interview.count')).toHaveTextContent('49,000 / 49,000');
+    await fireEvent.click(ui('interview.save')!);
+    await waitFor(async () => expect((await api.getApplication(id)).application.interview_prep).toHaveLength(49000));
+  });
+});
+
+describe('Interview tab Markdown editor', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+  const text = () => ui('interview.editor.text') as HTMLTextAreaElement;
+
+  async function openEditor(): Promise<string> {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('tab', { name: /Interview/ }));
+    await screen.findByLabelText('Interview preparation');
+    return id;
+  }
+
+  it('has a toolbar that formats the selection and marks the text as changed', async () => {
+    await openEditor();
+    await fireEvent.input(text(), { target: { value: 'say hello now' } });
+    text().setSelectionRange(4, 9);
+    await fireEvent.click(ui('interview.editor.tool-bold')!);
+    expect(text().value).toBe('say **hello** now');
+    expect(text().value.slice(text().selectionStart, text().selectionEnd)).toBe('hello');
+    expect(ui('interview.save')).toBeEnabled();
+    await fireEvent.click(ui('interview.editor.tool-list')!);
+    expect(text().value.startsWith('- ')).toBe(true);
+    await fireEvent.keyDown(text(), { key: 'i', ctrlKey: true });
+    expect(text().value).toContain('*');
+  });
+
+  it('switches to a preview that shows the formatted text, and back without losing the text', async () => {
+    await openEditor();
+    await fireEvent.input(text(), { target: { value: '## Research\n- the **roadmap**\n\n[site](https://example.com)' } });
+    await fireEvent.click(ui('interview.editor.mode-preview')!);
+    expect(ui('interview.editor.text')).toBeNull();
+    expect(ui('interview.editor.tools')).toBeNull();
+    const preview = ui('interview.editor.preview')!;
+    expect(preview.querySelector('h4')).toHaveTextContent('Research');
+    expect(preview.querySelector('li strong')).toHaveTextContent('roadmap');
+    expect(preview.querySelector('a')).toHaveAttribute('href', 'https://example.com');
+    expect(preview.querySelector('a')).toHaveAttribute('rel', 'noopener noreferrer');
+    await fireEvent.click(ui('interview.editor.mode-edit')!);
+    expect(text().value).toBe('## Research\n- the **roadmap**\n\n[site](https://example.com)');
+  });
+
+  it('shows raw HTML and script links in the preview as text, never as markup', async () => {
+    await openEditor();
+    await fireEvent.input(text(), { target: { value: '<img src=x onerror=alert(1)>\n<script>alert(1)</script>\n[x](javascript:alert(1))' } });
+    await fireEvent.click(ui('interview.editor.mode-preview')!);
+    const preview = ui('interview.editor.preview')!;
+    expect(preview.querySelector('img, script, a')).toBeNull();
+    expect(preview.textContent).toContain('<script>alert(1)</script>');
+  });
+
+  it('says there is nothing to preview for an empty text, and never goes over the limit with a button', async () => {
+    await openEditor();
+    await fireEvent.click(ui('interview.editor.mode-preview')!);
+    expect(ui('interview.editor.preview')).toHaveTextContent('Nothing to preview yet.');
+    await fireEvent.click(ui('interview.editor.mode-edit')!);
+    await fireEvent.input(text(), { target: { value: 'x'.repeat(49000) } });
+    text().setSelectionRange(0, 0);
+    await fireEvent.click(ui('interview.editor.tool-bold')!);
+    expect(text().value).toHaveLength(49000);
+    expect(text().value.startsWith('**')).toBe(false);
+  });
+});

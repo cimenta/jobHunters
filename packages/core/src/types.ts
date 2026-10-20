@@ -71,6 +71,8 @@ export interface Application {
   salary: string;
   /** Position among the cards of its status in the Kanban board; null = not placed yet (shown first). */
   board_position: number | null;
+  /** The user's preparation for the interview, free text; at most CELL_LIMIT characters so it always fits in a cell. */
+  interview_prep: string;
 }
 
 export interface Reminder {

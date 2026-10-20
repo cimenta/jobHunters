@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applicationRows, buildDashboard, buildMenuCounts, CatalogService, companyRows, jobRows } from './catalog';
+import { applicationRows, buildDashboard, buildMenuCounts, CatalogService, companyRows, jobRows, MAX_INTERVIEW_PREP } from './catalog';
 import { InMemoryRepository } from './repository';
 import { errorOf } from './testing/errors';
 import { makeApplication, makeCompany, makeJob, makeReminder } from './testing/fixtures';
@@ -18,6 +18,10 @@ const applications = [
 ];
 
 describe('views', () => {
+  it('keeps the interview preparation out of the rows of the lists', () => {
+    const rows = applicationRows([makeApplication({ id: 'a9', job_id: 'j1', interview_prep: 'long text' })], jobs, companies);
+    expect(rows[0]).not.toHaveProperty('interview_prep');
+  });
   it('adds company name and application count to jobs and cuts long descriptions', () => {
     const rows = jobRows(jobs, companies, applications);
     expect(rows.map((r) => [r.id, r.company_name, r.application_count])).toEqual([['j1', 'Example s.r.o.', 2], ['j2', 'Example s.r.o.', 1], ['j3', '', 0]]);
@@ -178,6 +182,20 @@ describe('CatalogService', () => {
     expect(jobRepo.get('j1')).toMatchObject({ contact_person: 'Jana Novakova, recruiter', no_reason: 'Salary too low' });
     expect(service.updateJob('j1', { contact_person: 'x'.repeat(500), no_reason: 'y'.repeat(2000) })).toMatchObject({ contact_person: 'x'.repeat(300), no_reason: 'y'.repeat(1000) });
     expect(service.updateJob('j1', { contact_person: '', no_reason: '' })).toMatchObject({ contact_person: '', no_reason: '' });
+  });
+
+  it('keeps the interview preparation as typed, refuses one over the cell limit and never cuts it', () => {
+    const applicationRepo = new InMemoryRepository<Application>([makeApplication({ id: 'a1' })]);
+    const service = new CatalogService({ jobs: new InMemoryRepository<Job>(), applications: applicationRepo, companies: new InMemoryRepository<Company>() });
+    const text = ['  Ask about the team.', '', 'Story: the migration.  '].join('\n');
+    expect(service.updateApplication('a1', { interview_prep: text }).interview_prep).toBe(text);
+    expect(applicationRepo.get('a1')!.interview_prep).toBe(text);
+    const full = 'x'.repeat(MAX_INTERVIEW_PREP);
+    expect(service.updateApplication('a1', { interview_prep: full }).interview_prep).toBe(full);
+    expect(errorOf(() => service.updateApplication('a1', { interview_prep: full + 'y' }))).toMatchObject({ code: 'interview_prep_too_long', params: { max: MAX_INTERVIEW_PREP } });
+    expect(applicationRepo.get('a1')!.interview_prep).toBe(full);
+    expect(service.updateApplication('a1', { salary: '75 000' }).interview_prep).toBe(full);
+    expect(service.updateApplication('a1', { interview_prep: '' }).interview_prep).toBe('');
   });
 
   it('changes the location of a job, trims it, caps it and allows clearing it', () => {

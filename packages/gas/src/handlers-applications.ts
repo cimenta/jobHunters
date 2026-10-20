@@ -76,7 +76,8 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const input = asRecord(args, 'updateApplication');
       const id = requireString(input, 'id', 'updateApplication');
       const salary = optionalString(input, 'salary', 'updateApplication');
-      return c.lock.run(() => c.catalogService.updateApplication(id, { salary }));
+      const interviewPrep = optionalString(input, 'interview_prep', 'updateApplication');
+      return c.lock.run(() => c.catalogService.updateApplication(id, { salary, interview_prep: interviewPrep }));
     },
 
     prepareApplication: (args) => {
