@@ -27,6 +27,7 @@
       { id: 'jobs', label: tr('ui.help.jobs.title') },
       { id: 'applications', label: tr('ui.help.applications.title') },
       { id: 'companies', label: tr('ui.help.companies.title') },
+      { id: 'search', label: tr('ui.help.search.title') },
       { id: 'emails', label: tr('ui.help.emails.title') },
       { id: 'tasks', label: tr('ui.help.tasks.title') },
       { id: 'settings', label: tr('ui.help.settings.title') },
@@ -146,6 +147,15 @@
       <li>{tr('ui.help.emails.i4')}</li>
     </ul>
     <p><a data-ui="help.open.emails" href={paths.emails}>{tr('ui.help.open', { name: tr('ui.help.emails.title') })}</a></p>
+  </Card>
+  {:else if tab === 'search'}
+  <Card ui="help.search">
+    <h2>{tr('ui.help.search.title')}</h2>
+    <ul>
+      <li>{tr('ui.help.search.i1')}</li>
+      <li>{tr('ui.help.search.i2')}</li>
+      <li>{tr('ui.help.search.i3')}</li>
+    </ul>
   </Card>
   {:else if tab === 'tasks'}
   <Card ui="help.tasks">

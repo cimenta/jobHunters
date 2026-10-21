@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.18.0] - 2026-10-22
+
+- New **search** at the top of the main menu, above Dashboard (on a narrow screen an icon that opens it). It looks through companies, jobs, applications, e-mails and AI tasks at once: titles and names, places, contact persons, the reason why not, notes, the text of the ads, the interview preparation, the whole text of the e-mails and the notes the AI wrote. Type at least two characters; the search starts after a short pause, case and diacritics do not matter, and every word must be found in the same item.
+- The results open in a pop-up, grouped by type, and every row has a mark saying what it is (**Company**, **Job**, **Application**, **Email**, **AI task**), so a company that has jobs and an application shows each of them as its own row and you choose which to open. A match is drawn in bold, and when it is not in the title a piece of the text around it is shown. A group shows five rows with a link "Show all N" that lists up to fifty; a click on a row opens the company, the job, the application or the e-mail (an AI task opens the list of tasks).
+- Keyboard: **/** (when you are not typing in a field) and **Ctrl+K** (Cmd+K on a Mac) jump to the search box; the arrow keys choose a row, Enter opens it and Esc closes the pop-up. A click anywhere else closes it too.
+- The search runs on the server in one call, and reads only the sheets it needs; without the sheet Emails the other groups still work. Help has a new tab Search.
+- No Setup is needed for this update.
+
 ## [0.17.7] - 2026-10-21
 
 - Every card in the list of **Jobs** has two new icons, **Archive** and **No**, in a second column of icons. One click sets that status of the ad at once (no question; a message says what changed). The icon of the status the ad already has is left out, and an ad that waits for the AI has none. The names in the tooltips follow the names you gave the statuses in Settings.

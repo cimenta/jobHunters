@@ -2,7 +2,7 @@ import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRem
 import { call } from './client';
 import type {
   AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CreateApplicationResult, Email, EmailRow, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
+  CreateApplicationResult, Email, EmailRow, SearchResult, SearchType, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -60,6 +60,7 @@ export const api = {
   deleteJob: (id: string, trashFolder: boolean) => call<JobRemoveResult>('deleteJob', { id, trashFolder }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 
+  search: (query: string, options: { types?: SearchType[]; limit?: number } = {}) => call<SearchResult>('search', { query, ...options }),
   listEmails: () => call<EmailRow[]>('listEmails'),
   getEmail: (id: string) => call<Email>('getEmail', { id }),
   listCompanies: () => call<CompanyRow[]>('listCompanies'),

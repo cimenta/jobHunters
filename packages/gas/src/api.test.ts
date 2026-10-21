@@ -446,6 +446,33 @@ describe('overview api', () => {
     expect(api('updateCompany', { id, name: '' })).toMatchObject({ ok: false, error: { code: 'company_name_required' } });
   });
 
+  it('searches every type, can search only some, limits a group and still says how many matched', () => {
+    const { api, container, applicationId } = seeded();
+    const blank = { thread_id: '', cc: '', attachments: '', is_bulk: false, type: '', type_confidence: '', signals: '', application_id: '', job_id: '', match_method: '', state: '', communication_id: '' };
+    container.emails.insert({ ...blank, id: 'm1', received_at: '2026-10-01T08:00:00.000Z', direction: 'incoming', from_email: 'a@example.com', from_name: 'Anna', to: 'you@example.invalid', subject: 'About Example Ltd', body: 'Hello' });
+    type Group = { total: number; hits: { id: string; type: string }[] };
+    type Found = { ok: true; data: { query: string; groups: Record<'companies' | 'jobs' | 'applications' | 'emails' | 'tasks', Group> } };
+    const found = api('search', { query: 'example ltd' }) as Found;
+    expect(found.data.groups.companies).toMatchObject({ total: 1, hits: [{ type: 'companies' }] });
+    expect(found.data.groups.jobs.total).toBe(1);
+    expect(found.data.groups.applications).toMatchObject({ total: 1, hits: [{ id: applicationId, type: 'applications' }] });
+    expect(found.data.groups.emails).toMatchObject({ total: 1, hits: [{ id: 'm1' }] });
+    const only = api('search', { query: 'example ltd', types: ['emails'] }) as Found;
+    expect(only.data.groups.emails.total).toBe(1);
+    expect(only.data.groups.jobs.total).toBe(0);
+    expect((api('search', { query: 'example ltd', limit: 1 }) as Found).data.groups.jobs.hits).toHaveLength(1);
+    expect((api('search', { query: 'e' }) as Found).data.groups.jobs.total).toBe(0);
+    expect((api('search', { query: '' }) as Found).data.groups.jobs.total).toBe(0);
+    for (const bad of [{ query: 5 }, { query: 'abc', types: ['nope'] }, { query: 'abc', types: 'jobs' }, { query: 'abc', limit: 'x' }]) {
+      expect(api('search', bad), JSON.stringify(bad)).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    }
+  });
+
+  it('searches without the sheet Emails: that group is just empty', () => {
+    const { api } = setup({}, { missingSheets: ['Emails'] });
+    expect(api('search', { query: 'anything' })).toMatchObject({ ok: true, data: { groups: { emails: { total: 0, hits: [] } } } });
+  });
+
   it('lists e-mails without the body, newest first, and reads one whole', () => {
     const { api, container } = setup();
     const blank = { thread_id: '', cc: '', attachments: '', is_bulk: false, type: '', type_confidence: '', signals: '', application_id: '', job_id: '', match_method: '', state: '', communication_id: '' };

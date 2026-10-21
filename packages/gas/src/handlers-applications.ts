@@ -1,5 +1,12 @@
 import {
+  AppError,
+  MIN_SEARCH_LENGTH,
   NotFoundError,
+  SEARCH_TYPES,
+  searchAll,
+  type AiTaskRow,
+  type Email,
+  type SearchType,
   PROFILE_KEYS,
   applicationRows,
   buildDashboard,
@@ -201,6 +208,45 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
     saveJobStatuses: (args) => {
       const input = asRecord(args, 'saveJobStatuses');
       return c.lock.run(() => c.jobStatusService.save(input.styles));
+    },
+
+    /**
+     * One search over companies, jobs, applications, e-mails and AI tasks (see searchAll). The sheets are read only for
+     * the types asked for, and a missing sheet Emails just leaves that group empty.
+     */
+    search: (args) => {
+      const input = asRecord(args, 'search');
+      const query = optionalString(input, 'query', 'search') ?? '';
+      const limit = optionalNumber(input, 'limit', 'search');
+      let types: SearchType[] | undefined;
+      if (input.types !== undefined) {
+        if (!Array.isArray(input.types) || !input.types.every((type) => (SEARCH_TYPES as readonly unknown[]).includes(type))) invalidArguments('search');
+        types = input.types as SearchType[];
+      }
+      const wants = (type: SearchType): boolean => types === undefined || types.includes(type);
+      const empty = { companies: [], jobs: [], applications: [], emails: undefined, tasks: [] };
+      if (query.trim().length < MIN_SEARCH_LENGTH) return searchAll(empty, query);
+      const base = wants('companies') || wants('jobs') || wants('applications') || wants('tasks');
+      const companies = base ? c.companies.list() : [];
+      const jobs = base ? c.jobs.list() : [];
+      const names = new Map(companies.map((company) => [company.id, company.name]));
+      const jobOf = new Map(jobs.map((job) => [job.id, job]));
+      const tasks: AiTaskRow[] = wants('tasks')
+        ? c.tasks.list().map((task) => ({ ...task, job_title: jobOf.get(task.job_id)?.title ?? '', company_name: names.get(jobOf.get(task.job_id)?.company_id ?? '') ?? '' }))
+        : [];
+      let emails: Email[] | undefined;
+      if (wants('emails')) {
+        try {
+          emails = c.emails.list();
+        } catch (error) {
+          if (!(error instanceof AppError && error.code === 'sheet_missing')) throw error;
+        }
+      }
+      return searchAll(
+        { companies, jobs, applications: wants('companies') || wants('applications') ? c.applications.list() : [], emails, tasks },
+        query,
+        { limit: limit ?? undefined, types },
+      );
     },
 
     // The sheet Emails is filled by a separate script; without it the two methods fail with sheet_missing and nothing else does.

@@ -26,6 +26,7 @@ export * from './seed';
 export * from './settings';
 export * from './setup-plan';
 export * from './sheet-grid';
+export * from './search';
 export * from './sheet-repository';
 export * from './text-diff';
 export * from './board';

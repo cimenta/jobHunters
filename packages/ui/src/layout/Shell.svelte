@@ -1,5 +1,6 @@
 <script lang="ts">
   import { untrack, type Snippet } from 'svelte';
+  import GlobalSearch from '../components/GlobalSearch.svelte';
   import Icon, { type IconName } from '../components/Icon.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { paths, sectionOf, type Section } from '../lib/route';
@@ -91,6 +92,7 @@
 <div class="shell">
   <nav aria-label={tr('ui.nav.label')} data-ui="nav">
     <span class="brand" data-ui="app.brand">JobHunters{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}</span>
+    <GlobalSearch />
     {#each items as item (item.section)}
       {@const badge = item.section === 'jobs' || item.section === 'tasks' || item.section === 'applications' ? badges[item.section] : undefined}
       {#snippet link()}

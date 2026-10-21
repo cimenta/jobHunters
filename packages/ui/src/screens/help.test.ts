@@ -4,7 +4,7 @@ import { expect, it, vi } from 'vitest';
 import { useDevBackend } from '../test/transport';
 import Help from './Help.svelte';
 
-const TABS = ['How it works', 'Dashboard', 'Jobs', 'Applications', 'Companies', 'Emails', 'AI tasks', 'Settings', 'Tips'];
+const TABS = ['How it works', 'Dashboard', 'Jobs', 'Applications', 'Companies', 'Search', 'Emails', 'AI tasks', 'Settings', 'Tips'];
 
 it('has a tab per topic and shows the topic of the chosen tab', async () => {
   useDevBackend();
