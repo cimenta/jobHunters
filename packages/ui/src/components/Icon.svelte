@@ -2,7 +2,7 @@
   export type IconName =
     | 'home' | 'briefcase' | 'file' | 'building' | 'settings' | 'plus' | 'check' | 'clock' | 'external'
     | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle' | 'help' | 'folder'
-    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out';
+    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out' | 'archive' | 'ban' | 'ghost' | 'undo';
 
   const PATHS: Record<IconName, string> = {
     home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
@@ -36,6 +36,10 @@
     bell: 'M6 17v-6a6 6 0 0 1 12 0v6l2 2H4zM10 21h4',
     'arrow-in': 'M19 5L5 19M5 9v10h10',
     'arrow-out': 'M5 19L19 5M9 5h10v10',
+    archive: 'M3 5h18v4H3zM5 9v10h14V9M10 13h4',
+    ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
+    ghost: 'M5 21V11a7 7 0 0 1 14 0v10l-3.5-2-3.5 2-3.5-2zM9.5 11h.01M14.5 11h.01',
+    undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3',
   };
 </script>
 

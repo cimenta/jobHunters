@@ -21,6 +21,25 @@ describe('JobsList', () => {
   });
 
 
+  it('has one-click icons that set the status Archived or No, and leaves out the icon of the status the job already has', async () => {
+    useDevBackend();
+    render(JobsList);
+    await screen.findByText('Data Analyst (part time)');
+    const analyst = (await api.listJobs()).find((job) => job.title === 'Data Analyst (part time)')!;
+    const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+    expect(ui(`job.${analyst.id}.archive`)).not.toBeNull();
+    expect(ui(`job.${analyst.id}.no`)).not.toBeNull();
+    await fireEvent.click(ui(`job.${analyst.id}.archive`)!);
+    await waitFor(async () => expect((await api.getJob(analyst.id)).job.status).toBe('archived'));
+    expect(toasts.map((t) => t.text).some((text) => text.includes('Data Analyst (part time)') && text.includes('Archived'))).toBe(true);
+    await waitFor(() => expect(ui(`job.${analyst.id}.archive`)).toBeNull());
+    expect(ui(`job.${analyst.id}.no`)).not.toBeNull();
+    await fireEvent.click(ui(`job.${analyst.id}.no`)!);
+    await waitFor(async () => expect((await api.getJob(analyst.id)).job.status).toBe('no'));
+    await waitFor(() => expect(ui(`job.${analyst.id}.no`)).toBeNull());
+    expect(ui(`job.${analyst.id}.archive`)).not.toBeNull();
+  });
+
   it('shows a muted line with work mode, type and salary, and the AI salary, only when there is something to show', async () => {
     const backend = useDevBackend();
     render(JobsList);

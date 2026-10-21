@@ -34,6 +34,7 @@
   const hideNo = $derived(uiState().jobs_hide_no);
   /** The status No as the user named it (the names of the statuses can be changed in Settings). */
   const noText = $derived(jobStatusOptions(true).find((option) => option.code === 'no')?.text ?? 'No');
+  const archivedText = $derived(jobStatusOptions(true).find((option) => option.code === 'archived')?.text ?? 'Archived');
   const sort = $derived(uiState().jobs_sort);
 
   const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied, hideNo }), sort));
@@ -49,6 +50,14 @@
   let deleting = $state<{ id: string; title: string; folder_url: string } | undefined>();
   /** The job whose link is being added (the red icon of a job without a link). */
   let linking = $state<{ id: string; title: string } | undefined>();
+
+  /** One click on a card icon: the ad gets the status Archived or No at once (no question, the toast says what changed). */
+  async function setStatus(job: JobRow, code: 'archived' | 'no'): Promise<void> {
+    const from = jobStatus(job).text;
+    await api.updateJob(job.id, { status: code });
+    toast.success(tr('ui.job.statusChanged', { title: job.title, from, to: code === 'no' ? noText : archivedText }));
+    invalidate();
+  }
 
   /** The checkbox is offered only for an ad that was never evaluated and has no application. */
   function canEvaluate(job: JobRow): boolean {
@@ -202,6 +211,7 @@
                 </span>
               </a>
               <div class="actions" data-ui="job.{job.id}.actions">
+                <div class="top">
                 <div class="icons">
                   {#if safeHttpUrl(job.url) !== ''}
                     <a data-ui="job.{job.id}.link" class="icon-link" href={safeHttpUrl(job.url)} target="_blank" rel="noopener noreferrer" aria-label={tr('ui.jobs.card.open')} title={tr('ui.jobs.card.open')}><Icon name="external" size={18} /></a>
@@ -214,6 +224,17 @@
                   {#if job.application_count === 0}
                     <Button variant="ghost" label={tr('ui.jobs.card.delete')} ui="job.{job.id}.delete" onclick={() => (deleting = { id: job.id, title: job.title, folder_url: job.folder_url })}><Icon name="trash" size={18} /></Button>
                   {/if}
+                </div>
+                {#if job.status !== 'awaiting'}
+                  <div class="icons quick" data-ui="job.{job.id}.quick">
+                    {#if current.code !== 'archived'}
+                      <Button variant="ghost" label={tr('ui.jobs.card.setStatus', { status: archivedText })} ui="job.{job.id}.archive" onclick={() => setStatus(job, 'archived')}><Icon name="archive" size={18} /></Button>
+                    {/if}
+                    {#if current.code !== 'no'}
+                      <Button variant="ghost" label={tr('ui.jobs.card.setStatus', { status: noText })} ui="job.{job.id}.no" onclick={() => setStatus(job, 'no')}><Icon name="ban" size={18} /></Button>
+                    {/if}
+                  </div>
+                {/if}
                 </div>
                 {#if canEvaluate(job)}
                   {@const waiting = job.match_task_status === 'pending'}
@@ -277,8 +298,10 @@
   .card-row.current { background: var(--accent-soft); }
   .card-row .job { flex: 1 1 0; min-width: 0; background: transparent; border: 0; }
   .job { align-items: flex-start; overflow-wrap: anywhere; }
-  .actions { flex: none; width: 56px; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: var(--space-2); padding: var(--space-1) var(--space-2) var(--space-2) 0; }
+  .actions { flex: none; min-width: 56px; display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between; gap: var(--space-2); padding: var(--space-1) var(--space-2) var(--space-2) 0; }
   .icons { display: flex; flex-direction: column; align-items: flex-end; }
+  .top { display: flex; align-items: flex-start; gap: var(--space-1); }
+  .icons.quick { align-items: center; }
   .actions :global(.btn) { min-width: var(--tap); padding: 0; }
   .icon-link { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap); min-height: var(--tap); color: inherit; }
   .match { display: flex; flex-direction: column; align-items: flex-end; }

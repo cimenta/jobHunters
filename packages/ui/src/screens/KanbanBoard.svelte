@@ -6,6 +6,7 @@
   import Button from '../components/Button.svelte';
   import Dialog from '../components/Dialog.svelte';
   import Field from '../components/Field.svelte';
+  import Icon from '../components/Icon.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, todayLocal } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
@@ -51,6 +52,10 @@
   function allows(card: ApplicationRow, to: ApplicationStatus): boolean {
     return card.status === to || (isApplicationStatus(card.status) && canTransition(card.status, to, transitions));
   }
+
+  /** The moves a card has an icon for: one click puts the application in that status, whether or not its column is shown. */
+  const QUICK = [{ to: 'ghosted', icon: 'ghost' }, { to: 'withdrawn', icon: 'undo' }] as const;
+  const quick = (card: ApplicationRow) => QUICK.filter((item) => isApplicationStatus(card.status) && card.status !== item.to && allows(card, item.to));
 
   const targets = (card: ApplicationRow): ApplicationStatus[] => (isApplicationStatus(card.status) ? statuses.filter((to) => to !== card.status && allows(card, to)) : []);
 
@@ -174,7 +179,9 @@
           <span class="muted small">{[card.job_title, card.company_name].filter((part) => part !== '').join(' · ')}</span>
           <ApplicationFacts row={card} by={column.choice.by} ui="kanban.card.{card.id}" {now} />
           {#if card.last_activity_at !== ''}<span class="muted small">{formatDate(card.last_activity_at)}</span>{/if}
-          {#if targets(card).length > 0}
+          {#if targets(card).length > 0 || quick(card).length > 0}
+            <div class="moves">
+            {#if targets(card).length > 0}
             <select data-ui="kanban.card.{card.id}.move"
               class="input move"
               aria-label={tr('ui.kanban.moveTo')}
@@ -188,6 +195,11 @@
               <option value="">{tr('ui.kanban.moveTo')}</option>
               {#each targets(card) as to (to)}<option value={to}>{statusStyle(to).text}</option>{/each}
             </select>
+            {/if}
+            {#each quick(card) as item (item.to)}
+              <Button variant="ghost" label={tr('ui.kanban.quickMove', { status: statusStyle(item.to).text })} ui="kanban.card.{card.id}.{item.to}" onclick={() => place(card, item.to, 0)}><Icon name={item.icon} size={18} /></Button>
+            {/each}
+            </div>
           {/if}
         </article>
       {:else}
@@ -221,6 +233,8 @@
   .card { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); cursor: grab; }
   .card.dragging { opacity: 0.4; }
   .title { font-weight: 600; }
-  .move { margin-top: var(--space-1); }
+  .moves { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
+  .moves :global(.btn) { flex: none; min-width: var(--tap); padding: 0; }
+  .move { flex: 1 1 0; min-width: 0; }
   .empty { margin: 0; padding: var(--space-2); }
 </style>

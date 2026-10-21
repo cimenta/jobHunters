@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.17.7] - 2026-10-21
+
+- Every card in the list of **Jobs** has two new icons, **Archive** and **No**, in a second column of icons. One click sets that status of the ad at once (no question; a message says what changed). The icon of the status the ad already has is left out, and an ad that waits for the AI has none. The names in the tooltips follow the names you gave the statuses in Settings.
+- Every card of the **Kanban board** has two icons next to the "Move to" menu, which is narrower now: **Ghosted** and **Withdrawn**. One click moves the application there at once (to the top of that column), but only when your status rules allow that move from its current status, so for example a rejected card has none. Withdrawing archives the job as before; the reason for it can be typed in the detail of the application.
+- No Setup is needed for this update.
+
 ## [0.17.6] - 2026-10-20
 
 - New tab **Interview** in the detail of an application (after Communication): a text box for your preparation for the interview, with a **Save** button and a note "Unsaved changes" while the text differs from the saved one.

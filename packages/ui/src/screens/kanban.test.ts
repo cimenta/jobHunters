@@ -47,6 +47,25 @@ describe('Kanban', () => {
     expect(await screen.findByText(/Android Developer – #1/)).toBeInTheDocument();
   });
 
+  it('has icons next to the Move to menu that put a card in Ghosted or Withdrawn with one click, only where the rules allow it', async () => {
+    await board();
+    const sent = cardOf(/Android Developer – #1/);
+    const ids = (card: HTMLElement) => [...card.querySelectorAll('button[data-ui]')].map((el) => el.getAttribute('data-ui')!.split('.').pop());
+    expect(ids(sent)).toEqual(expect.arrayContaining(['ghosted', 'withdrawn']));
+    expect(sent.querySelector('select')).not.toBeNull();
+    await fireEvent.click(sent.querySelector('button[data-ui$=".ghosted"]')!);
+    await waitFor(async () => expect(await statusOf('Android Developer')).toBe('ghosted'));
+    expect(toasts.map((t) => t.text).some((text) => text.includes('Ghosted'))).toBe(true);
+    await waitFor(() => expect(within(column('ghosted')).getByText(/Android Developer – #1/)).toBeInTheDocument());
+    const ghosted = cardOf(/Android Developer – #1/);
+    expect(ids(ghosted)).not.toContain('ghosted');
+    expect(ids(ghosted)).toContain('withdrawn');
+    await fireEvent.click(ghosted.querySelector('button[data-ui$=".withdrawn"]')!);
+    await waitFor(async () => expect(await statusOf('Android Developer')).toBe('withdrawn'));
+    await waitFor(() => expect(within(column('withdrawn')).getByText(/Android Developer – #1/)).toBeInTheDocument());
+    expect(ids(cardOf(/Android Developer – #1/))).toEqual([]);
+  });
+
   it('changes the status when a card is dropped on an allowed column', async () => {
     await board();
     const card = cardOf(/Android Developer – #1/);
