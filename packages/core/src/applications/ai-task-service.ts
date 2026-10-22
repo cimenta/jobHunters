@@ -83,6 +83,7 @@ export class AiTaskService {
     const instructions = renderPrompt(this.deps.prompt(type), {
       task_id: id, document_id: doc.id, application_id: application.id, job_id: application.job_id,
       language: LANGUAGE_NAMES[application.language] ?? 'English',
+      app_language: LANGUAGE_NAMES[this.deps.language()] ?? 'English',
       notes: extra === '' ? '' : `Instructions from the user: ${extra}`,
     });
     return tasks.insert({

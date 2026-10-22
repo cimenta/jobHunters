@@ -2,8 +2,8 @@ import type { PromptType } from './seed';
 
 /** Placeholders each AI prompt may use; the UI lists them next to the editor. */
 export const PROMPT_PLACEHOLDERS: Readonly<Record<PromptType, readonly string[]>> = {
-  resume_tailor: ['task_id', 'document_id', 'application_id', 'job_id', 'language', 'notes'],
-  cover_letter: ['task_id', 'document_id', 'application_id', 'job_id', 'language', 'notes'],
+  resume_tailor: ['task_id', 'document_id', 'application_id', 'job_id', 'language', 'app_language', 'notes'],
+  cover_letter: ['task_id', 'document_id', 'application_id', 'job_id', 'language', 'app_language', 'notes'],
   other: ['task_id', 'document_id', 'application_id', 'job_id', 'language', 'notes'],
   answer_question: ['task_id', 'question_id', 'application_id', 'job_id', 'language', 'limit', 'notes'],
   match_job: ['task_id', 'job_id', 'language'],

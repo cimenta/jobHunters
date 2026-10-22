@@ -371,6 +371,21 @@ describe('JobDetail link', () => {
   });
 });
 
+describe('JobDetail match text', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+  it('shows the evaluation written on the job on the Match tab, without any match task', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { match_percent: 81, match_note: 'Strengths:\n- Compose\nVerdict: suitable.' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    await fireEvent.click(screen.getByRole('tab', { name: /Match/ }));
+    await waitFor(() => expect(ui('job-detail.match.text')).not.toBeNull());
+    expect(ui('job-detail.match.text')!.textContent).toBe('Strengths:\n- Compose\nVerdict: suitable.');
+  });
+});
+
 describe('JobDetail location', () => {
   const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
 

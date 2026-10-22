@@ -11,7 +11,10 @@
   import { invalidate } from '../../state/invalidate.svelte';
 
   /** Apps Script turns a missing value into null, so both mean "no task". */
-  let { jobId, jobTitle = '', match }: { jobId: string; jobTitle?: string; match: AiTask | null | undefined } = $props();
+  let { jobId, jobTitle = '', match, note: jobNote }: { jobId: string; jobTitle?: string; match: AiTask | null | undefined; note?: string | null } = $props();
+
+  /** The evaluation kept on the job wins (any task may have written it); an older one is still in the note of the match task. */
+  const text = $derived((jobNote ?? '').trim() !== '' ? (jobNote ?? '').trim() : (match?.ai_note ?? '').trim());
 
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   const waiting = $derived(match?.status === 'pending');
@@ -47,13 +50,13 @@
     </label>
     {#if match}
       <p class="muted small" data-ui="job-detail.match.status">{statusText(match)}</p>
-      {#if match.ai_note !== ''}
-        <p class="note" data-ui="job-detail.match.text">{match.ai_note}</p>
-      {/if}
       <div class="row wrap">
         <Button variant="ghost" ui="job-detail.match.refresh" onclick={invalidate}>{tr('ui.retry')}</Button>
       </div>
     {/if}
+  {/if}
+  {#if text !== ''}
+    <p class="note" data-ui="job-detail.match.text">{text}</p>
   {/if}
 </div>
 

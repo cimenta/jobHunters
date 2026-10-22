@@ -169,7 +169,7 @@
         {#if preview && !preview.fetched}
           <p class="muted">{tr('ui.addJob.notFetched', { status: preview.fetchStatus })}</p>
         {/if}
-        <Field label={tr('ui.addJob.pasteLabel')} for="job-text">
+        <Field label={tr('ui.addJob.pasteLabel')} for="job-text" hint={tr('ui.addJob.pasteHint')}>
           <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" disabled={aiJob} bind:value={pasted}></textarea>
         </Field>
         <div>

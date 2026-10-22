@@ -16,7 +16,7 @@ export const INSTRUCTIONS_LINES: readonly string[] = [
  * The version of the built-in prompt texts. Raise it whenever the default texts change in a way that an existing
  * installation should take over: the app then asks the user to press "Reset all to default" (or to keep the own texts).
  */
-export const PROMPTS_VERSION = 3;
+export const PROMPTS_VERSION = 4;
 
 export const PROMPT_TYPES = ['resume_tailor', 'cover_letter', 'other', 'answer_question', 'match_job', 'import_job', 'import_match_job'] as const;
 export type PromptType = (typeof PROMPT_TYPES)[number];
@@ -79,13 +79,48 @@ const salaryStep = (n: number): string =>
 const SALARY_RESULT = 'The same Jobs row: column ai_salary = the estimate, ONLY if it was empty (leave it as it is when it already had a value).';
 const SALARY_CHECK = '- ai_salary is empty only if you could not estimate; otherwise it matches the format <ask> (<min>-<max>) with <ask> inside the range; a non-empty cell was left untouched.';
 
+const EVALUATION_FORM = [
+  '   Strengths:',
+  '   - one requirement that is met, with the fact from the candidate experience that shows it',
+  '   (3 to 6 lines)',
+  '   Gaps:',
+  '   - one requirement that is partly met or not met, and what is missing',
+  '   (0 to 6 lines; write "none" if there is no gap)',
+  '   Verdict: suitable, partly suitable or not suitable, then one sentence with the main reason. The verdict agrees with the number: 70 or more is suitable, 40 to 69 partly suitable, below 40 not suitable.',
+];
+
+/** Fills the work arrangement and the contact person of the job row from the ad; `ad` names the input that holds the ad. */
+const arrangementStep = (n: number | string, ad: string, indent = ''): string[] => [
+  `${indent}${n}. Update the work arrangement and the contact person of the Jobs row {{job_id}} from the job ad (${ad}). Fill only what the ad states; never guess; never overwrite a value that is already there:`,
+  `${indent}   - is_remote: set to TRUE when the ad says the work can be done fully remotely; otherwise leave the cell as it is (never clear it)`,
+  `${indent}   - is_hybrid: set to TRUE when the ad says the work is hybrid (some days in the office, some days remote); otherwise leave the cell as it is (never clear it)`,
+  `${indent}   - contact_person: only when this cell is empty and the ad names a person responsible for the position or a contact (recruiter, hiring manager, HR): write the full name, then the role, e-mail and phone if the ad states them, separated by commas, for example Jana Novakova, recruiter, jana@example.com. If the ad names nobody, leave the cell empty. Never invent a person and never use a general address such as jobs@ as a person.`,
+];
+
 const CHECK_COMMON = [
   '- Every fact in what you wrote (employer, role, date, number, tool, achievement) can be found in the candidate experience or the contact details.',
   '- It is written in {{language}} and nowhere in another language.',
   '- You changed no cell and no document other than the ones listed under RESULT.',
 ];
 
-const DOCUMENT = (kind: string, steps: string[], checks: string[], withSalary = false) => [
+/**
+ * The job match inside a document task: only while the match was never evaluated (match_percent is empty), so a skipped
+ * evaluation is made up for once and an existing one is never overwritten. The evaluation is for the user, so it is
+ * written in the language of the app, not of the document.
+ */
+const matchStep = (n: number): string[] => [
+  `${n}. Job match. Do this step ONLY when the column match_percent of the sheet Jobs, the row with id {{job_id}}, is EMPTY. When it already has a value, skip the whole step and change nothing in it: an earlier evaluation is never overwritten.`,
+  ...arrangementStep('a', 'D', '   '),
+  '   b. Take the requirements you wrote down in step 3 and add any requirement of the ad you left out. For each requirement decide: the candidate experience (E) shows it (met), shows it partly (partly met), or does not show it (not met). Judge only by what the candidate experience says.',
+  '   c. Decide the match as a whole number from 0 to 100: the share of the requirements of the ad that are met, counting a partly met requirement as half. A candidate who meets every requirement is 100, one who meets none is 0.',
+  '   d. Write the evaluation in exactly this form, with the labels written in {{app_language}} too (it is for the user, so not in the language of the document):',
+  ...EVALUATION_FORM.map((line) => `   ${line}`),
+];
+
+const MATCH_RESULT = '2. The sheet Jobs, the row with id {{job_id}}, ONLY when match_percent was empty before step 8: column match_percent = the whole number from step 8c, digits only, without a percent sign, and column match_note = the evaluation from step 8d, plus the columns from step 8a that you filled. When match_percent already had a value, write nothing of this.';
+const MATCH_CHECK = '- Job match: if match_percent was empty it is now a whole number from 0 to 100 and match_note has the three parts Strengths, Gaps and Verdict (every strength names a fact from the candidate experience, the verdict agrees with the number, written in {{app_language}}); if it already had a value, match_percent, match_note, is_remote, is_hybrid and contact_person were left untouched.';
+
+const DOCUMENT = (kind: string, steps: string[], checks: string[], withSalary = false, withMatch = false) => [
   'TASK',
   `Write the content of one Google Doc that belongs to a job application. Kind of document: ${kind}.`,
   '',
@@ -114,25 +149,34 @@ const DOCUMENT = (kind: string, steps: string[], checks: string[], withSalary = 
   '   Keep the layout of the template: sections, their order, fonts and headings. If the Doc is empty, write the whole document into it.',
   ...steps,
   '{{notes}}',
-  ...(withSalary ? [salaryStep(8)] : []),
-  `${withSalary ? 9 : 8}. Read the whole Doc again from the start and go through CHECK BEFORE YOU FINISH. Correct what does not pass.`,
-  `${withSalary ? 10 : 9}. Write RESULT.`,
+  ...(withMatch ? matchStep(8) : []),
+  ...(withSalary ? [salaryStep(withMatch ? 9 : 8)] : []),
+  `${8 + Number(withMatch) + Number(withSalary)}. Read the whole Doc again from the start and go through CHECK BEFORE YOU FINISH. Correct what does not pass.`,
+  `${9 + Number(withMatch) + Number(withSalary)}. Write RESULT.`,
   '',
   'RULES',
   '- Use only facts from E and F. Never invent employers, dates, skills, numbers, certificates or achievements.',
   '- Write the whole document in {{language}}.',
   '- Write plain professional text. No emoji and no markdown symbols (#, *, **, backticks) in the Doc; use the formatting of the Doc itself.',
-  '- Do not create a new Doc, and do not change other documents or other rows.',
+  withMatch
+    ? '- Do not create a new Doc, and do not change other documents or other rows. On the Jobs row change only ai_salary and, when match_percent was empty, match_percent, match_note, is_remote, is_hybrid and contact_person.'
+    : '- Do not create a new Doc, and do not change other documents or other rows.',
   '',
   'RESULT (exactly these writes)',
   '1. The Google Doc at doc_url contains the finished text.',
-  ...(withSalary ? [`2. ${SALARY_RESULT}`] : []),
-  `${withSalary ? 3 : 2}. The sheet Tasks, the row with id {{task_id}}: column status = done, and column ai_note = one or two sentences saying what you wrote and which requirements of the ad you could not support with a fact.`,
+  ...(withMatch ? [MATCH_RESULT] : []),
+  ...(withSalary ? [`${withMatch ? 3 : 2}. ${SALARY_RESULT}`] : []),
+  `${2 + Number(withMatch) + Number(withSalary)}. The sheet Tasks, the row with id {{task_id}}: column status = done, and column ai_note = one or two sentences saying what you wrote and which requirements of the ad you could not support with a fact.`,
   '',
   'CHECK BEFORE YOU FINISH',
-  ...CHECK_COMMON,
+  ...CHECK_COMMON.map((line) =>
+    withMatch && line.startsWith('- It is written in {{language}}')
+      ? '- The document is written in {{language}} and nowhere in another language (the job match evaluation is the one exception: it is written in {{app_language}}).'
+      : line,
+  ),
   '- No placeholder in double braces is left in the Doc.',
   ...checks,
+  ...(withMatch ? [MATCH_CHECK] : []),
   ...(withSalary ? [SALARY_CHECK] : []),
   '',
   STATUSES,
@@ -149,6 +193,7 @@ const RESUME = DOCUMENT(
   ],
   ['- The sections and their order are the same as in the template.', '- The first lines of each section are the ones most relevant to the job.'],
   true,
+  true,
 );
 
 const COVER_LETTER = DOCUMENT(
@@ -162,6 +207,7 @@ const COVER_LETTER = DOCUMENT(
     '   Avoid clichés such as "I am writing to apply", "team player", "passionate", "dynamic environment".',
   ],
   ['- The body text has at most 250 words.', '- It names the company and the position.', '- Each of the two middle paragraphs contains a concrete fact, not a general claim.'],
+  true,
   true,
 );
 
@@ -233,21 +279,12 @@ const MATCH = [
   'STEPS (do them in this order)',
   '1. In the sheet Tasks, in the row with id {{task_id}}, set the column status to in_progress.',
   '2. Read A to D. If the job description or the candidate experience is empty, stop and follow IF YOU CANNOT FINISH (needs_input).',
-  '3. Update the work arrangement and the contact person of the Jobs row {{job_id}} from the job ad (B). Fill only what the ad states; never guess; never overwrite a value that is already there:',
-  '   - is_remote: set to TRUE when the ad says the work can be done fully remotely; otherwise leave the cell as it is (never clear it)',
-  '   - is_hybrid: set to TRUE when the ad says the work is hybrid (some days in the office, some days remote); otherwise leave the cell as it is (never clear it)',
-  '   - contact_person: only when this cell is empty and the ad names a person responsible for the position or a contact (recruiter, hiring manager, HR): write the full name, then the role, e-mail and phone if the ad states them, separated by commas, for example Jana Novakova, recruiter, jana@example.com. If the ad names nobody, leave the cell empty. Never invent a person and never use a general address such as jobs@ as a person.',
+  ...arrangementStep(3, 'B'),
   '4. From the job ad write down the requirements: skills, tools, seniority, domain, languages, location and work arrangement.',
   '5. For each requirement decide: the candidate experience shows it (met), shows it partly (partly met), or does not show it (not met). Judge only by what the candidate experience says.',
   '6. Decide the match as a whole number from 0 to 100: the share of the requirements of the ad that are met, counting a partly met requirement as half. A candidate who meets every requirement is 100, one who meets none is 0.',
   '7. Write the evaluation in exactly this form, with the labels written in {{language}} too:',
-  '   Strengths:',
-  '   - one requirement that is met, with the fact from the candidate experience that shows it',
-  '   (3 to 6 lines)',
-  '   Gaps:',
-  '   - one requirement that is partly met or not met, and what is missing',
-  '   (0 to 6 lines; write "none" if there is no gap)',
-  '   Verdict: suitable, partly suitable or not suitable, then one sentence with the main reason. The verdict agrees with the number: 70 or more is suitable, 40 to 69 partly suitable, below 40 not suitable.',
+  ...EVALUATION_FORM,
   salaryStep(8),
   '9. Write RESULT.',
   '',
@@ -255,16 +292,16 @@ const MATCH = [
   '- Judge only by facts in the candidate experience. Do not assume skills the candidate did not write down.',
   '- Be concise: the whole evaluation fits on one screen.',
   '- Write the evaluation in {{language}}.',
-  '- Do not change any other row. On the Jobs row change only match_percent, is_remote, is_hybrid and contact_person.',
+  '- Do not change any other row. On the Jobs row change only match_percent, match_note, is_remote, is_hybrid and contact_person.',
   '',
   'RESULT (exactly these writes, in this order)',
-  '1. The sheet Jobs, the row with id {{job_id}}: column match_percent = the whole number from step 6, digits only, without a percent sign. The same row: the columns from step 3 that you filled (is_remote, is_hybrid, contact_person); leave the others as they are.',
+  '1. The sheet Jobs, the row with id {{job_id}}: column match_percent = the whole number from step 6, digits only, without a percent sign, and column match_note = the evaluation from step 7. The same row: the columns from step 3 that you filled (is_remote, is_hybrid, contact_person); leave the others as they are.',
   '2. The sheet Tasks, the row with id {{task_id}}: column ai_note = the evaluation from step 7.',
   `3. ${SALARY_RESULT}`,
   '4. The same Tasks row: column status = done (last, after every other write).',
   '',
   'CHECK BEFORE YOU FINISH',
-  '- match_percent is a whole number from 0 to 100.',
+  '- match_percent is a whole number from 0 to 100, and match_note holds the same evaluation as ai_note.',
   '- is_remote and is_hybrid are TRUE or unchanged, and no value that was there before was removed; contact_person is empty or names a person from the ad.',
   '- The evaluation has the three parts Strengths, Gaps and Verdict.',
   '- Every strength names a fact from the candidate experience.',
@@ -372,13 +409,7 @@ const IMPORT_MATCH = [
   '9. For each requirement decide: the candidate experience shows it (met), shows it partly (partly met), or does not show it (not met). Judge only by what the candidate experience says.',
   '10. Decide the match as a whole number from 0 to 100: the share of the requirements of the ad that are met, counting a partly met requirement as half. A candidate who meets every requirement is 100, one who meets none is 0.',
   '11. Write the evaluation in exactly this form, with the labels written in {{language}} too:',
-  '   Strengths:',
-  '   - one requirement that is met, with the fact from the candidate experience that shows it',
-  '   (3 to 6 lines)',
-  '   Gaps:',
-  '   - one requirement that is partly met or not met, and what is missing',
-  '   (0 to 6 lines; write "none" if there is no gap)',
-  '   Verdict: suitable, partly suitable or not suitable, then one sentence with the main reason. The verdict agrees with the number: 70 or more is suitable, 40 to 69 partly suitable, below 40 not suitable.',
+  ...EVALUATION_FORM,
   salaryStep(12),
   '13. Write RESULT.',
   '',
@@ -391,14 +422,14 @@ const IMPORT_MATCH = [
   '',
   'RESULT (exactly these writes, in this order)',
   '1. The sheet Jobs, the row with id {{job_id}}: the columns from step 6, company_id = the id from step 5, parser_id = ai, status = new.',
-  '2. The same Jobs row: column match_percent = the whole number from step 10, digits only, without a percent sign.',
+  '2. The same Jobs row: column match_percent = the whole number from step 10, digits only, without a percent sign, and column match_note = the evaluation from step 11.',
   '3. The sheet Tasks, the row with id {{task_id}}: column ai_note = the evaluation from step 11.',
   `4. ${SALARY_RESULT}`,
   '5. The same Tasks row: column status = done (last, after every other write).',
   '',
   'CHECK BEFORE YOU FINISH',
   '- Every job value is stated in the ad; cells the ad does not state are empty. is_remote and is_hybrid are TRUE or empty; dates are YYYY-MM-DD; salary cells are whole numbers or empty.',
-  '- The Jobs row has status new, a company_id that exists in the sheet Companies, and match_percent as a whole number from 0 to 100.',
+  '- The Jobs row has status new, a company_id that exists in the sheet Companies, match_percent as a whole number from 0 to 100, and match_note with the same evaluation as ai_note.',
   '- The evaluation has the three parts Strengths, Gaps and Verdict, every strength names a fact from the candidate experience, and it is written in {{language}}.',
   SALARY_CHECK,
   '- You opened only {{url}} and no other page, and you stopped at the first obstacle.',

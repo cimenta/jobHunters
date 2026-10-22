@@ -51,6 +51,8 @@ export interface Job {
   no_reason: string;
   /** The shift of a gig (Job.is_gig), free text; the user fills it in. */
   gig_shift: string;
+  /** The evaluation of the match (strengths, gaps, verdict), written by the AI together with match_percent by whichever task evaluated it. */
+  match_note: string;
 }
 
 export interface Application {

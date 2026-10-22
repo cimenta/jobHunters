@@ -1,8 +1,35 @@
 import { describe, expect, it } from 'vitest';
 import {
   CELL_LIMIT, decodeEntities, detectLanguage, elementsInnerHtml, foldDiacritics, htmlToText, jsonLdObjects,
-  metaContent, parseAttrs, stripTags, titleTag, truncateForCell,
+  looksLikeHtml, metaContent, parseAttrs, stripTags, titleTag, truncateForCell,
 } from './html';
+
+describe('looksLikeHtml', () => {
+  it('knows the source code of a page: it starts with a doctype or an html tag, also after a comment or blank lines', () => {
+    expect(looksLikeHtml('<!DOCTYPE html>\n<html lang="cs"><head></head><body></body></html>')).toBe(true);
+    expect(looksLikeHtml('  \n<!doctype html><html>')).toBe(true);
+    expect(looksLikeHtml('<!-- saved from url --><html lang="cs">')).toBe(true);
+    expect(looksLikeHtml('<html>')).toBe(true);
+  });
+
+  it('knows a longer piece of markup that ends the body even when the beginning was cut off', () => {
+    const body = `<div class="x"><p>${'text '.repeat(60)}</p></div></body></html>`;
+    expect(looksLikeHtml(body)).toBe(true);
+  });
+
+  it('knows a piece of a page copied with "Copy outerHTML": it starts with a block tag and holds many closing tags', () => {
+    expect(looksLikeHtml('<div><h1>Title</h1><span>200 Kč</span><div><p>One</p><p>Two</p></div></div>')).toBe(true);
+    expect(looksLikeHtml('<div><div>Just one</div></div>')).toBe(false);
+    expect(looksLikeHtml('<div>The text of an ad that starts with one tag but has little markup</div>')).toBe(false);
+  });
+
+  it('leaves the text of an ad alone, even when it holds a tag or two', () => {
+    expect(looksLikeHtml('Android Developer\n\nWe are looking for a colleague.')).toBe(false);
+    expect(looksLikeHtml('Use <b>bold</b> text and a <div> in your answer. '.repeat(10))).toBe(false);
+    expect(looksLikeHtml('<p>Short</p>')).toBe(false);
+    expect(looksLikeHtml('')).toBe(false);
+  });
+});
 
 describe('decodeEntities', () => {
   it('decodes named and numeric entities and leaves unknown ones alone', () => {

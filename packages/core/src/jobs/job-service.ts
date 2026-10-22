@@ -4,9 +4,9 @@ import type { AppWarning } from '../row-codec';
 import { MAX_CONTACT_PERSON, MAX_GIG_SHIFT } from '../catalog';
 import { NotFoundError, ValidationError } from '../errors';
 import type { Company, Job } from '../types';
-import { foldDiacritics, truncateForCell } from './html';
+import { foldDiacritics, looksLikeHtml, truncateForCell } from './html';
 import type { FetchResult, PageFetcher } from './fetcher';
-import { emptyParsedJob, finishParsedJob, type ParsedJob } from './parsed-job';
+import { emptyParsedJob, finishParsedJob, mergeParsed, type ParsedJob } from './parsed-job';
 import { parseJobPage, parseManualText } from './registry';
 import { jobUrlKey, normalizeJobUrl, parseUrl, titleFromUrl } from './url';
 
@@ -170,7 +170,7 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '',
+      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '', match_note: '',
     });
   }
 
@@ -229,6 +229,7 @@ export class JobService {
       contact_person: (fields.contact_person ?? '').trim().slice(0, MAX_CONTACT_PERSON),
       no_reason: '',
       gig_shift: fields.is_gig ? (fields.gig_shift ?? '').trim().slice(0, MAX_GIG_SHIFT) : '',
+      match_note: '',
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };
@@ -253,6 +254,7 @@ export class JobService {
 
   private acquire(url: string, input: JobInput): Acquired {
     const text = input.text?.trim();
+    if (text && looksLikeHtml(text)) return this.fromSource(url, text, input);
     if (text) {
       const parsed = parseManualText(text, { title: input.overrides?.title, company: input.overrides?.company });
       return { fetched: false, fetchStatus: 0, content: { kind: 'text', body: text }, parserId: 'manual', parsed };
@@ -274,6 +276,21 @@ export class JobService {
     }
     const parsed = finishParsedJob({ ...emptyParsedJob(), title: titleFromUrl(url) });
     return { fetched: false, fetchStatus: page.status, content: undefined, parserId: 'none', parsed };
+  }
+
+  /**
+   * The source code of the page, pasted by the user: read like a downloaded page, so the reader of the portal works even
+   * where the app is refused (a Cloudflare check). When the page gives no title or text (an unknown site, a login wall),
+   * the visible text of the source fills what is missing.
+   */
+  private fromSource(url: string, html: string, input: JobInput): Acquired {
+    const { parserId, job } = parseJobPage(html, url, { onError: (id, error) => this.report(`parser:${id}`, error) });
+    let parsed = job;
+    if (job.title === '' || job.description === '') {
+      const visible = parseManualText(html, { title: input.overrides?.title, company: input.overrides?.company });
+      parsed = finishParsedJob(mergeParsed(visible, job));
+    }
+    return { fetched: false, fetchStatus: 0, content: { kind: 'html', body: html }, parserId, parsed };
   }
 
   /** The job must be saved even if Drive fails, so every failure here becomes a flag. */

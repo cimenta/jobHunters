@@ -13,7 +13,7 @@
     job ? [job.title, detail.company?.name ?? '', job.location, formatSalary(job)].filter((part) => part !== '').join(' · ') : '',
   );
   const percent = $derived(job?.match_percent);
-  const hasMatch = $derived(typeof percent === 'number' || !!detail.match);
+  const hasMatch = $derived(typeof percent === 'number' || !!detail.match || (job?.match_note ?? '').trim() !== '');
   let showing = $state(false);
 </script>
 
@@ -25,7 +25,7 @@
         <Icon name="sparkle" size={16} />{typeof percent === 'number' ? tr('jobStatus.match', { percent }) : tr('ui.app.matchButton')}
       </Button>
     </div>
-    <MatchDialog open={showing} jobTitle={job.title} {percent} match={detail.match} onclose={() => (showing = false)} />
+    <MatchDialog open={showing} jobTitle={job.title} {percent} match={detail.match} note={job.match_note} onclose={() => (showing = false)} />
     {#if job.description === ''}
       <p class="muted">{tr('ui.app.adEmpty')}</p>
     {:else}

@@ -211,7 +211,7 @@
             <p class="description">{job.description === '' ? tr('ui.job.noDescription') : job.description}</p>
           </div>
         {:else if job.status !== 'awaiting'}
-          <MatchTab jobId={job.id} jobTitle={job.title} match={detail.data.match} />
+          <MatchTab jobId={job.id} jobTitle={job.title} match={detail.data.match} note={job.match_note} />
         {/if}
       </div>
     </Card>

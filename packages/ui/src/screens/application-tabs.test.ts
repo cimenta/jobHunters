@@ -489,6 +489,26 @@ describe('Ad tab match', () => {
     await waitFor(() => expect(ui('match-dialog.text')).toBeNull());
   });
 
+  it('shows the evaluation kept on the job even when no match task exists, and prefers it to the note of an older task', async () => {
+    const backend = useDevBackend();
+    const id = await androidApplicationId();
+    const jobId = (await api.getApplication(id)).job!.id;
+    backend.container.jobs.update(jobId, { match_percent: 77, match_note: 'Strengths:\n- Kotlin\nGaps:\n- none\nVerdict: suitable.' });
+    render(ApplicationDetail, { id });
+    await fireEvent.click(await screen.findByRole('button', { name: 'Match 77 %' }));
+    expect(ui('match-dialog.text')!.textContent).toBe('Strengths:\n- Kotlin\nGaps:\n- none\nVerdict: suitable.');
+    expect(ui('match-dialog.none')).toBeNull();
+    await fireEvent.click(ui('match-dialog.close')!);
+    await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });
+    const task = await api.requestJobMatch(jobId);
+    backend.container.tasks.update(task.id, { status: 'done', ai_note: 'An older evaluation in the task.' });
+    invalidate();
+    await fireEvent.click(await screen.findByRole('button', { name: 'Match 77 %' }));
+    await waitFor(() => expect(ui('match-dialog.status')).not.toBeNull());
+    expect(ui('match-dialog.text')!.textContent).toContain('Verdict: suitable.');
+    expect(ui('match-dialog.text')!.textContent).not.toContain('older evaluation');
+  });
+
   it('says what state the AI is in when there is no text yet, and that nothing was asked for when there is no evaluation', async () => {
     useDevBackend();
     const id = await androidApplicationId();

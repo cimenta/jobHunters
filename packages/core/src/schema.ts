@@ -12,7 +12,7 @@ const JOB_COLUMNS = [
   'is_gig', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
   'employment_type', 'remote', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'availability',
   'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes', 'status', 'match_percent', 'ai_salary',
-  'contact_person', 'no_reason', 'gig_shift',
+  'contact_person', 'no_reason', 'gig_shift', 'match_note',
 ] as const satisfies readonly (keyof Job)[];
 
 const APPLICATION_COLUMNS = [

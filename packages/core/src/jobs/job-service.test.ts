@@ -40,6 +40,67 @@ function setup(pages: Record<string, FakePage> = {}, drive: FakeDrive = new Fake
 
 const ok = (html = AD): FakePage => ({ status: 200, html });
 
+describe('save from the pasted source code of a page', () => {
+  const FAJN = readFileSync(new URL('../../fixtures/fajn/ad-brigada.html', import.meta.url), 'utf8');
+  const FAJN_URL = 'https://www.fajn-brigady.cz/brigady/manualni/brno/1000001-hledame-skladnika-na-vikendy/?vstup=jooble&utm_source=jooble';
+
+  it('reads it with the reader of the portal, never downloading the page, and keeps the source as the snapshot', () => {
+    const { service, jobs, fetcher, drive } = setup();
+    const preview = service.preview({ url: FAJN_URL, text: FAJN });
+    expect(preview).toMatchObject({ url: 'https://www.fajn-brigady.cz/brigady/manualni/brno/1000001-hledame-skladnika-na-vikendy/', parserId: 'fajn', duplicateOf: '' });
+    expect(preview.parsed).toMatchObject({ title: 'Hledáme skladníka na víkendy', company: 'Example Lift s.r.o.', location: 'Brno, Ukázková 18/10', is_gig: true, salary_min: 180 });
+    const result = service.save({ url: FAJN_URL, text: FAJN });
+    expect(result.status).toBe('created');
+    expect(result.job).toMatchObject({ parser_id: 'fajn', source: 'fajn-brigady.cz', is_gig: true, availability: 'unknown', flags: '' });
+    expect(result.warnings).toEqual([]);
+    expect(jobs.list()).toHaveLength(1);
+    expect(fetcher.calls).toEqual([]);
+    const snapshot = [...drive.documents.values()].find((d) => d.name === 'snapshot.html');
+    expect(snapshot?.content).toBe(FAJN.trim());
+  });
+
+  it('reads a piece of a Jooble page, copied with "Copy outerHTML", with the Jooble reader', () => {
+    const piece = readFileSync(new URL('../../fixtures/jooble/ad-fragment.html', import.meta.url), 'utf8');
+    const { service } = setup();
+    const url = 'https://cz.jooble.org/desc/-1000000000000000001?ckey=Lektor+Brno&rgn=24&pos=1';
+    const preview = service.preview({ url, text: piece });
+    expect(preview.parserId).toBe('jooble');
+    expect(preview.parsed).toMatchObject({ title: 'Lektor/ka robotiky pro děti - Example Academy Brno', company: 'Example Academy s.r.o.', location: 'Brno', salary_period: 'hour', is_gig: true });
+    expect(service.save({ url, text: piece }).job).toMatchObject({ parser_id: 'jooble', source: 'cz.jooble.org' });
+    expect(service.save({ url: 'https://cz.jooble.org/desc/-1000000000000000001?p=2', text: piece }).status).toBe('duplicate');
+  });
+
+  it('lets the values the user confirmed win over the ones read from the source', () => {
+    const { service } = setup();
+    expect(service.save({ url: FAJN_URL, text: FAJN, overrides: { title: 'My title', location: 'Olomouc' } }).job).toMatchObject({ title: 'My title', location: 'Olomouc', parser_id: 'fajn' });
+  });
+
+  it('fills what the reader did not find from the visible text of the source, for a site it does not know', () => {
+    const html = '<!doctype html><html><head><title>Unknown portal</title><script>var secret = 1;</script></head><body><h1>Gardener</h1><p>Look after the park and the greenhouse every weekday morning.</p></body></html>';
+    const { service } = setup();
+    const preview = service.preview({ url: 'https://example.com/jobs/gardener-42', text: html });
+    expect(preview.parserId).toBe('generic');
+    expect(preview.parsed.title).toBe('Unknown portal');
+    expect(preview.parsed.description).toContain('Look after the park and the greenhouse every weekday morning.');
+    expect(preview.parsed.description).not.toContain('secret');
+    expect(preview.parsed.description).not.toContain('<');
+  });
+
+  it('still takes plain pasted text as text, with the manual reader', () => {
+    const { service } = setup();
+    const preview = service.preview({ url: FAJN_URL, text: 'Warehouse worker\n\nPacking boxes. A short ad text for the test.' });
+    expect(preview.parserId).toBe('manual');
+    expect(preview.parsed.title).toBe('Warehouse worker');
+  });
+
+  it('copes with the source of a Cloudflare check page: nothing to read, and the user is told what is missing', () => {
+    const { service } = setup();
+    const check = '<!DOCTYPE html><html lang="en-US"><head><title>Just a moment...</title></head><body><h1>www.inwork.cz</h1></body></html>';
+    const preview = service.preview({ url: 'https://www.inwork.cz/prace/x/y/z/1000002-operator-vyroby/', text: check });
+    expect(preview.parsed.missing).toContain('company');
+  });
+});
+
 describe('save from a downloaded page', () => {
   it('creates the job and company and stores the page snapshot in Drive', () => {
     const { service, jobs, companies, drive } = setup({ [URL1]: ok() });

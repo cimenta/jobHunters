@@ -122,6 +122,17 @@ export function elementsInnerHtml(html: string, openTag: RegExp): string[] {
   return results;
 }
 
+/**
+ * Whether pasted text is the source code of a web page (View page source, select all, copy) and not the text of an ad:
+ * it starts with a doctype or an <html> tag, or it is a longer markup that ends the body. A piece of a page copied from the
+ * browser tools ("Copy outerHTML") also counts: it starts with a block tag and holds many closing tags.
+ */
+export function looksLikeHtml(text: string): boolean {
+  if (/^\s*(?:<!--[\s\S]*?-->\s*)*(?:<!doctype\s+html|<html[\s>])/i.test(text.slice(0, 3000))) return true;
+  if (text.length > 200 && /<\/(?:body|html)>/i.test(text) && /<(?:div|span|p|h1|head|script)\b/i.test(text)) return true;
+  return /^\s*<(?:div|section|article|main|header|h[1-6]|ul|ol|table|p)\b/i.test(text.slice(0, 200)) && (text.match(/<\/[a-z]/gi)?.length ?? 0) >= 5;
+}
+
 export function foldDiacritics(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }

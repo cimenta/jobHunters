@@ -267,10 +267,10 @@ describe('AddJob', () => {
   it('after a failed download the same checkbox still queues ONE import-and-match task', async () => {
     await failedDownload('Ten years of Kotlin');
     expect(aiBox()).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Use this text' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use this text or HTML' })).toBeInTheDocument();
     await fireEvent.click(aiBox()!);
-    expect(screen.getByRole('button', { name: 'Use this text' })).toBeDisabled();
-    expect(screen.getByLabelText('Text of the ad')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Use this text or HTML' })).toBeDisabled();
+    expect(screen.getByLabelText('Text of the ad or HTML of the page')).toBeDisabled();
     await fireEvent.click(screen.getByRole('button', { name: 'Create AI job' }));
     await waitFor(() => expect(router.current.name).toBe('job'));
     const tasks = await api.listAiTasks();
@@ -280,10 +280,10 @@ describe('AddJob', () => {
 
   it('disables the checkbox while text is pasted, and without a described experience', async () => {
     await failedDownload('Ten years of Kotlin');
-    await fireEvent.input(screen.getByLabelText('Text of the ad'), { target: { value: 'Some pasted ad' } });
+    await fireEvent.input(screen.getByLabelText('Text of the ad or HTML of the page'), { target: { value: 'Some pasted ad' } });
     expect(aiBox()).toBeDisabled();
     expect(document.querySelector('[data-ui="add-job.ai-job.hint"]')).toHaveTextContent('Clear the pasted text');
-    await fireEvent.input(screen.getByLabelText('Text of the ad'), { target: { value: '' } });
+    await fireEvent.input(screen.getByLabelText('Text of the ad or HTML of the page'), { target: { value: '' } });
     expect(aiBox()).toBeEnabled();
     cleanup();
 
@@ -299,12 +299,34 @@ describe('AddJob', () => {
     await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/blocked' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
     expect(await screen.findByText(/could not be downloaded \(HTTP 404\)/)).toBeInTheDocument();
-    await fireEvent.input(screen.getByLabelText('Text of the ad'), { target: { value: 'Backend Developer\n\nWe are hiring a developer for our team.' } });
-    await fireEvent.click(screen.getByRole('button', { name: 'Use this text' }));
+    await fireEvent.input(screen.getByLabelText('Text of the ad or HTML of the page'), { target: { value: 'Backend Developer\n\nWe are hiring a developer for our team.' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Use this text or HTML' }));
     expect(await screen.findByDisplayValue('Backend Developer')).toBeInTheDocument();
     await fireEvent.input(screen.getByLabelText('Company'), { target: { value: 'Acme' } });
     await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
     await waitFor(() => expect(router.current.name).toBe('job'));
+  });
+
+  it('reads the pasted source code of a page like a downloaded page, and says in the hint that this is possible', async () => {
+    useDevBackend({ seed: false });
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: 'https://example.com/blocked' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByText(/could not be downloaded \(HTTP 404\)/);
+    expect(document.body.textContent).toContain('source code of the page');
+    const source = '<!doctype html><html><head><title>Portal</title><script type="application/ld+json">' +
+      JSON.stringify({ '@type': 'JobPosting', title: 'Source Engineer', hiringOrganization: { name: 'Source Corp' }, description: 'Read the source of the page and build the tools.', jobLocation: { address: { addressLocality: 'Ostrava' } } }) +
+      '</script></head><body><h1>Source Engineer</h1></body></html>';
+    await fireEvent.input(screen.getByLabelText('Text of the ad or HTML of the page'), { target: { value: source } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Use this text or HTML' }));
+    expect(await screen.findByDisplayValue('Source Engineer')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Source Corp')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Ostrava')).toBeInTheDocument();
+    expect((screen.getByLabelText('Description') as HTMLTextAreaElement).value).toContain('Read the source of the page');
+    await fireEvent.click(screen.getByRole('button', { name: 'Save job' }));
+    await waitFor(() => expect(router.current.name).toBe('job'));
+    const saved = (await api.listJobs()).find((job) => job.title === 'Source Engineer')!;
+    expect(saved).toMatchObject({ company_name: 'Source Corp', location: 'Ostrava' });
   });
 
   it('recognises a job that is already saved and opens it', async () => {

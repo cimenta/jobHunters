@@ -36,6 +36,9 @@ describe('normalizeJobUrl', () => {
     expect(normalizeJobUrl('https://www.jobs.cz/rpd/1564217303/?searchId=a0071c64&rps=233#x')).toBe('https://www.jobs.cz/rpd/1564217303/');
     expect(normalizeJobUrl('https://example.com/job?id=7&utm_source=x&fbclid=y')).toBe('https://example.com/job?id=7');
   });
+  it('removes the entry parameter of the Fajn Brigády and Inwork links that come from Jooble', () => {
+    expect(normalizeJobUrl('https://www.inwork.cz/prace/jihomoravsky-kraj/brno/brno/6565355-operator-ka-vyroby/?vstup=jooble&utm_source=jooble&utm_medium=cpc#segmetation=STANDARD')).toBe('https://www.inwork.cz/prace/jihomoravsky-kraj/brno/brno/6565355-operator-ka-vyroby/');
+  });
   it('adds https:// when the scheme is missing and lower-cases the host', () => {
     expect(normalizeJobUrl(' Jobs.cz/rpd/1 ')).toBe('https://jobs.cz/rpd/1');
   });
@@ -62,6 +65,19 @@ describe('jobUrlKey', () => {
     expect(jobUrlKey('https://www.startupjobs.cz/nabidka/103773/senior-backend-developer')).toBe('startupjobs.cz:103773');
     expect(jobUrlKey('https://www.startupjobs.cz/nabidka/103773')).toBe('startupjobs.cz:103773');
   });
+  it('gives every link to one Fajn Brigády or Inwork ad the same key, whatever its slug, region or parameters', () => {
+    const key = jobUrlKey('https://www.inwork.cz/prace/jihomoravsky-kraj/brno/brno/6565355-operator-ka-vyroby-skvele/?vstup=jooble');
+    expect(key).toBe('inwork.cz:6565355');
+    expect(jobUrlKey('https://inwork.cz/prace/jihomoravsky-kraj/praha/praha/6565355-jiny-slug/')).toBe(key);
+    expect(jobUrlKey('https://www.fajn-brigady.cz/brigady/manualni/brno/6574929-hledas-stabilni-brigadu/?vstup=jooble')).toBe('fajn-brigady.cz:6574929');
+    expect(jobUrlKey('https://www.fajn-brigady.cz/brigady/manualni/brno/6565355-x/')).not.toBe(key);
+  });
+
+  it('gives every link to one GigaPrace ad the same key', () => {
+    expect(jobUrlKey('https://www.gigaprace.cz/nabidka-prace/wd1yzk/doplnovacka-automatu-region-brno-brno?utm_source=jooble&utm_away=abc')).toBe('gigaprace.cz:wd1yzk');
+    expect(jobUrlKey('https://gigaprace.cz/nabidka-prace/WD1YZK/anything')).toBe('gigaprace.cz:wd1yzk');
+  });
+
   it('falls back to host + path + query for other sites', () => {
     expect(jobUrlKey(normalizeJobUrl('https://WWW.Example.com/a/b/?utm_x=1'))).toBe('example.com/a/b');
     expect(jobUrlKey('https://example.com/job?id=7')).toBe('example.com/job?id=7');

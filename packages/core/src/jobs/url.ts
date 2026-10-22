@@ -13,7 +13,7 @@ const URL_PATTERN = /^(https?):\/\/([^\/?#]+)([^?#]*)(?:\?([^#]*))?(?:#.*)?$/i;
 
 const TRACKING_PARAMS = new Set([
   'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid', 'igshid', '_ga',
-  'trk', 'trackingid', 'refid', 'ref', 'searchid', 'rps',
+  'trk', 'trackingid', 'refid', 'ref', 'searchid', 'rps', 'vstup',
 ]);
 
 export function parseUrl(raw: string): ParsedUrl | undefined {
@@ -77,6 +77,27 @@ export function jobUrlKey(url: string): string {
   if (hostIs(url, 'startupjobs.cz')) {
     const match = /^\/nabidka\/(\d+)(?:\/.*)?$/.exec(parsed.path);
     if (match) return `startupjobs.cz:${match[1]}`;
+  }
+
+  if (hostIs(url, 'fajn-brigady.cz') || hostIs(url, 'inwork.cz')) {
+    const match = /\/(\d{4,})-[a-z0-9-]+\/?$/i.exec(parsed.path);
+    if (match) return `${hostIs(url, 'inwork.cz') ? 'inwork.cz' : 'fajn-brigady.cz'}:${match[1]}`;
+  }
+  if (hostIs(url, 'nelisa.com')) {
+    const match = /^\/[a-z]{2}\/offer\/([0-9a-f-]{36})\/?$/i.exec(parsed.path);
+    if (match) return `nelisa:${match[1]!.toLowerCase()}`;
+  }
+  if (hostIs(url, 'spravnykrok.cz')) {
+    const match = /^\/prace\/nabidka\/(\d+)-[a-z0-9-]+\.html$/i.exec(parsed.path);
+    if (match) return `spravnykrok.cz:${match[1]}`;
+  }
+  if (hostIs(url, 'jooble.org')) {
+    const match = /^\/(?:desc|jdp)\/(-?\d+)\/?$/.exec(parsed.path);
+    if (match) return `jooble:${match[1]}`;
+  }
+  if (hostIs(url, 'gigaprace.cz')) {
+    const match = /^\/nabidka-prace\/([a-z0-9]+)(?:\/.*)?$/i.exec(parsed.path);
+    if (match) return `gigaprace.cz:${match[1]!.toLowerCase()}`;
   }
 
   const host = parsed.host.replace(/^www\./, '');

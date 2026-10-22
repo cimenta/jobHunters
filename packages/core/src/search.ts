@@ -212,7 +212,7 @@ export function searchAll(data: SearchData, query: string, options: SearchOption
         return {
           hit: { type: 'jobs', id: job.id, title: job.title, parts: [company, job.location].filter((part) => part !== ''), status: job.status, date: '', kind: '' },
           title: job.title,
-          others: [company, job.location, job.contact_person, job.no_reason, job.notes, job.description],
+          others: [company, job.location, job.contact_person, job.no_reason, job.notes, job.match_note, job.description],
         };
       }),
       words,

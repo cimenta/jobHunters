@@ -74,6 +74,8 @@ describe('searchAll', () => {
     expect(searchAll(data(), 'thursday').groups.emails.hits.map((hit) => hit.id)).toEqual(['m2']);
     expect(searchAll(data(), 'svoboda').groups.jobs.hits.map((hit) => hit.id)).toEqual(['j1']);
     expect(searchAll(data(), 'compose').groups.tasks.hits.map((hit) => hit.id)).toEqual(['t1']);
+    const withNote = { ...data(), jobs: [makeJob({ id: 'jn', title: 'Other role', match_note: 'Strengths: strong Kubernetes background' })] };
+    expect(searchAll(withNote, 'kubernetes').groups.jobs.hits.map((hit) => hit.id)).toEqual(['jn']);
     expect(searchAll(data(), 'match job').groups.tasks.total).toBe(1);
   });
 

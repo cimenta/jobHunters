@@ -8,9 +8,10 @@
   import { matchStatusText } from '../../lib/match-status';
 
   /** The AI's evaluation of how well the job fits: the percentage and the text the AI wrote. A missing task means no evaluation was asked for. */
-  let { open, jobTitle, percent, match, onclose }: { open: boolean; jobTitle: string; percent: number | null | undefined; match: AiTask | null | undefined; onclose: () => void } = $props();
+  let { open, jobTitle, percent, match, note: jobNote, onclose }: { open: boolean; jobTitle: string; percent: number | null | undefined; match: AiTask | null | undefined; note?: string | null; onclose: () => void } = $props();
 
-  const note = $derived((match?.ai_note ?? '').trim());
+  /** The evaluation kept on the job wins (any task may have written it); an older one is still in the note of the match task. */
+  const note = $derived((jobNote ?? '').trim() !== '' ? (jobNote ?? '').trim() : (match?.ai_note ?? '').trim());
 </script>
 
 <Dialog {open} title={tr('ui.app.matchTitle')} {onclose} ui="match-dialog">
@@ -21,15 +22,15 @@
       {/if}
       <span class="muted small" data-ui="match-dialog.job">{jobTitle}</span>
     </div>
-    {#if !match}
-      <p class="muted" data-ui="match-dialog.none">{tr('ui.app.matchNone')}</p>
-    {:else}
+    {#if match}
       <p class="muted small" data-ui="match-dialog.status">{matchStatusText(match)}</p>
-      {#if note !== ''}
-        <div class="note" data-ui="match-dialog.text">{note}</div>
-      {:else if match.status === 'done'}
-        <p class="muted" data-ui="match-dialog.empty">{tr('ui.app.matchNoText')}</p>
-      {/if}
+    {/if}
+    {#if note !== ''}
+      <div class="note" data-ui="match-dialog.text">{note}</div>
+    {:else if !match}
+      <p class="muted" data-ui="match-dialog.none">{tr('ui.app.matchNone')}</p>
+    {:else if match.status === 'done'}
+      <p class="muted" data-ui="match-dialog.empty">{tr('ui.app.matchNoText')}</p>
     {/if}
   </div>
   {#snippet footer()}
