@@ -26,6 +26,8 @@ export interface UiState {
   applications_board_sort: Record<string, SortChoice>;
   /** Order of the list of applications. */
   applications_list_sort: SortChoice<ListSortKey>;
+  /** Whether the cards of the Kanban board have the icon that records a rejection in one step. */
+  kanban_reject_icon: boolean;
   /** Background colors of the entries in the Calendar, as #rrggbb; an empty text = the color of the theme. */
   calendar_colors: CalendarColors;
 }
@@ -39,7 +41,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: NO_CALENDAR_COLORS };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -75,7 +77,7 @@ export function parseUiState(raw: string): UiState | undefined {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
   const entry = value as Record<string, unknown>;
   const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { ...NO_CALENDAR_COLORS } };
-  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no'] as const) {
+  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no', 'kanban_reject_icon'] as const) {
     if (entry[key] === undefined) continue;
     if (typeof entry[key] !== 'boolean') return undefined;
     out[key] = entry[key];

@@ -148,6 +148,16 @@
     toast.success(tr('ui.settings.savedCalendarColors'));
   }
 
+  let kanbanRejectIcon = $state(false);
+  $effect(() => {
+    kanbanRejectIcon = uiState().kanban_reject_icon;
+  });
+
+  function saveKanban(): void {
+    saveUiState({ kanban_reject_icon: kanbanRejectIcon });
+    toast.success(tr('ui.settings.savedKanban'));
+  }
+
   async function saveNotices(): Promise<void> {
     await api.updateSettings({ result_notices: String(resultNotices) });
     await reloadSettings();
@@ -370,6 +380,13 @@
       <Button variant="primary" ui="settings.calendar-colors.save" onclick={saveCalendarColors}>{tr('ui.save')}</Button>
       <Button ui="settings.calendar-colors.reset" onclick={resetCalendarColors}>{tr('ui.settings.calendarColorsReset')}</Button>
     </div>
+  </Card>
+
+  <Card ui="settings.kanban">
+    <h2>{tr('ui.settings.kanban')}</h2>
+    <label class="check"><input data-ui="settings.kanban.reject-icon" type="checkbox" bind:checked={kanbanRejectIcon} />{tr('ui.settings.kanbanRejectIcon')}</label>
+    <p class="muted small">{tr('ui.settings.kanbanRejectHint')}</p>
+    <div><Button variant="primary" ui="settings.kanban.save" onclick={saveKanban}>{tr('ui.save')}</Button></div>
   </Card>
 
   <Card ui="settings.notices">

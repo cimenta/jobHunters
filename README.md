@@ -173,7 +173,8 @@ communication, the reminders and the timeline.
 </p>
 
 The same applications as a Kanban board: drag a card to another column to change its status, or use the menu of the
-card on a touch screen. Only the changes allowed in Settings are possible.
+card on a touch screen. Only the changes allowed in Settings are possible. An optional red icon on the cards (switch it on in
+Settings) records a rejection in one step: a message in the communication, the status Rejected and the archived job.
 
 <p align="center">
   <img src="docs/screenshots/07-kanban.png" alt="Kanban board of applications" width="900">

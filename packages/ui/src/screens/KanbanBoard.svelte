@@ -9,12 +9,14 @@
   import Icon from '../components/Icon.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, todayLocal } from '../lib/format';
+  import { channelLabel } from '../lib/labels';
   import { tr } from '../lib/i18n.svelte';
   import { sortLabel } from '../lib/labels';
   import { notifyError } from '../lib/notify';
   import { paths } from '../lib/route';
   import { statusStyle } from '../lib/status';
   import { toast } from '../state/toast.svelte';
+  import { uiState } from '../state/ui-state';
 
   interface Props {
     rows: ApplicationRow[];
@@ -56,6 +58,47 @@
   /** The moves a card has an icon for: one click puts the application in that status, whether or not its column is shown. */
   const QUICK = [{ to: 'ghosted', icon: 'ghost' }, { to: 'withdrawn', icon: 'undo' }] as const;
   const quick = (card: ApplicationRow) => QUICK.filter((item) => isApplicationStatus(card.status) && card.status !== item.to && allows(card, item.to));
+
+  /** The Rejected icon: only when the setting is on and the rules let the card move to Rejected. */
+  const canReject = (card: ApplicationRow): boolean => uiState().kanban_reject_icon && isApplicationStatus(card.status) && card.status !== 'rejected' && allows(card, 'rejected');
+
+  const CHANNELS = ['email', 'phone', 'video', 'linkedin', 'in_person', 'portal', 'other'] as const;
+  let rejecting = $state<ApplicationRow>();
+  let rejectChannel = $state('email');
+  let rejectWhen = $state('');
+  let rejectNote = $state('');
+
+  /** Now as the value of a datetime-local field (the browser's clock, like the field itself). */
+  function nowLocal(): string {
+    const date = new Date();
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  function askReject(card: ApplicationRow): void {
+    rejectChannel = 'email';
+    rejectWhen = nowLocal();
+    rejectNote = '';
+    rejecting = card;
+  }
+
+  /** The entry is saved first, then the status moves (which also archives a new or applied job). */
+  async function confirmReject(): Promise<void> {
+    const card = rejecting;
+    if (!card) return;
+    rejecting = undefined;
+    try {
+      await api.addCommunication(card.id, {
+        kind: 'message', direction: 'incoming', channel: rejectChannel, summary: tr('ui.comm.rejectSummary'), details: rejectNote.trim(),
+        ...(rejectWhen === '' ? {} : { datetime: rejectWhen }),
+      });
+      await api.setApplicationStatus(card.id, 'rejected');
+      toast.success(tr('ui.kanban.rejectDone', { label: card.label }));
+      onmoved();
+    } catch (error) {
+      notifyError(error);
+    }
+  }
 
   const targets = (card: ApplicationRow): ApplicationStatus[] => (isApplicationStatus(card.status) ? statuses.filter((to) => to !== card.status && allows(card, to)) : []);
 
@@ -179,7 +222,7 @@
           <span class="muted small">{[card.job_title, card.company_name].filter((part) => part !== '').join(' · ')}</span>
           <ApplicationFacts row={card} by={column.choice.by} ui="kanban.card.{card.id}" {now} />
           {#if card.last_activity_at !== ''}<span class="muted small">{formatDate(card.last_activity_at)}</span>{/if}
-          {#if targets(card).length > 0 || quick(card).length > 0}
+          {#if targets(card).length > 0 || quick(card).length > 0 || canReject(card)}
             <div class="moves">
             {#if targets(card).length > 0}
             <select data-ui="kanban.card.{card.id}.move"
@@ -195,6 +238,9 @@
               <option value="">{tr('ui.kanban.moveTo')}</option>
               {#each targets(card) as to (to)}<option value={to}>{statusStyle(to).text}</option>{/each}
             </select>
+            {/if}
+            {#if canReject(card)}
+              <Button variant="ghost" label={tr('ui.kanban.quickMove', { status: statusStyle('rejected').text })} ui="kanban.card.{card.id}.rejected" onclick={() => askReject(card)}><span class="reject"><Icon name="reject" size={18} /></span></Button>
             {/if}
             {#each quick(card) as item (item.to)}
               <Button variant="ghost" label={tr('ui.kanban.quickMove', { status: statusStyle(item.to).text })} ui="kanban.card.{card.id}.{item.to}" onclick={() => place(card, item.to, 0)}><Icon name={item.icon} size={18} /></Button>
@@ -219,7 +265,29 @@
   {/snippet}
 </Dialog>
 
+<Dialog open={rejecting !== undefined} title={tr('ui.kanban.rejectTitle', { label: rejecting?.label ?? '' })} onclose={() => (rejecting = undefined)} ui="kanban.reject">
+  <div class="stack">
+    <Field label={tr('ui.kanban.rejectChannel')} for="kanban-reject-channel">
+      <select data-ui="kanban.reject.channel" id="kanban-reject-channel" class="input" bind:value={rejectChannel}>
+        {#each CHANNELS as option (option)}<option value={option}>{channelLabel(option)}</option>{/each}
+      </select>
+    </Field>
+    <Field label={tr('ui.kanban.rejectWhen')} for="kanban-reject-when">
+      <input data-ui="kanban.reject.when" id="kanban-reject-when" class="input" type="datetime-local" bind:value={rejectWhen} />
+    </Field>
+    <Field label={tr('ui.kanban.rejectNote')} for="kanban-reject-note">
+      <textarea data-ui="kanban.reject.note" id="kanban-reject-note" class="input" rows="3" bind:value={rejectNote}></textarea>
+    </Field>
+    <p class="muted small">{tr('ui.kanban.rejectHint')}</p>
+  </div>
+  {#snippet footer()}
+    <Button ui="kanban.reject.cancel" onclick={() => (rejecting = undefined)}>{tr('ui.cancel')}</Button>
+    <Button variant="danger" ui="kanban.reject.confirm" onclick={confirmReject}>{tr('ui.kanban.rejectConfirm')}</Button>
+  {/snippet}
+</Dialog>
+
 <style>
+  .reject { display: inline-flex; color: var(--danger); }
   .board { display: flex; gap: var(--space-3); overflow-x: auto; align-items: flex-start; padding-bottom: var(--space-2); }
   .column { flex: 0 0 260px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); min-height: 120px; background: var(--surface-2); border: 2px solid transparent; border-radius: var(--radius-m); }
   .column.allowed { border-color: var(--accent); }

@@ -125,6 +125,7 @@
       <li>{tr('ui.help.applications.i8')}</li>
       <li>{tr('ui.help.applications.i9')}</li>
       <li>{tr('ui.help.applications.i10')}</li>
+      <li>{tr('ui.help.applications.i11')}</li>
       <li>{tr('ui.help.applications.interview', { max: MAX_INTERVIEW_PREP.toLocaleString(ui.locale) })}</li>
     </ul>
     <Screenshot ui="help.shot.applications" src={applicationsShot} caption={tr('ui.help.shot.applications')} />

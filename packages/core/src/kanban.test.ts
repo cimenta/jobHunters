@@ -109,11 +109,11 @@ describe('ApplicationService.move', () => {
 
 describe('ui state setting', () => {
   it('defaults, parses and drops unknown statuses', () => {
-    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { interview: '', waiting: '', late: '' } });
+    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '' } });
     expect(parseUiState('{"applications_hide_empty":true}')?.applications_hide_empty).toBe(true);
     expect(parseUiState('{"applications_hide_empty":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_status_board":["sent","nope","sent"]}'))
-      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { interview: '', waiting: '', late: '' } });
+      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '' } });
   });
 
   it('parses the sort choices of the board and the list, dropping what does not fit', () => {
@@ -128,6 +128,11 @@ describe('ui state setting', () => {
     expect(parseUiState('{"applications_list_sort":{"by":"manual","up":false}}')).toBeUndefined();
     expect(parseUiState('{"applications_list_sort":{"by":"match"}}')).toBeUndefined();
     expect(parseUiState('{"applications_list_sort":5}')).toBeUndefined();
+  });
+
+  it('reads the Kanban reject icon switch and refuses a non-boolean', () => {
+    expect(parseUiState('{"kanban_reject_icon":true}')?.kanban_reject_icon).toBe(true);
+    expect(parseUiState('{"kanban_reject_icon":"yes"}')).toBeUndefined();
   });
 
   it('reads the calendar colors, lower-cased, and refuses anything that is not #rrggbb', () => {

@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.20.2] - 2026-10-24
+
+- New setting **Show the Rejected icon on application cards in the Kanban board** (Settings, card Kanban; off by default, remembered with the other interface settings). With it on, cards that may move to Rejected get a red icon next to Ghosted and Withdrawn. One click opens a small dialog with the channel (E-mail), the time (now) and an optional note filled in; confirming adds an incoming message "Rejection from the company" to the communication of the application, sets the application to Rejected and archives its job (a new or applied one, as with every rejection; a job set to No or to an own status stays as it is).
+- No Setup is needed for this update.
+
 ## [0.20.1] - 2026-10-24
 
 - **Calendar colors**: Settings has a new card, **Calendar colors**, with a color picker for the background of the three kinds of entries in the Calendar (Interview, Waiting, Waiting with the reminder date passed). The text on them turns black or white by itself so it stays readable. **Reset to defaults** brings the colors of the theme back; a color left at its default is stored as "no choice", so the dark theme keeps its own. The choice is remembered with the other interface settings.

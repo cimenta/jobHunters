@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { loadApp } from '../state/app.svelte';
@@ -297,5 +297,54 @@ describe('List sort', () => {
       expect(saved.applications_list_sort).toEqual({ by: 'salary', up: false });
       expect(saved.applications_board_sort).toEqual({ draft: { by: 'created', up: false } });
     });
+  });
+});
+
+describe('Kanban Rejected icon', () => {
+  const icon = (id: string): HTMLElement | null => document.querySelector(`[data-ui="kanban.card.${id}.rejected"]`);
+  const field = (name: string): HTMLElement => document.querySelector(`[data-ui="kanban.reject.${name}"]`)!;
+
+  it('is hidden until the setting is on, and the setting is saved from Settings', async () => {
+    await board();
+    const target = (await api.listApplications()).find((a) => a.label.includes('Android Developer – #1'))!;
+    expect(icon(target.id)).toBeNull();
+    cleanup();
+    render(Settings);
+    await screen.findByRole('heading', { name: 'Settings' });
+    await fireEvent.click(document.querySelector('[data-ui="settings.kanban.reject-icon"]')!);
+    await fireEvent.click(document.querySelector('[data-ui="settings.kanban.save"]')!);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.kanban_reject_icon).toBe(true));
+  });
+
+  it('records the rejection: a message in the communication, the status Rejected and the archived job', async () => {
+    useDevBackend();
+    await api.updateSettings({ ui_state: JSON.stringify({ applications_kanban: true, kanban_reject_icon: true }) });
+    await loadApp();
+    render(ApplicationsList);
+    await screen.findByRole('group', { name: 'Applications by status' });
+    const target = (await api.listApplications()).find((a) => a.label.includes('Android Developer – #1'))!;
+    expect(target.status).toBe('sent');
+    await fireEvent.click(icon(target.id)!);
+    await fireEvent.change(field('channel'), { target: { value: 'phone' } });
+    await fireEvent.input(field('note'), { target: { value: 'Chose another candidate' } });
+    await fireEvent.click(field('confirm'));
+    await waitFor(async () => expect(await statusOf('Android Developer – #1')).toBe('rejected'));
+    const entries = (await api.getApplication(target.id)).communications;
+    expect(entries).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'message', direction: 'incoming', channel: 'phone', details: 'Chose another candidate' })]));
+    expect((await api.getJob(target.job_id)).job.status).toBe('archived');
+  });
+
+  it('is not offered on a card that cannot move to Rejected', async () => {
+    useDevBackend();
+    await api.updateSettings({ ui_state: JSON.stringify({ applications_kanban: true, kanban_reject_icon: true }) });
+    const rows = await api.listApplications();
+    const withdrawn = rows.find((a) => a.status === 'sent')!;
+    await api.setApplicationStatus(withdrawn.id, 'withdrawn');
+    const other = rows.find((a) => ['waiting', 'interview', 'offer'].includes(a.status))!;
+    await loadApp();
+    render(ApplicationsList);
+    await screen.findByRole('group', { name: 'Applications by status' });
+    expect(icon(withdrawn.id)).toBeNull();
+    expect(icon(other.id)).not.toBeNull();
   });
 });
