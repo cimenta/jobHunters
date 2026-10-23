@@ -35,6 +35,10 @@ export interface JobDetail {
   company: Company | undefined;
   applications: ApplicationRow[];
   match: AiTask | undefined;
+  /** Entries kept on the job itself and the ones of its applications, newest first. */
+  communications: Communication[];
+  /** The events of all its applications and the entries kept on the job, newest first. */
+  timeline: TimelineEvent[];
 }
 
 export interface CompanyDetail {

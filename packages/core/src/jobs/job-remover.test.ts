@@ -3,7 +3,7 @@ import { InMemoryRepository } from '../repository';
 import { FakeDrive } from '../testing/fake-drive';
 import { errorOf } from '../testing/errors';
 import { makeApplication, makeJob } from '../testing/fixtures';
-import type { AiTask, Application, Job } from '../types';
+import type { AiTask, Application, Communication, Job } from '../types';
 import { JobRemover } from './job-remover';
 
 class ListFailsDrive extends FakeDrive {
@@ -44,6 +44,16 @@ describe('JobRemover', () => {
     expect(remover.remove('j1', { trashFolder: false })).toEqual({ removedTasks: 2, folderTrashed: false, warnings: [] });
     expect(jobs.list().map((j) => j.id)).toEqual(['j2', 'j4']);
     expect(tasks.list().map((t) => t.id)).toEqual(['t3']);
+  });
+
+  it('deletes the entries kept on the job with it, and leaves the entries of other jobs and of applications', () => {
+    const entry = (id: string, jobId: string, applicationId: string): Communication => ({
+      id, application_id: applicationId, datetime: '2026-10-01T10:00:00.000Z', direction: 'note', channel: 'other', contact_id: '', summary: id, details: '', attachment_url: '', kind: 'message', job_id: jobId,
+    });
+    const { jobs, tasks, applications, drive } = setup();
+    const communications = new InMemoryRepository<Communication>([entry('c1', 'j1', ''), entry('c2', 'j4', ''), entry('c3', '', 'a1')]);
+    new JobRemover({ jobs, tasks, applications, communications, drive }).remove('j1', { trashFolder: false });
+    expect(communications.list().map((c) => c.id)).toEqual(['c2', 'c3']);
   });
 
   it('refuses a job that has an application and an unknown job', () => {

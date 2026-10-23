@@ -33,7 +33,7 @@ const QUESTION_COLUMNS = [
   'id', 'application_id', 'position', 'question', 'answer', 'max_sentences', 'status', 'created_at', 'updated_at',
 ] as const satisfies readonly (keyof Question)[];
 const COMMUNICATION_COLUMNS = [
-  'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url', 'kind',
+  'id', 'application_id', 'datetime', 'direction', 'channel', 'contact_id', 'summary', 'details', 'attachment_url', 'kind', 'job_id',
 ] as const satisfies readonly (keyof Communication)[];
 const EMAIL_COLUMNS = [
   'id', 'thread_id', 'received_at', 'direction', 'from_email', 'from_name', 'to', 'cc', 'subject', 'body', 'attachments', 'is_bulk',

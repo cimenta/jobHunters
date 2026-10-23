@@ -18,6 +18,8 @@ export interface UiState {
   jobs_hide_applied: boolean;
   /** Whether the Jobs screen hides jobs whose status is No. */
   jobs_hide_no: boolean;
+  /** The gig switch of the Jobs screen: '' = all jobs, 'only' = only gigs, 'except' = everything but gigs. */
+  jobs_gig: JobGigFilter;
   /** Order of the Jobs screen. */
   jobs_sort: JobSort;
   /** Order of the cards of each Kanban column; a status without an entry is ordered by hand. */
@@ -26,7 +28,10 @@ export interface UiState {
   applications_list_sort: SortChoice<ListSortKey>;
 }
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } };
+export type JobGigFilter = '' | 'only' | 'except';
+const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
+
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false } };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -72,6 +77,10 @@ export function parseUiState(raw: string): UiState | undefined {
     const parsed = statuses(entry[key]);
     if (parsed === undefined) return undefined;
     out[key] = parsed;
+  }
+  if (entry.jobs_gig !== undefined) {
+    if (typeof entry.jobs_gig !== 'string' || !JOB_GIG_FILTERS.includes(entry.jobs_gig)) return undefined;
+    out.jobs_gig = entry.jobs_gig as JobGigFilter;
   }
   if (entry.jobs_sort !== undefined) {
     if (typeof entry.jobs_sort !== 'string' || !(JOB_SORTS as readonly string[]).includes(entry.jobs_sort)) return undefined;

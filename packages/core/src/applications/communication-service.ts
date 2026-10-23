@@ -2,10 +2,13 @@ import { COMMUNICATION_KINDS, DIRECTIONS_BY_KIND, KINDS_WITHOUT_CHANNEL, communi
 import { NotFoundError, ValidationError } from '../errors';
 import type { Repository } from '../repository';
 import { ALLOWED_VALUES } from '../schema';
-import type { Application, Communication } from '../types';
+import type { Application, Communication, Job } from '../types';
 
 export interface CommunicationInput {
-  applicationId: string;
+  /** The application the entry belongs to; give this or jobId. */
+  applicationId?: string;
+  /** The job the entry is kept on, when it has no application (a gig); give this or applicationId. */
+  jobId?: string;
   direction: string;
   /** Required, except for the kinds that have no channel (then it is stored empty). */
   channel?: string;
@@ -22,6 +25,8 @@ export interface CommunicationInput {
 export interface CommunicationServiceDeps {
   communications: Repository<Communication>;
   applications: Repository<Application>;
+  /** Needed to add an entry to a job. */
+  jobs?: Repository<Job>;
   newId: () => string;
   /** ISO 8601 date-time. */
   now: () => string;
@@ -54,11 +59,12 @@ export class CommunicationService {
 
   add(input: CommunicationInput): Communication {
     const { communications, applications, newId, now } = this.deps;
+    const timestamp = now();
+    if (input.applicationId === undefined || input.applicationId === '') return this.addToJob(input, timestamp);
     const application = applications.get(input.applicationId);
     if (!application) {
       throw new NotFoundError('application_not_found', `Application ${input.applicationId} not found`, { id: input.applicationId });
     }
-    const timestamp = now();
     const kind = checkKind(input.kind ?? 'message');
     const created = communications.insert({
       id: newId(),
@@ -71,6 +77,7 @@ export class CommunicationService {
       details: input.details ?? '',
       attachment_url: input.attachmentUrl ?? '',
       kind,
+      job_id: '',
     });
     const change: Partial<Omit<Application, 'id'>> = { last_activity_at: timestamp };
     if (kind === 'confirmation' && !application.applied_at) change.applied_at = created.datetime;
@@ -78,7 +85,7 @@ export class CommunicationService {
     return created;
   }
 
-  update(id: string, patch: Partial<Omit<CommunicationInput, 'applicationId'>>): Communication {
+  update(id: string, patch: Partial<Omit<CommunicationInput, 'applicationId' | 'jobId'>>): Communication {
     const existing = this.deps.communications.get(id);
     if (!existing) throw new NotFoundError('communication_not_found', `Communication ${id} not found`, { id });
     const change: Partial<Omit<Communication, 'id'>> = {};
@@ -111,6 +118,35 @@ export class CommunicationService {
       .filter((c) => c.application_id === applicationId)
       .map((c) => ({ ...c, kind: communicationKind(c.kind) }))
       .sort((a, b) => (a.datetime < b.datetime ? 1 : a.datetime > b.datetime ? -1 : 0));
+  }
+
+  /** Every entry of a job: the ones kept on the job itself and the ones of its applications, newest first. */
+  listForJob(jobId: string, applicationIds: readonly string[]): Communication[] {
+    return this.deps.communications
+      .list()
+      .filter((c) => c.job_id === jobId || (c.application_id !== '' && applicationIds.includes(c.application_id)))
+      .map((c) => ({ ...c, kind: communicationKind(c.kind) }))
+      .sort((a, b) => (a.datetime < b.datetime ? 1 : a.datetime > b.datetime ? -1 : 0));
+  }
+
+  private addToJob(input: CommunicationInput, timestamp: string): Communication {
+    const { communications, jobs, newId } = this.deps;
+    const jobId = input.jobId ?? '';
+    if (jobId === '' || !jobs?.get(jobId)) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    const kind = checkKind(input.kind ?? 'message');
+    return communications.insert({
+      id: newId(),
+      application_id: '',
+      datetime: this.checkDatetime(input.datetime ?? timestamp),
+      direction: checkDirection(kind, input.direction),
+      channel: checkChannel(kind, input.channel ?? ''),
+      contact_id: input.contactId ?? '',
+      summary: this.checkSummary(input.summary ?? ''),
+      details: input.details ?? '',
+      attachment_url: input.attachmentUrl ?? '',
+      kind,
+      job_id: jobId,
+    });
   }
 
   /** A confirmation proves the application was sent: fill an empty applied_at with its time. */

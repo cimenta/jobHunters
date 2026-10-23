@@ -2,6 +2,15 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.19.3] - 2026-10-24
+
+- **Setup is needed** (once, adds the column `job_id` to the sheet Communications; the red "!" says so). Until then the new tabs cannot save entries.
+- The detail of a job has two new tabs, **Timeline** and **Communication**, because a gig often never gets an application. Communication holds entries kept on the job itself (add, edit and delete them there; no application is needed) and, read only with a link to the application, the entries of its applications. Timeline merges the events of all applications of the job (status changes, messages, meetings, documents, reminders) with the entries of the job, with the same type filters and order button as in an application; a small mark on each event says whether it belongs to the job or to which application. Deleting a job deletes the entries kept on it.
+- The filter **Gig** in the list of jobs is now a small two-button switch, **Gigs only** and **No gigs** (nothing selected = all jobs; click the selected one again to unselect it), instead of a checkbox. The choice is remembered, like the Hide checkboxes, and "Clear filters" resets it.
+- **Hide no** also hides the jobs with the status Archived (its hover text says so).
+- The button **Clear filters** moved from the filter bar to the title row, in front of **Add job**.
+- Fixed the Help: the text about portals behind a Cloudflare check had the same key as the text about deleting a job, so one of them was missing.
+
 ## [0.19.2] - 2026-10-24
 
 - New readers for two more job portals. **Manpower** (manpower.cz, `/nabidky-prace/<name>--<number>/`) reads the page itself, because its structured data is broken and names the head office: the title, the contract and the place from the two labels under the heading, the date the ad was put in, and the text of the ad (the introduction and the blocks Popis pozice, Požadujeme, Nabízíme) without the closing notice about men and women. The box on the left adds the field (Obor) and the benefits (Benefity) to the text, and the recruiter named there (name, phone, e-mail) is filled in as the contact person of the job. The pay is taken from the text of the ad when a line about the wage names an amount in crowns ("Mzdu až 45 000 Kč" is a monthly upper limit, "od" a lower one). **Flek** (flek.cz, `/nabidka/<name>/<number>/`) uses the structured data of the page and adds the place as the city without the country code, the contract from the summary box, the gig mark and the text without the same notice.

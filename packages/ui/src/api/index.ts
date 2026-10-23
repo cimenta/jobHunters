@@ -89,6 +89,7 @@ export const api = {
 
   addCommunication: (applicationId: string, input: CommunicationInput) => call<Communication>('addCommunication', { applicationId, ...input }),
   updateCommunication: (id: string, patch: Partial<CommunicationInput>) => call<Communication>('updateCommunication', { id, ...patch }),
+  addJobCommunication: (jobId: string, input: CommunicationInput) => call<Communication>('addCommunication', { jobId, ...input }),
   removeCommunication: (id: string) => call<null>('removeCommunication', { id }),
 
   addReminder: (applicationId: string, dueAt: string, text: string) => call<Reminder>('addReminder', { applicationId, dueAt, text }),

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { InMemoryRepository } from '../repository';
 import { errorOf } from '../testing/errors';
-import { makeApplication, sequentialIds } from '../testing/fixtures';
-import type { Application, Communication } from '../types';
+import { makeApplication, makeJob, sequentialIds } from '../testing/fixtures';
+import type { Application, Communication, Job } from '../types';
 import { CommunicationService } from './communication-service';
 
 const NOW = '2026-10-11T08:00:00.000Z';
@@ -21,7 +21,7 @@ describe('CommunicationService', () => {
     const { service, applications } = setup();
     expect(service.add(base)).toEqual({
       id: 'm1', application_id: 'a1', datetime: NOW, direction: 'outgoing', channel: 'email', contact_id: '',
-      summary: 'Sent the application', details: '', attachment_url: '', kind: 'message',
+      summary: 'Sent the application', details: '', attachment_url: '', kind: 'message', job_id: '',
     });
     expect(applications.get('a1')!.last_activity_at).toBe(NOW);
   });
@@ -107,8 +107,8 @@ describe('CommunicationService', () => {
 
   it('reads an entry with an empty or unknown kind as a message', () => {
     const communications = new InMemoryRepository<Communication>([
-      { id: 'old', application_id: 'a1', datetime: NOW, direction: 'note', channel: 'other', contact_id: '', summary: 'legacy', details: '', attachment_url: '', kind: '' },
-      { id: 'odd', application_id: 'a1', datetime: NOW, direction: 'note', channel: 'other', contact_id: '', summary: 'typo', details: '', attachment_url: '', kind: 'mesage' },
+      { id: 'old', application_id: 'a1', datetime: NOW, direction: 'note', channel: 'other', contact_id: '', summary: 'legacy', details: '', attachment_url: '', kind: '', job_id: '' },
+      { id: 'odd', application_id: 'a1', datetime: NOW, direction: 'note', channel: 'other', contact_id: '', summary: 'typo', details: '', attachment_url: '', kind: 'mesage', job_id: '' },
     ]);
     const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1' })]);
     const service = new CommunicationService({ communications, applications, newId: sequentialIds('m'), now: () => NOW });
@@ -135,5 +135,49 @@ describe('CommunicationService', () => {
     expect(service.update('m1', { kind: 'confirmation', direction: 'incoming' })).toMatchObject({ kind: 'confirmation', direction: 'incoming' });
     expect(errorOf(() => service.update('m1', { direction: 'note' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'direction' } });
     expect(errorOf(() => service.update('m1', { kind: 'party' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'kind' } });
+  });
+});
+
+describe('CommunicationService: entries kept on a job', () => {
+  function jobSetup() {
+    const communications = new InMemoryRepository<Communication>();
+    const applications = new InMemoryRepository<Application>([makeApplication({ id: 'a1', job_id: 'j1' }), makeApplication({ id: 'a2', job_id: 'j2' })]);
+    const jobs = new InMemoryRepository<Job>([makeJob({ id: 'j1' }), makeJob({ id: 'j2' })]);
+    return { service: new CommunicationService({ communications, applications, jobs, newId: sequentialIds('m'), now: () => NOW }), applications, communications };
+  }
+  const entry = { jobId: 'j1', direction: 'outgoing', channel: 'phone', summary: 'Called the recruiter' };
+
+  it('adds an entry to a job without an application and touches no application', () => {
+    const { service, applications } = jobSetup();
+    const before = applications.list();
+    expect(service.add(entry)).toEqual({
+      id: 'm1', application_id: '', datetime: NOW, direction: 'outgoing', channel: 'phone', contact_id: '',
+      summary: 'Called the recruiter', details: '', attachment_url: '', kind: 'message', job_id: 'j1',
+    });
+    expect(applications.list()).toEqual(before);
+  });
+
+  it('refuses an unknown job and an entry that names neither an application nor a job', () => {
+    const { service } = jobSetup();
+    expect(errorOf(() => service.add({ ...entry, jobId: 'nope' }))).toMatchObject({ code: 'job_not_found' });
+    expect(errorOf(() => service.add({ direction: 'note', channel: 'other' }))).toMatchObject({ code: 'job_not_found' });
+    expect(errorOf(() => service.add({ ...entry, kind: 'party' }))).toMatchObject({ code: 'communication_invalid', params: { field: 'kind' } });
+  });
+
+  it('lists for a job the entries kept on it and the entries of its applications, newest first, and nothing of other jobs', () => {
+    const { service } = jobSetup();
+    service.add({ ...entry, datetime: '2026-10-02T10:00:00.000Z', summary: 'job entry' });
+    service.add({ applicationId: 'a1', direction: 'outgoing', channel: 'email', datetime: '2026-10-03T10:00:00.000Z', summary: 'application entry' });
+    service.add({ applicationId: 'a2', direction: 'outgoing', channel: 'email', summary: 'other job' });
+    service.add({ ...entry, jobId: 'j2', summary: 'other job entry' });
+    expect(service.listForJob('j1', ['a1']).map((c) => c.summary)).toEqual(['application entry', 'job entry']);
+  });
+
+  it('edits and removes an entry of a job', () => {
+    const { service, communications } = jobSetup();
+    const added = service.add(entry);
+    expect(service.update(added.id, { summary: 'Changed', kind: 'meeting', direction: 'incoming', channel: 'video' })).toMatchObject({ summary: 'Changed', kind: 'meeting', job_id: 'j1', application_id: '' });
+    service.remove(added.id);
+    expect(communications.list()).toEqual([]);
   });
 });

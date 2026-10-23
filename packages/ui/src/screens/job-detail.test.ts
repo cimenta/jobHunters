@@ -621,4 +621,57 @@ describe('Delete job (detail)', () => {
     await waitFor(async () => expect((await api.listJobs()).some((j) => j.id === free.id)).toBe(false));
     await waitFor(() => expect(router.current.name).toBe('jobs'));
   });
+
+  describe('Timeline and Communication tabs', () => {
+    it('keeps entries on a job that has no application, lists them with the job mark and edits and deletes them', async () => {
+      useDevBackend();
+      const id = await idOf('<img src=x onerror=alert(1)>');
+      expect((await api.getJob(id)).applications).toHaveLength(0);
+      render(JobDetail, { id });
+      await fireEvent.click(await screen.findByRole('tab', { name: /Communication/ }));
+      expect(await screen.findByText('No communication recorded yet.')).toBeInTheDocument();
+      await fireEvent.click(document.querySelector('[data-ui="job-communications.add"]')!);
+      await fireEvent.input(document.querySelector('[data-ui="job-communication.summary"]')!, { target: { value: 'Called the recruiter' } });
+      await fireEvent.click(document.querySelector('[data-ui="job-communication.save"]')!);
+      const entry = await screen.findByText('Called the recruiter');
+      expect(entry).toBeInTheDocument();
+      const stored = (await api.getJob(id)).communications;
+      expect(stored).toHaveLength(1);
+      expect(stored[0]).toMatchObject({ job_id: id, application_id: '', summary: 'Called the recruiter' });
+      expect(document.querySelector(`[data-ui="job-comm.${stored[0]!.id}.job"]`)).not.toBeNull();
+
+      await fireEvent.click(document.querySelector(`[data-ui="job-comm.${stored[0]!.id}.edit"]`)!);
+      await fireEvent.input(document.querySelector('[data-ui="job-communication.summary"]')!, { target: { value: 'Agreed the shift' } });
+      await fireEvent.click(document.querySelector('[data-ui="job-communication.save"]')!);
+      expect(await screen.findByText('Agreed the shift')).toBeInTheDocument();
+
+      await fireEvent.click(await screen.findByRole('tab', { name: 'Timeline' }));
+      expect(await screen.findByText(/Agreed the shift/)).toBeInTheDocument();
+      expect(document.querySelector('[data-ui="timeline.event.0.origin"]')).toHaveTextContent('Job');
+      expect(document.querySelector('[data-ui="timeline.danger-zone"]')).toBeNull();
+
+      await fireEvent.click(screen.getByRole('tab', { name: /Communication/ }));
+      await fireEvent.click(document.querySelector(`[data-ui="job-comm.${stored[0]!.id}.remove"]`)!);
+      await fireEvent.click(document.querySelector('[data-ui="confirm-dialog.confirm"]')!);
+      await waitFor(async () => expect((await api.getJob(id)).communications).toHaveLength(0));
+    });
+
+    it('lists the entries and the events of the applications of the job, read only, with a link to the application', async () => {
+      useDevBackend();
+      const id = await idOf('Android Developer');
+      const detail = await api.getJob(id);
+      const application = detail.applications[0]!;
+      const own = detail.communications.filter((entry) => entry.application_id === application.id);
+      expect(own.length).toBeGreaterThan(0);
+      render(JobDetail, { id });
+      await fireEvent.click(await screen.findByRole('tab', { name: /Communication/ }));
+      const link = await screen.findByRole('link', { name: application.label });
+      expect(link).toHaveAttribute('href', expect.stringContaining("#/applications/"));
+      expect(document.querySelector(`[data-ui="job-comm.${own[0]!.id}.edit"]`)).toBeNull();
+      await fireEvent.click(screen.getByRole('tab', { name: 'Timeline' }));
+      await waitFor(() => expect(document.querySelectorAll('[data-ui^="timeline.event."][data-ui$=".origin"]').length).toBeGreaterThan(0));
+      const origins = [...document.querySelectorAll('[data-ui^="timeline.event."][data-ui$=".origin"]')].map((node) => node.textContent);
+      expect(origins).toContain(application.label);
+    });
+  });
 });

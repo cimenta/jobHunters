@@ -9,7 +9,7 @@
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import { describeWarning } from '../lib/errors';
-  import { filterJobs, sortJobs, type JobFilters } from '../lib/filters';
+  import { filterJobs, sortJobs, type GigFilter, type JobFilters } from '../lib/filters';
   import { tr } from '../lib/i18n.svelte';
   import { reportAvailability } from '../lib/job-notices';
   import { jobStatus, jobStatusOptions } from '../lib/job-status';
@@ -27,18 +27,19 @@
   const jobs = useResource(() => api.listJobs());
   let text = $state('');
   let availability = $state<JobFilters['availability']>('');
-  let gig = $state(false);
   let status = $state('');
 
   const hideApplied = $derived(uiState().jobs_hide_applied);
   const hideNo = $derived(uiState().jobs_hide_no);
+  /** The gig switch is remembered like the hide checkboxes, so it survives a reload. */
+  const gig = $derived<GigFilter>(uiState().jobs_gig);
   /** The status No as the user named it (the names of the statuses can be changed in Settings). */
   const noText = $derived(jobStatusOptions(true).find((option) => option.code === 'no')?.text ?? 'No');
   const archivedText = $derived(jobStatusOptions(true).find((option) => option.code === 'archived')?.text ?? 'Archived');
   const sort = $derived(uiState().jobs_sort);
 
   const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied, hideNo }), sort));
-  const filtered = $derived(text.trim() !== '' || availability !== '' || gig || status !== '' || hideApplied || hideNo);
+  const filtered = $derived(text.trim() !== '' || availability !== '' || gig !== '' || status !== '' || hideApplied || hideNo);
 
   const hasExperience = $derived((app.settings?.candidate_experience ?? '').trim() !== '');
   /** The no-experience hint is shown once, on the first card whose checkbox is disabled, so the list stays calm. */
@@ -126,9 +127,8 @@
   function clear(): void {
     text = '';
     availability = '';
-    gig = false;
     status = '';
-    saveUiState({ jobs_hide_applied: false, jobs_hide_no: false });
+    saveUiState({ jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '' });
     document.getElementById('job-search')?.focus();
   }
   import AddLinkDialog from './AddLinkDialog.svelte';
@@ -138,7 +138,10 @@
 <div class="stack" data-ui="jobs">
   <div class="page-title">
     <h1>{tr('ui.nav.jobs')}</h1>
-    <Button variant="primary" ui="jobs.add" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
+    <div class="title-actions">
+      {#if filtered}<Button variant="secondary" ui="jobs.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
+      <Button variant="primary" ui="jobs.add" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
+    </div>
   </div>
 
   {#if jobs.status === 'loading'}
@@ -176,11 +179,13 @@
       <div class="checks" data-ui="jobs.checks">
         <label class="check" title={tr('ui.jobs.hideApplied')}><input type="checkbox" data-ui="jobs.hide-applied" checked={hideApplied} onchange={(event) => saveUiState({ jobs_hide_applied: event.currentTarget.checked })} />{tr('ui.jobs.hideAppliedShort')}</label>
         <div class="check-row">
-        <label class="check" title={tr('ui.jobs.hideStatus', { status: noText })}><input type="checkbox" data-ui="jobs.hide-no" checked={hideNo} onchange={(event) => saveUiState({ jobs_hide_no: event.currentTarget.checked })} />{tr('ui.jobs.hideStatusShort', { status: noText })}</label>
-        <label class="check" title={tr('ui.job.gig')}><input type="checkbox" data-ui="jobs.gig" bind:checked={gig} />{tr('ui.jobs.gigShort')}</label>
+        <label class="check" title={tr('ui.jobs.hideStatus', { status: noText, archived: archivedText })}><input type="checkbox" data-ui="jobs.hide-no" checked={hideNo} onchange={(event) => saveUiState({ jobs_hide_no: event.currentTarget.checked })} />{tr('ui.jobs.hideStatusShort', { status: noText })}</label>
+        <span class="seg" role="group" data-ui="jobs.gig" title={tr('ui.jobs.gigHint')} aria-label={tr('ui.jobs.gigShort')}>
+          <button type="button" data-ui="jobs.gig.only" aria-pressed={gig === 'only'} onclick={() => saveUiState({ jobs_gig: gig === 'only' ? '' : 'only' })}>{tr('ui.jobs.gigOnly')}</button>
+          <button type="button" data-ui="jobs.gig.except" aria-pressed={gig === 'except'} onclick={() => saveUiState({ jobs_gig: gig === 'except' ? '' : 'except' })}>{tr('ui.jobs.gigExcept')}</button>
+        </span>
         </div>
       </div>
-      {#if filtered}<Button variant="secondary" ui="jobs.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
     </div></div>
 
     {#if rows.length === 0}
@@ -285,13 +290,20 @@
   .checks { display: flex; flex-direction: column; }
   /* Hide No and Gig stand side by side under Hide with application. */
   .check-row { display: flex; flex-wrap: wrap; column-gap: var(--space-4); }
+  .title-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+  /* A small switch, as high as a checkbox row: white segments on the page, the chosen one filled. */
+  .seg { display: inline-flex; align-self: center; border: 1px solid var(--accent); border-radius: var(--radius-s); overflow: hidden; background: var(--surface); }
+  .seg button { min-height: 28px; padding: 0 var(--space-2); font: inherit; font-size: var(--text-s); color: var(--text); background: var(--surface); border: 0; cursor: pointer; white-space: nowrap; }
+  .seg button + button { border-left: 1px solid var(--accent); }
+  .seg button:hover { background: var(--accent-soft); }
+  .seg button[aria-pressed='true'] { color: var(--on-accent); font-weight: 600; background: var(--accent); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); white-space: nowrap; }
   @container (min-width: 560px) {
     .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); align-items: end; }
   }
   @container (min-width: 900px) {
-    .filters { grid-template-columns: minmax(120px, 1fr) 170px 130px 160px max-content max-content; }
-    .filters > .checks, .filters > :global(.btn) { min-width: max-content; }
+    .filters { grid-template-columns: minmax(120px, 1fr) 170px 130px 160px max-content; }
+    .filters > .checks { min-width: max-content; }
   }
   .card-row { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); }
   .card-row:hover, .card-row.current { border-color: var(--accent); }

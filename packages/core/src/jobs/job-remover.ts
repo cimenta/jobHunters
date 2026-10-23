@@ -2,12 +2,14 @@ import { fileIdFromUrl, type DriveGateway } from '../drive';
 import { NotFoundError, ValidationError } from '../errors';
 import type { Repository } from '../repository';
 import type { AppWarning } from '../row-codec';
-import type { AiTask, Application, Job } from '../types';
+import type { AiTask, Application, Communication, Job } from '../types';
 
 export interface JobRemoverDeps {
   jobs: Repository<Job>;
   tasks: Repository<AiTask>;
   applications: Repository<Application>;
+  /** The entries kept on the job itself are deleted with it. */
+  communications?: Repository<Communication>;
   drive: DriveGateway;
   /** Reports a swallowed failure to the Log. */
   onError?: (where: string, error: unknown) => void;
@@ -43,6 +45,7 @@ export class JobRemover {
 
     const own = tasks.list().filter((task) => task.job_id === jobId);
     for (const task of own) tasks.remove(task.id);
+    for (const entry of this.deps.communications?.list() ?? []) if (entry.job_id === jobId) this.deps.communications!.remove(entry.id);
     jobs.remove(jobId);
 
     const warnings: AppWarning[] = [];

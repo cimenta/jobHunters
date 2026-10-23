@@ -26,7 +26,9 @@
   import CreateApplicationDialog from './CreateApplicationDialog.svelte';
   import AddLinkDialog from './AddLinkDialog.svelte';
   import DeleteJobDialog from './DeleteJobDialog.svelte';
+  import JobCommunicationsTab from './tabs/JobCommunicationsTab.svelte';
   import MatchTab from './tabs/MatchTab.svelte';
+  import TimelineTab from './tabs/TimelineTab.svelte';
 
   let { id }: { id: string } = $props();
 
@@ -177,6 +179,8 @@
       <Tabs
         items={[
           { id: 'applications', label: tr('ui.job.tab.applications'), count: detail.data.applications.length },
+          { id: 'timeline', label: tr('ui.job.tab.timeline') },
+          { id: 'communication', label: tr('ui.job.tab.communication'), count: detail.data.communications?.length },
           { id: 'notes', label: tr('ui.job.tab.notes') },
           { id: 'description', label: tr('ui.job.tab.description') },
           ...(job.status === 'awaiting' ? [] : [{ id: 'match', label: tr('ui.job.tab.match') }]),
@@ -202,6 +206,10 @@
               </ul>
             {/if}
           </div>
+        {:else if tab === 'timeline'}
+          <TimelineTab job={detail.data} />
+        {:else if tab === 'communication'}
+          <JobCommunicationsTab job={detail.data} />
         {:else if tab === 'notes'}
           <div class="stack" data-ui="job-detail.notes">
             <Field label={tr('ui.job.notes')} for="job-notes"><textarea data-ui="job-detail.notes-input" id="job-notes" class="input" rows="3" bind:value={notes}></textarea></Field>

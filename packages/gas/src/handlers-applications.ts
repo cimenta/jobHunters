@@ -11,6 +11,7 @@ import {
   applicationRows,
   buildDashboard,
   buildMenuCounts,
+  buildJobTimeline,
   buildTimeline,
   companyRows,
   emailRows,
@@ -24,8 +25,8 @@ import type { Container } from './container';
 
 const COMMUNICATION_FIELDS = ['kind', 'direction', 'channel', 'summary', 'details', 'datetime', 'contactId', 'attachmentUrl'] as const;
 
-function communicationPatch(input: Record<string, unknown>, method: string): Partial<Omit<CommunicationInput, 'applicationId'>> {
-  const patch: Partial<Omit<CommunicationInput, 'applicationId'>> = {};
+function communicationPatch(input: Record<string, unknown>, method: string): Partial<Omit<CommunicationInput, 'applicationId' | 'jobId'>> {
+  const patch: Partial<Omit<CommunicationInput, 'applicationId' | 'jobId'>> = {};
   for (const field of COMMUNICATION_FIELDS) {
     const value = optionalString(input, field, method);
     if (value !== undefined) patch[field] = value;
@@ -114,8 +115,19 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const id = requireString(asRecord(args, 'getJob'), 'id', 'getJob');
       const job = c.jobs.get(id);
       if (!job) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
-      const applications = applicationRows(c.applications.list().filter((a) => a.job_id === id), [job], c.companies.list());
-      return { job, company: c.companies.get(job.company_id), applications, match: c.aiTaskService.matchFor(id) };
+      const own = c.applications.list().filter((a) => a.job_id === id);
+      const applications = applicationRows(own, [job], c.companies.list());
+      // The entries kept on the job itself and the ones of its applications, with the timeline of all of them.
+      const communications = c.communicationService.listForJob(id, own.map((a) => a.id));
+      const timeline = buildJobTimeline({
+        jobId: id,
+        applications: own,
+        history: c.history.list(),
+        communications,
+        documents: own.flatMap((a) => c.documentService.list(a.id)),
+        reminders: own.flatMap((a) => c.reminderService.listFor(a.id)),
+      });
+      return { job, company: c.companies.get(job.company_id), applications, match: c.aiTaskService.matchFor(id), communications, timeline };
     },
 
     checkJobAvailability: (args) => {
@@ -355,9 +367,12 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
 
     addCommunication: (args) => {
       const input = asRecord(args, 'addCommunication');
-      const applicationId = requireString(input, 'applicationId', 'addCommunication');
       const direction = requireString(input, 'direction', 'addCommunication');
       const rest = communicationPatch(input, 'addCommunication');
+      // An entry belongs to an application, or to a job that has none (a gig).
+      const jobId = optionalString(input, 'jobId', 'addCommunication');
+      if (jobId !== undefined && jobId !== '') return c.lock.run(() => c.communicationService.add({ ...rest, jobId, direction }));
+      const applicationId = requireString(input, 'applicationId', 'addCommunication');
       return c.lock.run(() => c.communicationService.add({ ...rest, applicationId, direction }));
     },
 

@@ -157,7 +157,7 @@ export function buildContainer(deps: ContainerDeps) {
   const templateService = new TemplateService(templates, deps.newId);
   const documentService = new DocumentService({ documents, applications, drive: deps.drive, jobs, companies, profileName: () => profile.getAll().name ?? '', now: deps.now });
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
-  const communicationService = new CommunicationService({ communications, applications, newId: deps.newId, now: deps.now });
+  const communicationService = new CommunicationService({ communications, applications, jobs, newId: deps.newId, now: deps.now });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
   const catalogService = new CatalogService({ jobs, applications, companies, jobStatuses: () => settings.get().settings.job_status_styles });
   const jobStatusService = new JobStatusService({ jobs, settings });
@@ -176,7 +176,7 @@ export function buildContainer(deps: ContainerDeps) {
   });
   const jobImportService = new JobImportService({ jobService, aiTasks: aiTaskService });
   const jobRemover = new JobRemover({
-    jobs, tasks, applications,
+    jobs, tasks, applications, communications,
     drive: deps.drive,
     onError: (where, error) => log('jobs', where, error instanceof Error ? error.message : String(error)),
   });

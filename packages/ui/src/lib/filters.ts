@@ -1,4 +1,4 @@
-import { foldDiacritics, type ApplicationRow, type JobRow, type JobSort } from '@jobhunters/core';
+import { foldDiacritics, type ApplicationRow, type JobGigFilter, type JobRow, type JobSort } from '@jobhunters/core';
 import { formatWorkMode } from './format';
 
 const normalise = (text: string): string => foldDiacritics(text).toLowerCase();
@@ -8,15 +8,18 @@ function workModeWords(row: { is_remote?: boolean; is_hybrid?: boolean }): strin
   return `${formatWorkMode(row)} ${row.is_remote ? 'remote' : ''} ${row.is_hybrid ? 'hybrid' : ''}`;
 }
 
+/** Gigs: '' = all jobs, 'only' = only gigs, 'except' = everything but gigs. */
+export type GigFilter = JobGigFilter;
+
 export interface JobFilters {
   text: string;
   availability: '' | 'online' | 'offline' | 'unknown';
-  gig: boolean;
+  gig: GigFilter;
   /** Code of a job status; empty = any. */
   status?: string;
   /** Drop jobs that have at least one application. */
   hideApplied?: boolean;
-  /** Drop jobs whose status is No. */
+  /** Drop jobs whose status is No or Archived. */
   hideNo?: boolean;
 }
 
@@ -24,9 +27,10 @@ export function filterJobs(rows: readonly JobRow[], filters: JobFilters): JobRow
   const needle = normalise(filters.text.trim());
   return rows.filter((row) => {
     if (filters.availability !== '' && row.availability !== filters.availability) return false;
-    if (filters.gig && !row.is_gig) return false;
+    if (filters.gig === 'only' && !row.is_gig) return false;
+    if (filters.gig === 'except' && row.is_gig) return false;
     if (filters.hideApplied === true && row.application_count > 0) return false;
-    if (filters.hideNo === true && row.status === 'no') return false;
+    if (filters.hideNo === true && (row.status === 'no' || row.status === 'archived')) return false;
     if (filters.status !== undefined && filters.status !== '' && (row.status === '' ? 'new' : row.status) !== filters.status) return false;
     return needle === '' || normalise(`${row.title} ${row.company_name} ${row.location} ${workModeWords(row)}`).includes(needle);
   });

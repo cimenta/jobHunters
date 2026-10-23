@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { makeDocument, makeReminder } from '../testing/fixtures';
+import { makeApplication, makeDocument, makeReminder } from '../testing/fixtures';
 import type { Communication } from '../types';
-import { buildTimeline, type TimelineInput } from './timeline';
+import { buildJobTimeline, buildTimeline, type TimelineInput } from './timeline';
 
 const communication: Communication = {
   id: 'm1', application_id: 'a1', datetime: '2026-10-05T10:00:00.000Z', direction: 'incoming', channel: 'email',
-  contact_id: '', summary: 'They replied', details: '', attachment_url: '', kind: 'message',
+  contact_id: '', summary: 'They replied', details: '', attachment_url: '', kind: 'message', job_id: '',
 };
 
 const input: TimelineInput = {
@@ -56,5 +56,42 @@ describe('buildTimeline', () => {
   it('drops events without a time', () => {
     const events = buildTimeline({ ...input, documents: [makeDocument({ id: 'd3', created_at: '', pdf_exported_at: '' })], history: [], communications: [], reminders: [] });
     expect(events).toEqual([]);
+  });
+});
+
+describe('buildJobTimeline', () => {
+  const jobInput = {
+    jobId: 'j1',
+    applications: [makeApplication({ id: 'a1', job_id: 'j1' }), makeApplication({ id: 'a2', job_id: 'j1' }), makeApplication({ id: 'x', job_id: 'j2' })],
+    history: [
+      { application_id: 'a2', from: '', to: 'draft', at: '2026-10-02T08:00:00.000Z' },
+      { application_id: 'a1', from: '', to: 'draft', at: '2026-10-01T08:00:00.000Z' },
+      { application_id: 'x', from: '', to: 'draft', at: '2026-10-01T09:00:00.000Z' },
+    ],
+    communications: [
+      { ...communication, id: 'c1', application_id: 'a1', datetime: '2026-10-05T10:00:00.000Z' },
+      { ...communication, id: 'c2', application_id: '', job_id: 'j1', kind: 'meeting', datetime: '2026-10-06T10:00:00.000Z', summary: 'Trial shift' },
+      { ...communication, id: 'c3', application_id: '', job_id: 'j2', datetime: '2026-10-07T10:00:00.000Z' },
+      { ...communication, id: 'c4', application_id: 'x', datetime: '2026-10-08T10:00:00.000Z' },
+    ],
+    documents: [],
+    reminders: [],
+  };
+
+  it('merges the events of all applications of the job with the entries kept on the job, newest first', () => {
+    const events = buildJobTimeline(jobInput);
+    expect(events.map((e) => `${e.type}:${e.ref}`)).toEqual(['meeting:c2', 'message:c1', 'status:a2', 'status:a1']);
+  });
+
+  it('marks the events of an application with its id and number (the one started first is 1) and the entries of the job with the scope', () => {
+    const events = buildJobTimeline(jobInput, { order: 'asc' });
+    expect(events.map((e) => e.data.application_no ?? e.data.scope)).toEqual(['1', '2', '1', 'job']);
+    expect(events[1]!.data.application_id).toBe('a2');
+    expect(events[3]!.data).toMatchObject({ scope: 'job', summary: 'Trial shift' });
+  });
+
+  it('filters by type and works for a job without any application', () => {
+    expect(buildJobTimeline(jobInput, { types: ['meeting'] }).map((e) => e.ref)).toEqual(['c2']);
+    expect(buildJobTimeline({ ...jobInput, applications: [], history: [] }).map((e) => e.ref)).toEqual(['c2']);
   });
 });

@@ -60,8 +60,9 @@ describe('JobsList', () => {
     expect(document.querySelector('script')).toBeNull();
   });
 
-  it('filters by text and by the gig checkbox, and explains an empty result', async () => {
+  it('filters by text and by the gig switch, and explains an empty result', async () => {
     useDevBackend();
+    await loadApp();
     render(JobsList);
     await screen.findByText('Android Developer');
     await fireEvent.input(screen.getByLabelText('Search'), { target: { value: 'analyst' } });
@@ -70,9 +71,15 @@ describe('JobsList', () => {
     await fireEvent.input(screen.getByLabelText('Search'), { target: { value: 'zzzz' } });
     expect(screen.getByText('Nothing matches')).toBeInTheDocument();
     await fireEvent.click(document.querySelector('[data-ui="jobs.clear-empty"]')!);
-    await fireEvent.click(screen.getByLabelText('Gig'));
-    expect(screen.queryByText('Android Developer')).toBeNull();
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.only"]')!);
+    await waitFor(() => expect(screen.queryByText('Android Developer')).toBeNull());
     expect(screen.getByText('Data Analyst (part time)')).toBeInTheDocument();
+    // The second segment shows everything but gigs; clicking the selected one again shows all.
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.except"]')!);
+    await waitFor(() => expect(screen.queryByText('Data Analyst (part time)')).toBeNull());
+    expect(screen.getByText('Android Developer')).toBeInTheDocument();
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.except"]')!);
+    await waitFor(() => expect(screen.getByText('Data Analyst (part time)')).toBeInTheDocument());
   });
 
   it('explains an empty list and leads to adding a job', async () => {
@@ -506,6 +513,24 @@ describe('JobsList sort and hide', () => {
     expect(hideBox().checked).toBe(true);
   });
 
+  it('remembers the gig switch over a reload and forgets it with Clear filters', async () => {
+    useDevBackend();
+    await loadApp();
+    const first = render(JobsList);
+    await screen.findByText('Android Developer');
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.except"]')!);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_gig).toBe('except'));
+    first.unmount();
+    await loadApp();
+    render(JobsList);
+    await screen.findByLabelText('Sort by');
+    expect(document.querySelector('[data-ui="jobs.gig.except"]')!.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByText('Data Analyst (part time)')).toBeNull();
+    await fireEvent.click(document.querySelector('[data-ui="jobs.clear-filters"]')!);
+    expect(document.querySelector('[data-ui="jobs.gig.except"]')!.getAttribute('aria-pressed')).toBe('false');
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_gig).toBe(''));
+  });
+
   it('clears the hide checkbox with Clear filters but keeps the sort', async () => {
     await open();
     render(JobsList);
@@ -525,7 +550,8 @@ describe('JobsList clear filters button', () => {
   const search = () => screen.getByLabelText('Search') as HTMLInputElement;
   const availability = () => screen.getByLabelText('Availability') as HTMLSelectElement;
   const statusBox = () => screen.getByLabelText('Status') as HTMLSelectElement;
-  const gigBox = () => screen.getByLabelText('Gig') as HTMLInputElement;
+  const gigOnly = () => document.querySelector('[data-ui="jobs.gig.only"]') as HTMLButtonElement;
+  const gigExcept = () => document.querySelector('[data-ui="jobs.gig.except"]') as HTMLButtonElement;
   const hideBox = () => screen.getByLabelText('Hide with application') as HTMLInputElement;
 
   async function open(): Promise<void> {
@@ -550,12 +576,13 @@ describe('JobsList clear filters button', () => {
     expect(document.querySelector('[data-ui="jobs.clear-empty"]')).not.toBeNull();
   });
 
-  it('names the checkboxes by their visible short text and keeps the full wording as title', async () => {
+  it('names the checkboxes by their visible short text and keeps the full wording as title; Hide no explains that it hides Archived too', async () => {
     await open();
-    expect(gigBox().closest('label')!.getAttribute('title')).toBe('Gig (short-term work)');
     expect(hideBox().closest('label')!.getAttribute('title')).toBe('Hide jobs with an application');
-    expect(gigBox().hasAttribute('aria-label')).toBe(false);
+    expect((document.querySelector('[data-ui="jobs.hide-no"]') as HTMLElement).closest('label')!.getAttribute('title')).toBe('Hide jobs with the status No and the status Archived');
     expect(hideBox().hasAttribute('aria-label')).toBe(false);
+    expect(document.querySelector('[data-ui="jobs.gig"]')!.getAttribute('title')).toContain('Gigs only');
+    expect([gigOnly().textContent, gigExcept().textContent]).toEqual(['Gigs only', 'No gigs']);
   });
 
   it('shows Czech short texts', async () => {
@@ -565,8 +592,8 @@ describe('JobsList clear filters button', () => {
       await waitFor(() => expect(document.querySelector('[data-ui="jobs.checks"] label')?.textContent?.trim()).toBe('Skrýt s přihláškou'));
       const stack = document.querySelector('[data-ui="jobs.checks"]')!;
       const texts = [...stack.querySelectorAll('label')].map((label) => label.textContent?.trim());
-      // Gig stands right after Hide No.
-      expect(texts).toEqual(['Skrýt s přihláškou', 'Skrýt „Ne“', 'Brigáda']);
+      expect(texts).toEqual(['Skrýt s přihláškou', 'Skrýt „Ne“']);
+      expect([gigOnly().textContent, gigExcept().textContent]).toEqual(['Jen brigády', 'Bez brigád']);
     } finally {
       setLocale('en');
     }
@@ -580,24 +607,44 @@ describe('JobsList clear filters button', () => {
     expect(button()!.classList.contains('ghost')).toBe(false);
   });
 
-  it('groups the gig and hide checkboxes in one container, Hide No and Gig on one row, with short texts and full hover titles', async () => {
+  it('groups the gig switch and the hide checkboxes in one container, Hide no and the switch on one row, with short texts and full hover titles', async () => {
     await open();
     const stack = document.querySelector('[data-ui="jobs.checks"]')!;
     expect(stack).not.toBeNull();
-    expect(stack.contains(gigBox())).toBe(true);
+    const group = document.querySelector('[data-ui="jobs.gig"]') as HTMLElement;
+    expect(stack.contains(group)).toBe(true);
     expect(stack.contains(hideBox())).toBe(true);
-    const gigLabel = gigBox().closest('label')!;
     const hideLabel = hideBox().closest('label')!;
-    // Hide No and Gig stand side by side (one row), under Hide with application.
+    // Hide no and the gig switch stand side by side (one row), under Hide with application.
     const noLabel = (document.querySelector('[data-ui="jobs.hide-no"]') as HTMLElement).closest('label')!;
-    expect(gigLabel.parentElement).toBe(noLabel.parentElement);
-    expect(gigLabel.parentElement).not.toBe(stack);
+    expect(group.parentElement).toBe(noLabel.parentElement);
+    expect(group.parentElement).not.toBe(stack);
     expect(hideLabel.parentElement).toBe(stack);
-    expect(stack.children[1]).toBe(gigLabel.parentElement);
-    expect(gigLabel.textContent?.trim()).toBe('Gig');
+    expect(stack.children[1]).toBe(group.parentElement);
+    expect(noLabel.textContent?.trim()).toBe('Hide No');
     expect(hideLabel.textContent?.trim()).toBe('Hide with application');
-    expect(gigLabel.getAttribute('title')).toBe('Gig (short-term work)');
     expect(hideLabel.getAttribute('title')).toBe('Hide jobs with an application');
+  });
+
+  it('puts Clear filters in front of Add job, in the title row', async () => {
+    await open();
+    await fireEvent.input(search(), { target: { value: 'analyst' } });
+    const add = document.querySelector('[data-ui="jobs.add"]') as HTMLElement;
+    expect(button()!.parentElement).toBe(add.parentElement);
+    expect(button()!.nextElementSibling).toBe(add);
+    expect(document.querySelector('[data-ui="jobs.filters"]')!.contains(button())).toBe(false);
+  });
+
+  it('starts with neither segment of the gig switch selected, and unselects the selected one on a second click', async () => {
+    await open();
+    const state = (): (string | null)[] => [gigOnly().getAttribute('aria-pressed'), gigExcept().getAttribute('aria-pressed')];
+    expect(state()).toEqual(['false', 'false']);
+    await fireEvent.click(gigOnly());
+    expect(state()).toEqual(['true', 'false']);
+    await fireEvent.click(gigExcept());
+    expect(state()).toEqual(['false', 'true']);
+    await fireEvent.click(gigExcept());
+    expect(state()).toEqual(['false', 'false']);
   });
 
   it('appears with a search text, clears it, focuses the search and disappears', async () => {
@@ -629,12 +676,12 @@ describe('JobsList clear filters button', () => {
     expect(button()).toBeNull();
   });
 
-  it('appears for the gig checkbox alone and resets only it', async () => {
+  it('appears for the gig switch alone and resets only it', async () => {
     await open();
-    await fireEvent.click(gigBox());
+    await fireEvent.click(gigOnly());
     expect(button()).not.toBeNull();
     await fireEvent.click(button()!);
-    expect(gigBox().checked).toBe(false);
+    expect(gigOnly().getAttribute('aria-pressed')).toBe('false');
     expect(button()).toBeNull();
   });
 
@@ -654,13 +701,13 @@ describe('JobsList clear filters button', () => {
     await fireEvent.input(search(), { target: { value: 'a' } });
     await fireEvent.change(availability(), { target: { value: 'offline' } });
     await fireEvent.change(statusBox(), { target: { value: 'no' } });
-    await fireEvent.click(gigBox());
+    await fireEvent.click(gigExcept());
     await fireEvent.click(hideBox());
     await fireEvent.click(button()!);
     expect(search().value).toBe('');
     expect(availability().value).toBe('');
     expect(statusBox().value).toBe('');
-    expect(gigBox().checked).toBe(false);
+    expect(gigExcept().getAttribute('aria-pressed')).toBe('false');
     expect(hideBox().checked).toBe(false);
     expect((screen.getByLabelText('Sort by') as HTMLSelectElement).value).toBe('match_asc');
     await waitFor(async () => {

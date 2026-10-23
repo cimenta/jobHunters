@@ -1,16 +1,18 @@
 <script lang="ts">
   import type { TimelineType } from '@jobhunters/core';
-  import type { ApplicationDetail } from '../../api/types';
+  import type { ApplicationDetail, JobDetail } from '../../api/types';
   import Button from '../../components/Button.svelte';
   import Icon from '../../components/Icon.svelte';
   import EmptyState from '../../components/EmptyState.svelte';
   import { directionArrow, eventIcon, isUpcoming, typeIcon } from '../../lib/entry-style';
   import { formatDate } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
+  import { paths } from '../../lib/route';
   import { describeEvent, eventHoverText, eventSubline } from '../../lib/timeline';
   import DeleteApplicationDialog from '../DeleteApplicationDialog.svelte';
 
-  let { detail }: { detail: ApplicationDetail } = $props();
+  /** The timeline of one application (detail) or of a whole job (job): all its applications and the entries kept on the job. */
+  let { detail, job }: { detail?: ApplicationDetail; job?: JobDetail } = $props();
 
   const TYPES: TimelineType[] = ['status', 'message', 'meeting', 'after_meeting', 'homework', 'confirmation', 'document', 'pdf', 'reminder'];
   let hidden = $state<TimelineType[]>([]);
@@ -28,8 +30,17 @@
     hidden = hidden.includes(type) ? hidden.filter((entry) => entry !== type) : [...hidden, type];
   }
 
+  /** Where an event of a job timeline belongs: the job itself, or one of its applications. */
+  function origin(event: { data: Record<string, string> }): { text: string; href?: string } | undefined {
+    if (job === undefined) return undefined;
+    if (event.data.scope === 'job') return { text: tr('ui.timeline.originJob') };
+    const id = event.data.application_id ?? '';
+    const label = job.applications.find((application) => application.id === id)?.label ?? tr('ui.timeline.originApplication', { number: event.data.application_no ?? '' });
+    return { text: label, href: paths.application(id) };
+  }
+
   const events = $derived.by(() => {
-    const visible = detail.timeline.filter((event) => !hidden.includes(event.type));
+    const visible = (detail?.timeline ?? job?.timeline ?? []).filter((event) => !hidden.includes(event.type));
     return newestFirst ? [...visible].reverse() : visible;
   });
 </script>
@@ -52,6 +63,7 @@
         {@const subline = eventSubline(event)}
         {@const upcoming = isUpcoming(event, now)}
         {@const hover = eventHoverText(event)}
+        {@const where = origin(event)}
         <li class="list-item event" class:upcoming data-ui="timeline.event.{index}" data-type={event.type}>
           <!-- svelte-ignore a11y_no_noninteractive_tabindex, a11y_no_static_element_interactions -->
           <span class="ico t-{event.type}" data-ui="timeline.event.{index}.icon" tabindex={hover ? 0 : undefined} aria-describedby={hover && tipFor === index ? `timeline-tip-${index}` : undefined} onmouseenter={() => hover && (tipFor = index)} onmouseleave={() => (tipFor = undefined)} onfocus={() => hover && (tipFor = index)} onblur={() => (tipFor = undefined)}>
@@ -65,7 +77,7 @@
             {/if}
           </span>
           <span class="grow body">
-            <span>{describeEvent(event)}{#if upcoming}<span class="badge-upcoming" data-ui="timeline.event.{index}.upcoming">{tr('ui.timeline.upcoming')}</span>{/if}</span>
+            <span>{describeEvent(event)}{#if upcoming}<span class="badge-upcoming" data-ui="timeline.event.{index}.upcoming">{tr('ui.timeline.upcoming')}</span>{/if}{#if where}{#if where.href}<a class="origin app" data-ui="timeline.event.{index}.origin" href={where.href}>{where.text}</a>{:else}<span class="origin job" data-ui="timeline.event.{index}.origin">{where.text}</span>{/if}{/if}</span>
             {#if subline !== ''}<span class="muted small">{subline}</span>{/if}
           </span>
           <span class="muted small">{formatDate(event.at)}</span>
@@ -74,12 +86,16 @@
     </ul>
   {/if}
 
-  <div class="danger-zone" data-ui="timeline.danger-zone">
-    <Button variant="danger" ui="timeline.delete-application" onclick={() => (deleting = true)}><Icon name="trash" size={16} />{tr('ui.deleteApp.button')}</Button>
-  </div>
+  {#if detail}
+    <div class="danger-zone" data-ui="timeline.danger-zone">
+      <Button variant="danger" ui="timeline.delete-application" onclick={() => (deleting = true)}><Icon name="trash" size={16} />{tr('ui.deleteApp.button')}</Button>
+    </div>
+  {/if}
 </div>
 
-<DeleteApplicationDialog open={deleting} application={detail.application} onclose={() => (deleting = false)} />
+{#if detail}
+  <DeleteApplicationDialog open={deleting} application={detail.application} onclose={() => (deleting = false)} />
+{/if}
 
 <style>
   .chip { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); font: inherit; color: var(--text); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 999px; cursor: pointer; }
@@ -92,6 +108,8 @@
   .tip { display: flex; position: absolute; left: 44px; top: -6px; z-index: 5; width: max-content; max-width: min(320px, 70vw); flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-3); font-size: var(--text-s); line-height: 1.4; color: var(--text); text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); box-shadow: var(--shadow-2); }
   .tip-details { color: var(--text-muted); white-space: pre-wrap; }
   .dir { position: absolute; right: -4px; bottom: -4px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); }
+  .origin { margin-left: var(--space-2); padding: 1px 8px; font-size: var(--text-s); color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); border-radius: 999px; }
+  .origin.app { color: var(--accent); border-color: var(--accent); }
   .badge-upcoming { margin-left: var(--space-2); padding: 1px 8px; font-size: var(--text-s); color: var(--text); border: 1px solid var(--kind-meeting); border-radius: 999px; }
   .t-status, .t-document, .t-pdf { color: var(--text-muted); }
   .t-message, .t-after_meeting { color: var(--accent); }

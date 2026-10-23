@@ -178,6 +178,7 @@ export interface Email {
 
 export interface Communication {
   id: string;
+  /** Empty for an entry kept on the job itself (a gig can have no application); then job_id is set. */
   application_id: string;
   datetime: string;
   /** incoming, outgoing or note. */
@@ -190,6 +191,8 @@ export interface Communication {
   attachment_url: string;
   /** message, meeting, homework or confirmation; empty in rows from before the kind existed (read as message). */
   kind: string;
+  /** Set only for an entry kept on the job itself; empty in entries of an application. */
+  job_id: string;
 }
 
 export interface Template {
