@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { shiftMonth, todayKey } from '../lib/calendar';
+import { loadApp } from '../state/app.svelte';
 import { useDevBackend } from '../test/transport';
 import CalendarScreen from './CalendarScreen.svelte';
 
@@ -48,6 +49,18 @@ describe('CalendarScreen', () => {
     const bar = all(`calendar.waiting.${waiting[0]!.id}`)[0];
     expect(bar).not.toBeNull();
     expect(bar).toHaveAttribute('href', `#/applications/${waiting[0]!.id}`);
+  });
+
+  it('uses the colors chosen in Settings and the text color that fits them', async () => {
+    useDevBackend();
+    await api.updateSettings({ ui_state: JSON.stringify({ calendar_colors: { interview: '#000000', waiting: '', late: '' } }) });
+    await loadApp();
+    render(CalendarScreen);
+    await screen.findByText('Mon');
+    const style = ui('calendar')!.getAttribute('style') ?? '';
+    expect(style).toContain('--cal-interview: #000000');
+    expect(style).toContain('--cal-interview-ink: #ffffff');
+    expect(style).not.toContain('--cal-waiting');
   });
 
   it('moves between months and comes back with Today', async () => {

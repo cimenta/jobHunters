@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.20.1] - 2026-10-24
+
+- **Calendar colors**: Settings has a new card, **Calendar colors**, with a color picker for the background of the three kinds of entries in the Calendar (Interview, Waiting, Waiting with the reminder date passed). The text on them turns black or white by itself so it stays readable. **Reset to defaults** brings the colors of the theme back; a color left at its default is stored as "no choice", so the dark theme keeps its own. The choice is remembered with the other interface settings.
+- No Setup is needed for this update.
+
 ## [0.20.0] - 2026-10-24
 
 - New menu item **Calendar** (between Companies and Emails): the whole month on one page, weeks starting on Monday, with the days of the neighbouring months dimmed. The arrows move a month, **Today** comes back to the current one.

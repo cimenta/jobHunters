@@ -5,12 +5,14 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import { calendarColorStyle } from '../lib/calendar-colors';
   import { buildMonth, formatTime, shiftMonth, todayKey } from '../lib/calendar';
   import { channelIcon } from '../lib/entry-style';
   import { tr, ui } from '../lib/i18n.svelte';
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { invalidate } from '../state/invalidate.svelte';
+  import { uiState } from '../state/ui-state';
 
   const calendar = useResource(() => api.getCalendar());
   const today = todayKey();
@@ -23,6 +25,8 @@
     Array.from({ length: 7 }, (_, index) => new Date(Date.UTC(2026, 9, 5 + index)).toLocaleDateString(ui.locale, { weekday: 'short', timeZone: 'UTC' })),
   );
 
+  const colors = $derived(calendarColorStyle(uiState().calendar_colors));
+
   const LANE = 22;
 
   const name = (item: { company_name: string; job_title: string }): string => [item.company_name, item.job_title].filter((part) => part !== '').join(' – ');
@@ -31,7 +35,7 @@
   const waitingTip = (item: CalendarWaiting, late: boolean): string => `${tr(late ? 'ui.calendar.waitingLate' : 'ui.calendar.waiting')}: ${name(item)}`;
 </script>
 
-<div class="stack" data-ui="calendar">
+<div class="stack" data-ui="calendar" style={colors}>
   <div class="page-title">
     <h1 data-ui="calendar.title">{title}</h1>
     <div class="row wrap controls">
@@ -100,9 +104,9 @@
   .flip { display: inline-flex; transform: scaleX(-1); }
   .legend { display: flex; gap: var(--space-4); flex-wrap: wrap; }
   .key { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: var(--space-1); vertical-align: -1px; }
-  .key.interview { background: var(--accent-soft); }
-  .key.waiting { background: var(--warning-soft); }
-  .key.late { background: var(--danger-soft); }
+  .key.interview { background: var(--cal-interview, var(--accent-soft)); }
+  .key.waiting { background: var(--cal-waiting, var(--warning-soft)); }
+  .key.late { background: var(--cal-late, var(--danger-soft)); }
   .scroll { overflow-x: auto; }
   .grid { min-width: 720px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); overflow: hidden; }
   .dow, .days, .bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -115,11 +119,11 @@
   .num { font-size: var(--text-s); height: 20px; display: flex; align-items: center; }
   .day.today .num span { background: var(--accent); color: var(--on-accent); border-radius: 10px; padding: 0 7px; font-weight: 600; }
   .bars { position: absolute; left: 0; right: 0; top: 28px; pointer-events: none; grid-auto-rows: 20px; row-gap: 2px; }
-  .wbar { pointer-events: auto; margin: 0 3px; padding: 0 8px; font-size: 0.75rem; line-height: 20px; border-radius: var(--radius-s); background: var(--warning-soft); color: var(--warning); display: flex; align-items: center; gap: 4px; min-width: 0; text-decoration: none; }
-  .wbar.late { background: var(--danger-soft); color: var(--danger); }
+  .wbar { pointer-events: auto; margin: 0 3px; padding: 0 8px; font-size: 0.75rem; line-height: 20px; border-radius: var(--radius-s); background: var(--cal-waiting, var(--warning-soft)); color: var(--cal-waiting-ink, var(--warning)); display: flex; align-items: center; gap: 4px; min-width: 0; text-decoration: none; }
+  .wbar.late { background: var(--cal-late, var(--danger-soft)); color: var(--cal-late-ink, var(--danger)); }
   .wbar.cl { border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; }
   .wbar.cr { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
-  .chip { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; line-height: 18px; padding: 1px 6px; margin-top: 2px; border-radius: var(--radius-s); background: var(--accent-soft); color: var(--text); text-decoration: none; min-width: 0; }
+  .chip { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; line-height: 18px; padding: 1px 6px; margin-top: 2px; border-radius: var(--radius-s); background: var(--cal-interview, var(--accent-soft)); color: var(--cal-interview-ink, var(--text)); text-decoration: none; min-width: 0; }
   .chip.past { opacity: 0.6; }
   .chip:hover, .wbar:hover { filter: brightness(0.95); }
   .what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

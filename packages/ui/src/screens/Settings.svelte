@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { EXPERIENCE_MAX, MENU_ITEMS, MENU_METRICS, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, stringifyMenuNumbers, type MenuItem, type PromptType } from '@jobhunters/core';
+  import { CALENDAR_COLOR_KEYS, EXPERIENCE_MAX, MENU_ITEMS, MENU_METRICS, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, stringifyMenuNumbers, type CalendarColorKey, type MenuItem, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -11,6 +11,7 @@
   import HistoryButton from '../components/HistoryButton.svelte';
   import Tabs from '../components/Tabs.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import { DEFAULT_CALENDAR_COLORS, inkFor } from '../lib/calendar-colors';
   import { tr } from '../lib/i18n.svelte';
   import { describeWarning } from '../lib/errors';
   import { documentTypeLabel } from '../lib/labels';
@@ -21,6 +22,7 @@
   import { ids, setIdsVisible } from '../state/ids.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
+  import { saveUiState, uiState } from '../state/ui-state';
   import JobStatusStylesEditor from './JobStatusStylesEditor.svelte';
   import StatusStylesEditor from './StatusStylesEditor.svelte';
   import TransitionsEditor from './TransitionsEditor.svelte';
@@ -124,6 +126,26 @@
     await api.updateSettings({ ui_theme: uiTheme });
     await reloadSettings();
     toast.success(tr('ui.settings.savedTheme', { mode: tr(`ui.theme.${uiTheme}`) }));
+  }
+
+  const CALENDAR_COLOR_LABELS: Record<CalendarColorKey, string> = { interview: 'ui.calendar.interview', waiting: 'ui.calendar.waiting', late: 'ui.calendar.waitingLate' };
+  /** What the pickers show: the chosen color, or the default of the light theme when none was chosen. */
+  let calendarColors = $state<Record<CalendarColorKey, string>>({ ...DEFAULT_CALENDAR_COLORS });
+  $effect(() => {
+    const saved = uiState().calendar_colors;
+    calendarColors = Object.fromEntries(CALENDAR_COLOR_KEYS.map((key) => [key, saved[key] || DEFAULT_CALENDAR_COLORS[key]])) as Record<CalendarColorKey, string>;
+  });
+
+  function saveCalendarColors(): void {
+    // A color left at the default is stored as "no choice", so the dark theme keeps its own.
+    const chosen = Object.fromEntries(CALENDAR_COLOR_KEYS.map((key) => [key, calendarColors[key] === DEFAULT_CALENDAR_COLORS[key] ? '' : calendarColors[key]])) as Record<CalendarColorKey, string>;
+    saveUiState({ calendar_colors: chosen });
+    toast.success(tr('ui.settings.savedCalendarColors'));
+  }
+
+  function resetCalendarColors(): void {
+    saveUiState({ calendar_colors: { interview: '', waiting: '', late: '' } });
+    toast.success(tr('ui.settings.savedCalendarColors'));
   }
 
   async function saveNotices(): Promise<void> {
@@ -332,6 +354,22 @@
       </select>
     </Field>
     <div><Button variant="primary" ui="settings.appearance.save" onclick={saveTheme}>{tr('ui.save')}</Button></div>
+  </Card>
+
+  <Card ui="settings.calendar-colors">
+    <h2>{tr('ui.settings.calendarColors')}</h2>
+    <p class="muted small">{tr('ui.settings.calendarColorsText')}</p>
+    {#each CALENDAR_COLOR_KEYS as key (key)}
+      <div class="row color-row">
+        <label for="set-cal-{key}">{tr(CALENDAR_COLOR_LABELS[key])}</label>
+        <input data-ui="settings.calendar-colors.{key}" id="set-cal-{key}" type="color" bind:value={calendarColors[key]} />
+        <span class="sample" style="background: {calendarColors[key]}; color: {inkFor(calendarColors[key])}">{tr(CALENDAR_COLOR_LABELS[key])}</span>
+      </div>
+    {/each}
+    <div class="row">
+      <Button variant="primary" ui="settings.calendar-colors.save" onclick={saveCalendarColors}>{tr('ui.save')}</Button>
+      <Button ui="settings.calendar-colors.reset" onclick={resetCalendarColors}>{tr('ui.settings.calendarColorsReset')}</Button>
+    </div>
   </Card>
 
   <Card ui="settings.notices">
@@ -654,6 +692,10 @@
 </div>
 
 <style>
+  .color-row { align-items: center; gap: var(--space-3); }
+  .color-row label { min-width: 12rem; }
+  .color-row input[type='color'] { width: 56px; height: 36px; padding: 2px; border: 1px solid var(--border); border-radius: var(--radius-s); background: transparent; cursor: pointer; }
+  .sample { padding: 2px var(--space-3); border-radius: var(--radius-s); font-size: var(--text-s); }
   /* Columns, not a grid: the cards stack under each other without gaps from rows of different heights. */
   .general-grid { columns: 260px; column-gap: var(--space-2); }
   .general-grid :global(.card) { gap: var(--space-2); padding: var(--space-3); margin-bottom: var(--space-2); break-inside: avoid; }

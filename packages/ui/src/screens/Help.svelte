@@ -148,6 +148,7 @@
       <li>{tr('ui.help.calendar.i2')}</li>
       <li>{tr('ui.help.calendar.i3')}</li>
       <li>{tr('ui.help.calendar.i4')}</li>
+      <li>{tr('ui.help.calendar.i5')}</li>
     </ul>
     <p><a data-ui="help.open.calendar" href={paths.calendar}>{tr('ui.help.open', { name: tr('ui.help.calendar.title') })}</a></p>
   </Card>

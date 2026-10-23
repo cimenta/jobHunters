@@ -86,7 +86,7 @@ do the writing and the reading for you.
   portal), **reminders** with a Dashboard of what is
   overdue and what is coming, and a **timeline** of everything that happened to an application.
 - **Companies** with their website, notes, jobs and applications.
-- **Calendar**: the whole month with your interviews (chips on their day) and the applications you are waiting for (bars from the day they went to Waiting to the day of the reminder, red once it has passed); the arrows move a month.
+- **Calendar**: the whole month with your interviews (chips on their day) and the applications you are waiting for (bars from the day they went to Waiting to the day of the reminder, red once it has passed); the arrows move a month, and the colors of the entries can be chosen in Settings.
 - **Emails**: a read-only viewer of the mail that a separate script copies from your mailbox into the sheet Emails (search, direction filter, bulk mail hidden on request).
 
 The record of what happened and when is the core of this part: every status change, message, reminder and document

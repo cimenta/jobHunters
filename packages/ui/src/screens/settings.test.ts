@@ -36,6 +36,18 @@ describe('Settings', () => {
     expect((await api.getSettings()).settings.ui_language).toBe('cs');
   });
 
+  it('saves the calendar colors, keeps a color left at its default as no choice, and resets them', async () => {
+    await open();
+    const pick = (name: string): HTMLInputElement => document.querySelector(`[data-ui="settings.calendar-colors.${name}"]`) as HTMLInputElement;
+    const click = (name: string): Promise<boolean> => fireEvent.click(document.querySelector(`[data-ui="settings.calendar-colors.${name}"]`)!);
+    expect(pick('interview').value).toBe('#d9f1ee');
+    await fireEvent.input(pick('interview'), { target: { value: '#112233' } });
+    await click('save');
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '#112233', waiting: '', late: '' }));
+    await click('reset');
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '', waiting: '', late: '' }));
+  });
+
   it('switches the result notices off and on', async () => {
     await open();
     await fireEvent.click(screen.getByLabelText('Show a notice when an operation finishes'));
