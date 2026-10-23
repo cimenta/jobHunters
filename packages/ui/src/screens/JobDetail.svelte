@@ -8,6 +8,7 @@
   import Icon from '../components/Icon.svelte';
   import Tabs from '../components/Tabs.svelte';
   import InlineText from '../components/InlineText.svelte';
+  import GigBox from '../components/GigBox.svelte';
   import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
@@ -145,6 +146,7 @@
                 {/if}
               {/each}
               {#if job.status !== 'awaiting'}
+                <GigBox jobId={job.id} isGig={job.is_gig} ui="job-detail" />
                 <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="job-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
                 {#if job.is_gig}
                   <InlineText wide="two" label={tr('ui.job.gigShift')} value={job.gig_shift ?? ''} maxlength={300} placeholder={tr('ui.job.gigShiftPlaceholder')} ui="job-detail.gig-shift" onsave={(text) => api.updateJob(job.id, { gig_shift: text })} />

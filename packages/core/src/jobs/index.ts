@@ -12,6 +12,8 @@ export * from './gigaprace';
 export * from './jooble';
 export * from './spravnykrok';
 export * from './nelisa';
+export * from './manpower';
+export * from './flek';
 export * from './fetcher';
 export * from './job-service';
 export * from './job-import-service';

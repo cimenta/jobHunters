@@ -69,6 +69,13 @@ describe('Fajn Brigády and Inwork parser: edge cases', () => {
     expect(FAJN_PARSER.parse(html, INWORK_URL)).toMatchObject({ salary_min: 150, salary_max: 150, salary_period: 'hour', employment_type: 'part_time' });
   });
 
+  it('reads a pay per "h" as hourly and drops emoji from the text', () => {
+    const html = read('ad-prace.html').replace('30 000 - 35 000 Kč/<span title="měsíčně">měs.</span>', '200 - 200 Kč/h').replace('Garantovaná mzda', '💰 Garantovaná mzda');
+    const job = FAJN_PARSER.parse(html, INWORK_URL);
+    expect(job).toMatchObject({ salary_min: 200, salary_max: 200, salary_period: 'hour' });
+    expect(/\p{Extended_Pictographic}/u.test(job.title + job.description)).toBe(false);
+  });
+
   it('leaves the salary empty when the wage row is missing or has no amount, and takes the company from the page title when there is no company row', () => {
     const html = read('ad-prace.html').replace(/<div class="iw-offer-detail__info__item">\s*<span class="green-text __tabulka_nadpisek">Mzda:[\s\S]*?<\/div>/, '').replace(/<div class="iw-offer-detail__info__item">\s*<span class="green-text __tabulka_nadpisek">Firma:[\s\S]*?<\/div>/, '');
     expect(FAJN_PARSER.parse(html, INWORK_URL)).toMatchObject({ salary_min: null, salary_max: null, salary_currency: '', company: 'Example Staffing s.r.o.' });

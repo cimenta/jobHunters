@@ -133,6 +133,18 @@ export function looksLikeHtml(text: string): boolean {
   return /^\s*<(?:div|section|article|main|header|h[1-6]|ul|ol|table|p)\b/i.test(text.slice(0, 200)) && (text.match(/<\/[a-z]/gi)?.length ?? 0) >= 5;
 }
 
+/** Text without emoji and invisible joiners (recruiters put them into headings and lists); lines and blank lines stay. */
+export function stripPictographs(text: string): string {
+  return text
+    .replace(/[\u2060\u200b\u200d\ufe0f]/g, '')
+    .replace(/\p{Extended_Pictographic}/gu, '')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 export function foldDiacritics(text: string): string {
   return text.normalize('NFD').replace(/[̀-ͯ]/g, '');
 }

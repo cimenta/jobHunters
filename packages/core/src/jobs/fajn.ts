@@ -1,5 +1,5 @@
 import { GIG_TEXT } from './generic';
-import { elementsInnerHtml, foldDiacritics, htmlToText, titleTag } from './html';
+import { elementsInnerHtml, foldDiacritics, htmlToText, stripPictographs, titleTag } from './html';
 import { emptyParsedJob, finishParsedJob, type JobParser, type ParsedJob } from './parsed-job';
 import { parseSalaryText } from './salary';
 import { hostIs, parseUrl } from './url';
@@ -24,7 +24,7 @@ function facts(html: string): Map<string, string> {
 function periodOf(text: string): string {
   const unit = /\/\s*([^\s<]+)/.exec(foldDiacritics(text).toLowerCase())?.[1] ?? '';
   if (unit.startsWith('mes')) return 'month';
-  if (unit.startsWith('hod')) return 'hour';
+  if (unit.startsWith('hod') || unit === 'h') return 'hour';
   if (unit.startsWith('den')) return 'day';
   if (unit.startsWith('tyd')) return 'week';
   if (unit.startsWith('rok')) return 'year';
@@ -67,7 +67,7 @@ export const FAJN_PARSER: JobParser = {
   parse(html, url) {
     const job: ParsedJob = emptyParsedJob();
     const heading = elementsInnerHtml(html, /^<h1\b/i)[0];
-    job.title = heading === undefined ? '' : htmlToText(heading);
+    job.title = heading === undefined ? '' : stripPictographs(htmlToText(heading));
     const rows = facts(html);
     job.company = rows.get('firma') ?? companyFromTitleTag(html);
     job.location = rows.get('pracoviste') ?? rows.get('lokalita') ?? '';
@@ -88,7 +88,7 @@ export const FAJN_PARSER: JobParser = {
     if (job.is_gig && job.employment_type === '') job.employment_type = 'temporary';
 
     job.posted_at = dateOf(html);
-    const blocks = elementsInnerHtml(html, /class="[^"]*rich-text-content/).map((block) => htmlToText(block)).filter((block) => block !== '');
+    const blocks = elementsInnerHtml(html, /class="[^"]*rich-text-content/).map((block) => stripPictographs(htmlToText(block))).filter((block) => block !== '');
     job.description = [...new Set(blocks)].join('\n\n');
     return finishParsedJob(job);
   },

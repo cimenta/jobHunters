@@ -31,7 +31,7 @@ export function toDraft(parsed: ParsedJob): JobDraft {
     salary_max: parsed.salary_max == null ? '' : String(parsed.salary_max),
     salary_currency: parsed.salary_currency,
     salary_period: parsed.salary_period,
-    contact_person: '',
+    contact_person: parsed.contact_person ?? '',
     gig_shift: '',
     is_gig: parsed.is_gig,
     is_remote: parsed.is_remote,

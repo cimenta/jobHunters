@@ -2,6 +2,18 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.19.2] - 2026-10-24
+
+- New readers for two more job portals. **Manpower** (manpower.cz, `/nabidky-prace/<name>--<number>/`) reads the page itself, because its structured data is broken and names the head office: the title, the contract and the place from the two labels under the heading, the date the ad was put in, and the text of the ad (the introduction and the blocks Popis pozice, Požadujeme, Nabízíme) without the closing notice about men and women. The box on the left adds the field (Obor) and the benefits (Benefity) to the text, and the recruiter named there (name, phone, e-mail) is filled in as the contact person of the job. The pay is taken from the text of the ad when a line about the wage names an amount in crowns ("Mzdu až 45 000 Kč" is a monthly upper limit, "od" a lower one). **Flek** (flek.cz, `/nabidka/<name>/<number>/`) uses the structured data of the page and adds the place as the city without the country code, the contract from the summary box, the gig mark and the text without the same notice.
+- Pictures (emoji) and invisible characters are now removed from the titles and texts read from Fajn Brigády, Inwork, Nelisa, Manpower and Flek, and a pay written as "Kč/h" is an hourly pay (Fajn Brigády showed "200 - 200 Kč/h" without a period).
+- Links of both portals are cleaned of tracking parameters and every link to one ad gets the same key, so adding the same ad twice is recognised. Fajn Brigády still blocks programs with a check page; if Add job reports that the page cannot be read, paste the source code (or the copied page) instead.
+- No Setup is needed for this update.
+
+## [0.19.1] - 2026-10-24
+
+- The detail of a job has a checkbox **Gig** (in the facts, next to Remote and Hybrid, under "Kind of work") so a job can be marked as a gig, or the mark taken off, with one click. It is saved at once (if the save fails, the box goes back and the error is shown). Ticking it adds the field **Shift**, as before. The box of the Notes tab is the same value and stays in step with it.
+- No Setup is needed for this update.
+
 ## [0.19.0] - 2026-10-23
 
 - New readers for six more job portals. **Fajn Brigády** (fajn-brigady.cz) and **Inwork** (inwork.cz) share one reader: it takes the title, the company, the place of work, the wage (a wage per task is kept as an amount with no period, not called monthly), the type of contract, the date the ad was put in and the whole text of the ad. Every ad of Fajn Brigády is a gig. **GigaPráce** (gigaprace.cz) uses the structured data of the page, and the reader only gives the place of work as the city without the country code. **Jooble** (cz.jooble.org) has a reader of its own for the ad inside its page (title without the kind of the ad, hourly or monthly pay, contract types, company, region, the whole text, gig); every link to one Jooble ad has the same key. **Správný krok** (spravnykrok.cz) has a reader of its own too, for a page without structured data: title, company, place, pay (monthly or hourly), contract, the text between the two answer buttons and a gig mark; the contact person of the ad is left out. **Nelisa** (nelisa.com, the offers of employers at `<company>.nelisa.com/cs/offer/...`) has one too: the page has no structured data, so it reads the headline (without pictures and the closing pay, because the page has no separate position name, so check the title), the company, the place, "od 36 000 Kč měsíčně" as a monthly lower limit, the type of work and the text of the ad.

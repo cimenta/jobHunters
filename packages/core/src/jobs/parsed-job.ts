@@ -19,6 +19,8 @@ export interface ParsedJob {
   valid_until: string;
   description: string;
   language: string;
+  /** Optional: the recruiter named on the page (name, phone, e-mail); saved as the contact person of the job. */
+  contact_person?: string;
   /** Fields among title, company, location and description that no parser could find. */
   missing: string[];
 }
@@ -76,5 +78,6 @@ export function mergeParsed(base: ParsedJob, over: ParsedJob): ParsedJob {
     description: text(base.description, over.description),
     language: text(base.language, over.language),
     missing: [],
+    ...((over.contact_person ?? base.contact_person ?? '') !== '' ? { contact_person: over.contact_person || base.contact_person } : {}),
   };
 }

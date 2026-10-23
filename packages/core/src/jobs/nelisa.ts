@@ -1,23 +1,11 @@
 import { GIG_TEXT } from './generic';
-import { elementsInnerHtml, foldDiacritics, htmlToText } from './html';
+import { elementsInnerHtml, foldDiacritics, htmlToText, stripPictographs } from './html';
 import { emptyParsedJob, finishParsedJob, type JobParser } from './parsed-job';
 import { parseSalaryText } from './salary';
 import { hostIs, parseUrl } from './url';
 
 /** An ad of Nelisa: `/<language>/offer/<uuid>`, on the subdomain of the company. */
 const AD_PATH = /^\/[a-z]{2}\/offer\/[0-9a-f-]{36}\/?$/i;
-
-/** Pictures and invisible joiners that recruiters put into headings and texts; they are not part of the words. */
-function plain(text: string): string {
-  return text
-    .replace(/[⁠​‍️]/g, '')
-    .replace(/\p{Extended_Pictographic}/gu, '')
-    .split('\n')
-    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
-    .join('\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
 
 /** Every `<dt>label</dt><dd>value</dd>` of the page, label folded to lower case; the first of a label wins. */
 function facts(html: string): Map<string, string> {
@@ -59,7 +47,7 @@ export const NELISA_PARSER: JobParser = {
     const rows = facts(html);
 
     const heading = elementsInnerHtml(html, /^<h1\b/i)[0];
-    const headline = heading === undefined ? '' : plain(htmlToText(heading));
+    const headline = heading === undefined ? '' : stripPictographs(htmlToText(heading));
     // A closing "| 36 000 Kč" is the pay, which has its own field.
     const parts = headline.split(/\s*\|\s*/);
     if (parts.length > 1 && parseSalaryText(parts[parts.length - 1]!) !== undefined) parts.pop();
@@ -68,7 +56,7 @@ export const NELISA_PARSER: JobParser = {
     if (heading !== undefined) {
       const after = html.slice(html.indexOf(heading) + heading.length);
       const company = /^<\/h1>\s*<p\b[^>]*>([\s\S]*?)<\/p>/.exec(after)?.[1];
-      job.company = company === undefined ? '' : plain(htmlToText(company));
+      job.company = company === undefined ? '' : stripPictographs(htmlToText(company));
     }
     if (job.company === '') job.company = /alt="Logo společnosti ([^"]+)"/.exec(html)?.[1]?.trim() ?? '';
 
@@ -92,7 +80,7 @@ export const NELISA_PARSER: JobParser = {
     job.is_gig = GIG_TEXT.test(`${kind} ${form}`);
 
     const body = elementsInnerHtml(html, /^<div\b[^>]*\blang="/i)[0];
-    job.description = body === undefined ? '' : plain(htmlToText(body));
+    job.description = body === undefined ? '' : stripPictographs(htmlToText(body));
     return finishParsedJob(job);
   },
 };

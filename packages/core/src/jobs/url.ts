@@ -83,6 +83,14 @@ export function jobUrlKey(url: string): string {
     const match = /\/(\d{4,})-[a-z0-9-]+\/?$/i.exec(parsed.path);
     if (match) return `${hostIs(url, 'inwork.cz') ? 'inwork.cz' : 'fajn-brigady.cz'}:${match[1]}`;
   }
+  if (hostIs(url, 'manpower.cz')) {
+    const match = /^\/nabidky-prace\/[a-z0-9-]+--(\d+)\/?$/i.exec(parsed.path);
+    if (match) return `manpower.cz:${match[1]}`;
+  }
+  if (hostIs(url, 'flek.cz')) {
+    const match = /^\/nabidka\/[a-z0-9-]+\/(\d+)\/?$/i.exec(parsed.path);
+    if (match) return `flek.cz:${match[1]}`;
+  }
   if (hostIs(url, 'nelisa.com')) {
     const match = /^\/[a-z]{2}\/offer\/([0-9a-f-]{36})\/?$/i.exec(parsed.path);
     if (match) return `nelisa:${match[1]!.toLowerCase()}`;

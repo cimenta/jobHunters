@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CELL_LIMIT, decodeEntities, detectLanguage, elementsInnerHtml, foldDiacritics, htmlToText, jsonLdObjects,
-  looksLikeHtml, metaContent, parseAttrs, stripTags, titleTag, truncateForCell,
+  looksLikeHtml, metaContent, parseAttrs, stripPictographs, stripTags, titleTag, truncateForCell,
 } from './html';
 
 describe('looksLikeHtml', () => {
@@ -114,5 +114,12 @@ describe('detectLanguage', () => {
   it('returns empty for short or unclear text', () => {
     expect(detectLanguage('Developer')).toBe('');
     expect(detectLanguage('Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor')).toBe('');
+  });
+});
+
+describe('stripPictographs', () => {
+  it('removes emoji and invisible joiners and tidies the spaces', () => {
+    expect(stripPictographs('\u{1F4B0} Mzda  200 Kč\u2060 \u2705\n\n\n\nDruhý řádek')).toBe('Mzda 200 Kč\n\nDruhý řádek');
+    expect(stripPictographs('Čistý text')).toBe('Čistý text');
   });
 });

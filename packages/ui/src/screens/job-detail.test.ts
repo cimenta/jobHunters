@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DEMO_URL } from '@jobhunters/gas/dev';
 import { api } from '../api';
 import { loadApp } from '../state/app.svelte';
@@ -43,7 +43,8 @@ describe('JobDetail', () => {
     render(JobDetail, { id });
     await fireEvent.click(await screen.findByRole('tab', { name: 'Notes' }));
     await fireEvent.input(await screen.findByRole('textbox', { name: 'Notes' }), { target: { value: 'Call on Monday' } });
-    await fireEvent.click(screen.getByLabelText('Gig (short-term work)'));
+    // The job detail has two boxes for the same value (the facts and this tab); this one is saved with the notes.
+    await fireEvent.click(document.querySelector('[data-ui="job-detail.gig"]')!);
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Notes of "Android Developer" saved'));
     const saved = await api.getJob(id);
@@ -368,6 +369,59 @@ describe('JobDetail link', () => {
     await fireEvent.keyDown(input, { key: 'Enter' });
     await waitFor(() => expect(text()).toHaveTextContent('https://example.com/jobs/android-2'));
     expect((await api.getJob(id)).job.url).toBe('https://example.com/jobs/android-2');
+  });
+});
+
+describe('JobDetail gig checkbox', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+  const box = () => ui('job-detail.gig-box.gig') as HTMLInputElement;
+
+  it('marks a job as a gig with one click, saves it at once and shows the field of the shift, and takes the mark off again', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(ui('job-detail.info')).toContainElement(ui('job-detail.gig-box'));
+    expect(box()).not.toBeChecked();
+    expect(ui('job-detail.gig-shift')).toBeNull();
+    await fireEvent.click(box());
+    await waitFor(async () => expect((await api.getJob(id)).job.is_gig).toBe(true));
+    await waitFor(() => expect(ui('job-detail.gig-shift')).not.toBeNull());
+    expect(box()).toBeChecked();
+    await fireEvent.click(box());
+    await waitFor(async () => expect((await api.getJob(id)).job.is_gig).toBe(false));
+    await waitFor(() => expect(ui('job-detail.gig-shift')).toBeNull());
+  });
+
+  it('shows a job that is already a gig ticked, and keeps the box of the Notes tab in step', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Data Analyst (part time)');
+    backend.container.jobs.update(id, { is_gig: true });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
+    await waitFor(() => expect(box()).toBeChecked());
+    await fireEvent.click(screen.getByRole('tab', { name: /Notes/ }));
+    expect(ui('job-detail.gig')).toBeChecked();
+  });
+
+  it('puts the box back and reports the error when the save fails', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const spy = vi.spyOn(api, 'updateJob').mockRejectedValueOnce(new Error('network down'));
+    await fireEvent.click(box());
+    await waitFor(() => expect(box()).not.toBeChecked());
+    spy.mockRestore();
+  });
+
+  it('is not offered for a job that waits for the AI', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { status: 'awaiting' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    expect(ui('job-detail.gig-box')).toBeNull();
   });
 });
 
