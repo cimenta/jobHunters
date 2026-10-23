@@ -9,7 +9,8 @@ const MAX_REDIRECTS = 5;
  */
 export class GasPageFetcher implements PageFetcher {
   fetch(url: string): FetchResult {
-    let current = url;
+    // The part after # stays in the stored address (it names an ad on a page with several), but is not sent to the server.
+    let current = url.replace(/#.*$/, '');
     let status = 0;
     try {
       for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {

@@ -6,10 +6,12 @@ export interface ParsedUrl {
   path: string;
   /** Raw "key=value" pairs in their original order. */
   query: string[];
+  /** The part after #, without it. */
+  fragment: string;
 }
 
 // Apps Script has no URL class, so web addresses are split by hand.
-const URL_PATTERN = /^(https?):\/\/([^\/?#]+)([^?#]*)(?:\?([^#]*))?(?:#.*)?$/i;
+const URL_PATTERN = /^(https?):\/\/([^\/?#]+)([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/i;
 
 const TRACKING_PARAMS = new Set([
   'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid', 'igshid', '_ga',
@@ -28,6 +30,7 @@ export function parseUrl(raw: string): ParsedUrl | undefined {
     host,
     path: match[3] || '/',
     query: (match[4] ?? '').split('&').filter((pair) => pair !== ''),
+    fragment: match[5] ?? '',
   };
 }
 
@@ -41,14 +44,23 @@ function isTrackingParam(name: string): boolean {
   return lower.startsWith('utm_') || TRACKING_PARAMS.has(lower);
 }
 
-/** The address that is fetched and stored: tracking parameters and fragment removed. */
+/** Sites whose single page lists several ads, each reached by an anchor ("#analytik-medior"). */
+const ANCHOR_HOSTS = ['cesnet.cz'];
+
+/** The anchor that tells the ads of such a page apart; the fragment of every other address is dropped as noise. */
+function anchorOf(parsed: ParsedUrl): string {
+  const listed = ANCHOR_HOSTS.some((domain) => parsed.host === domain || parsed.host.endsWith(`.${domain}`));
+  return listed && /^[a-z0-9][a-z0-9_.-]*$/i.test(parsed.fragment) ? parsed.fragment : '';
+}
+
+/** The address that is stored: tracking parameters removed, and the fragment too unless the site is one that needs its anchor. */
 export function normalizeJobUrl(raw: string): string {
   const trimmed = raw.trim();
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   const parsed = parseUrl(withScheme);
   if (!parsed) throw new ValidationError('url_invalid', `Not a valid web address: ${trimmed}`, { url: trimmed.slice(0, 200) });
   const kept = parsed.query.filter((pair) => !isTrackingParam(pair.split('=')[0]!));
-  return `${parsed.protocol}://${parsed.host}${parsed.path}${kept.length > 0 ? `?${kept.join('&')}` : ''}`;
+  return `${parsed.protocol}://${parsed.host}${parsed.path}${kept.length > 0 ? `?${kept.join('&')}` : ''}${anchorOf(parsed) === '' ? '' : `#${anchorOf(parsed)}`}`;
 }
 
 function queryValue(query: string[], name: string): string | undefined {
@@ -110,7 +122,8 @@ export function jobUrlKey(url: string): string {
 
   const host = parsed.host.replace(/^www\./, '');
   const path = parsed.path.length > 1 ? parsed.path.replace(/\/+$/, '') : '';
-  return `${host}${path}${parsed.query.length > 0 ? `?${parsed.query.join('&')}` : ''}`;
+  const anchor = anchorOf(parsed).toLowerCase();
+  return `${host}${path}${parsed.query.length > 0 ? `?${parsed.query.join('&')}` : ''}${anchor === '' ? '' : `#${anchor}`}`;
 }
 
 function safeDecode(text: string): string {

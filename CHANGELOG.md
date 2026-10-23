@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.19.4] - 2026-10-24
+
+- Two ads on one career page are no longer taken for the same ad: for cesnet.cz the part of the address after # (for example `#analytik-medior`) is kept in the stored link and in the duplicate check. The addresses of other sites are cleaned of it as before.
+- New reader for the career page of CESNET (cesnet.cz/kariera): from the page with all open positions it takes the one named by the anchor of the link (title, place, text). The page is behind a "not a bot" check, so paste its source code into Add job together with the link.
+- No Setup is needed for this update.
+
 ## [0.19.3] - 2026-10-24
 
 - **Setup is needed** (once, adds the column `job_id` to the sheet Communications; the red "!" says so). Until then the new tabs cannot save entries.

@@ -9,6 +9,7 @@ describe('parseUrl', () => {
       host: 'www.example.com',
       path: '/a/b',
       query: ['x=1', 'y=2'],
+      fragment: 'frag',
     });
   });
   it('defaults the path to /', () => {
