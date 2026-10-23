@@ -2,6 +2,7 @@ export * from './application-service';
 export * from './application-sort';
 export * from './availability';
 export * from './applications';
+export * from './calendar';
 export * from './catalog';
 export * from './menu-metrics';
 export * from './job-lifecycle';

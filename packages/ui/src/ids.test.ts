@@ -38,6 +38,7 @@ describe('element identifiers', () => {
       [`#/applications/${applicationId}`, 'status-control.target', ['application-detail', 'application-detail.header', 'application-detail.tabs', 'application-detail.panel', 'tab.ad', 'tab.documents', 'tab.questions', 'tab.communications', 'tab.reminders', 'tab.timeline', 'status-control', 'ad']],
       ['#/companies', 'companies.list', ['companies', `company.${companyId}`]],
       [`#/companies/${companyId}`, 'company-detail.save', ['company-detail', 'company-detail.jobs', 'company-detail.applications']],
+      ['#/calendar', 'calendar.grid', ['calendar', 'calendar.title', 'calendar.prev', 'calendar.today', 'calendar.next', 'calendar.legend', 'nav.calendar']],
       ['#/settings', 'settings.language', ['settings', 'settings.panel', 'settings.language', 'settings.appearance', 'tab.general', 'tab.documents', 'tab.experience', 'tab.prompts', 'tab.availability', 'tab.profile', 'tab.templates', 'tab.statuses', 'tab.about']],
     ];
     for (const [hash, waitForId, expected] of screens) {

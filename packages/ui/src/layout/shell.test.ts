@@ -60,7 +60,7 @@ it('has a separate green plus link next to Jobs that opens Add job', () => {
   expect(jobs).not.toContainElement(plus);
   expect(plus.closest('a.item')).toBeNull();
   expect(plus.parentElement).toBe(jobs.parentElement);
-  expect(document.querySelectorAll('nav a.item')).toHaveLength(8);
+  expect(document.querySelectorAll('nav a.item')).toHaveLength(9);
 });
 
 describe('menu counts', () => {

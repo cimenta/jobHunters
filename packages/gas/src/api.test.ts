@@ -635,6 +635,20 @@ describe('job import api', () => {
     expect(draftCount()).toBe(listedDrafts());
   });
 
+  it('getCalendar lists the meetings and the applications in waiting with the start and the reminder date', () => {
+    const { api } = setup(pages());
+    const jobId = (api('saveJob', { url: 'https://example.com/jobs/1', overrides: { title: 'Analyst', company: 'Example' } }) as { data: { job: { id: string } } }).data.job.id;
+    const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    api('addCommunication', { applicationId, kind: 'meeting', direction: 'incoming', channel: 'video', summary: 'Interview', datetime: '2026-10-27T13:00:00.000Z' });
+    api('setApplicationStatus', { id: applicationId, to: 'sent' });
+    api('setApplicationStatus', { id: applicationId, to: 'waiting', remindAt: '2026-11-05' });
+    const { data } = api('getCalendar') as { data: { interviews: { datetime: string; job_title: string }[]; waitings: { application_id: string; start: string; due_at: string }[] } };
+    expect(data.interviews).toMatchObject([{ datetime: '2026-10-27T13:00:00.000Z', job_title: 'Analyst' }]);
+    expect(data.waitings).toHaveLength(1);
+    expect(data.waitings[0]).toMatchObject({ application_id: applicationId, due_at: '2026-11-05' });
+    expect(data.waitings[0]!.start).not.toBe('');
+  });
+
   it('getDashboard counts waiting AI tasks', () => {
     const { api } = setup(pages());
     api('importJob', { url: BLOCKED });

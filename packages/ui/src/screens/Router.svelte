@@ -1,6 +1,7 @@
 <script lang="ts">
   import { router } from '../lib/router.svelte';
   import ApplicationsScreen from './ApplicationsScreen.svelte';
+  import CalendarScreen from './CalendarScreen.svelte';
   import CompaniesScreen from './CompaniesScreen.svelte';
   import Dashboard from './Dashboard.svelte';
   import EmailsScreen from './EmailsScreen.svelte';
@@ -19,6 +20,8 @@
   <ApplicationsScreen />
 {:else if router.current.name === 'companies' || router.current.name === 'company'}
   <CompaniesScreen />
+{:else if router.current.name === 'calendar'}
+  <CalendarScreen />
 {:else if router.current.name === 'emails' || router.current.name === 'email'}
   <EmailsScreen />
 {:else if router.current.name === 'tasks'}

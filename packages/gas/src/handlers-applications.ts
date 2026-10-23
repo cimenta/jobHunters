@@ -9,6 +9,7 @@ import {
   type SearchType,
   PROFILE_KEYS,
   applicationRows,
+  buildCalendar,
   buildDashboard,
   buildMenuCounts,
   buildJobTimeline,
@@ -260,6 +261,16 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
         { limit: limit ?? undefined, types },
       );
     },
+
+    getCalendar: () =>
+      buildCalendar({
+        communications: c.communications.list(),
+        applications: c.applications.list(),
+        jobs: c.jobs.list(),
+        companies: c.companies.list(),
+        reminders: c.reminders.list(),
+        history: c.history.list(),
+      }),
 
     // The sheet Emails is filled by a separate script; without it the two methods fail with sheet_missing and nothing else does.
     listEmails: () => emailRows(c.emails.list()),

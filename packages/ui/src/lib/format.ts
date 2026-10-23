@@ -4,7 +4,7 @@ import { tr, ui } from './i18n.svelte';
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** The script's time zone, which every displayed time uses; undefined (the browser's) until it is known or when it is not a valid name. */
-function zone(): string | undefined {
+export function zone(): string | undefined {
   if (app.timeZone === '') return undefined;
   try {
     new Intl.DateTimeFormat(undefined, { timeZone: app.timeZone });

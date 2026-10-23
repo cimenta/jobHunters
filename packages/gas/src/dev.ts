@@ -150,6 +150,7 @@ function seedShowcase(backend: DevBackend, now: () => string): void {
   call('addQuestion', { applicationId: sent, question: 'Why do you want to work with us?', maxSentences: 3 });
   call('addCommunication', { applicationId: sent, direction: 'outgoing', channel: 'email', summary: 'Sent the application with the resume and the cover letter' });
   call('addReminder', { applicationId: sent, dueAt: addDays(today, 3), text: 'Ask about the status' });
+  call('addCommunication', { applicationId: sent, kind: 'meeting', direction: 'incoming', channel: 'video', summary: 'First interview', datetime: `${addDays(today, 4)}T10:00:00.000Z` });
 
   call('requestJobMatch', { id: jobs.qa });
   call('importAiJob', { url: 'https://www.linkedin.com/jobs/view/1234567890' });

@@ -1,5 +1,5 @@
-export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'emails' | 'email' | 'tasks' | 'settings' | 'help' | 'not-found';
-export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'emails' | 'tasks' | 'settings' | 'help';
+export type RouteName = 'dashboard' | 'jobs' | 'job-new' | 'job' | 'applications' | 'application' | 'companies' | 'company' | 'calendar' | 'emails' | 'email' | 'tasks' | 'settings' | 'help' | 'not-found';
+export type Section = 'dashboard' | 'jobs' | 'applications' | 'companies' | 'calendar' | 'emails' | 'tasks' | 'settings' | 'help';
 export interface Route {
   name: RouteName;
   id?: string;
@@ -30,6 +30,7 @@ export function parseRoute(hash: string): Route {
   if (first === 'jobs') return second === undefined ? route('jobs') : second === 'new' ? route('job-new') : route('job', second);
   if (first === 'applications') return second === undefined ? route('applications') : route('application', second);
   if (first === 'companies') return second === undefined ? route('companies') : route('company', second);
+  if (first === 'calendar' && second === undefined) return route('calendar');
   if (first === 'emails') return second === undefined ? route('emails') : route('email', second);
   if (first === 'tasks' && second === undefined) return route('tasks');
   if (first === 'settings' && second === undefined) return route('settings');
@@ -49,6 +50,8 @@ export function sectionOf(route: Route): Section {
     case 'companies':
     case 'company':
       return 'companies';
+    case 'calendar':
+      return 'calendar';
     case 'emails':
     case 'email':
       return 'emails';
@@ -70,6 +73,7 @@ export const paths = {
   newJob: '#/jobs/new',
   applications: '#/applications',
   companies: '#/companies',
+  calendar: '#/calendar',
   emails: '#/emails',
   tasks: '#/tasks',
   settings: '#/settings',

@@ -2,6 +2,14 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.20.0] - 2026-10-24
+
+- New menu item **Calendar** (between Companies and Emails): the whole month on one page, weeks starting on Monday, with the days of the neighbouring months dimmed. The arrows move a month, **Today** comes back to the current one.
+- **Interviews** are shown as chips on their day (time, an icon of the channel and the company): every communication entry of kind meeting, of an application or of a job without one. Past ones are faded. A click opens the application (or the job).
+- **Waitings** are bars across the weeks, from the day the application went to the status Waiting to the day of its reminder; amber while the reminder is ahead, red once its date has passed (the bell marks that day), and running to today when there is no reminder. A click opens the application.
+- Days are cut in the time zone of the script, like every other time in the app. New API method `getCalendar`; the Help has a Calendar topic.
+- No Setup is needed for this update.
+
 ## [0.19.4] - 2026-10-24
 
 - Two ads on one career page are no longer taken for the same ad: for cesnet.cz the part of the address after # (for example `#analytik-medior`) is kept in the stored link and in the duplicate check. The addresses of other sites are cleaned of it as before.

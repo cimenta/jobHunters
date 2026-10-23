@@ -28,6 +28,7 @@
       { id: 'applications', label: tr('ui.help.applications.title') },
       { id: 'companies', label: tr('ui.help.companies.title') },
       { id: 'search', label: tr('ui.help.search.title') },
+      { id: 'calendar', label: tr('ui.help.calendar.title') },
       { id: 'emails', label: tr('ui.help.emails.title') },
       { id: 'tasks', label: tr('ui.help.tasks.title') },
       { id: 'settings', label: tr('ui.help.settings.title') },
@@ -137,6 +138,18 @@
       <li>{tr('ui.help.companies.i1')}</li>
     </ul>
     <p><a data-ui="help.open.companies" href={paths.companies}>{tr('ui.help.open', { name: tr('ui.help.companies.title') })}</a></p>
+  </Card>
+  {:else if tab === 'calendar'}
+  <Card ui="help.calendar">
+    <h2>{tr('ui.help.calendar.title')}</h2>
+    <p>{tr('ui.help.calendar.intro')}</p>
+    <ul>
+      <li>{tr('ui.help.calendar.i1')}</li>
+      <li>{tr('ui.help.calendar.i2')}</li>
+      <li>{tr('ui.help.calendar.i3')}</li>
+      <li>{tr('ui.help.calendar.i4')}</li>
+    </ul>
+    <p><a data-ui="help.open.calendar" href={paths.calendar}>{tr('ui.help.open', { name: tr('ui.help.calendar.title') })}</a></p>
   </Card>
   {:else if tab === 'emails'}
   <Card ui="help.emails">
