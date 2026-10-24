@@ -545,6 +545,27 @@ describe('JobsList sort and hide', () => {
   });
 });
 
+describe('JobsList priority sort', () => {
+  const sortBox = () => screen.getByLabelText('Sort by') as HTMLSelectElement;
+  const options = () => [...sortBox().options].map((option) => option.value);
+
+  it('offers the priority sort only while the gig switch shows gigs only', async () => {
+    useDevBackend();
+    await loadApp();
+    render(JobsList);
+    await screen.findByText('Android Developer');
+    expect(options()).not.toContain('priority_desc');
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.only"]')!);
+    await waitFor(() => expect(options()).toContain('priority_desc'));
+    await fireEvent.change(sortBox(), { target: { value: 'priority_desc' } });
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.jobs_sort).toBe('priority_desc'));
+    expect(screen.getByText('High priority')).toBeInTheDocument();
+    await fireEvent.click(document.querySelector('[data-ui="jobs.gig.only"]')!);
+    await waitFor(() => expect(options()).not.toContain('priority_desc'));
+    expect(sortBox().value).toBe('newest');
+  });
+});
+
 describe('JobsList clear filters button', () => {
   const button = (): HTMLElement | null => document.querySelector('[data-ui="jobs.clear-filters"]');
   const search = () => screen.getByLabelText('Search') as HTMLInputElement;

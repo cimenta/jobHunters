@@ -214,6 +214,7 @@
         {#if draft.is_gig}
           <fieldset class="gig" data-ui="add-job.gig-details">
             <legend>{tr('ui.addJob.gigDetails')}</legend>
+            <label class="check"><input data-ui="add-job.gig-priority" type="checkbox" bind:checked={draft.gig_priority} />{tr('ui.job.gigPriority')}</label>
             <Field label={tr('ui.job.gigShift')} for="draft-gig-shift"><input data-ui="add-job.gig-shift" id="draft-gig-shift" class="input" maxlength="300" placeholder={tr('ui.job.gigShiftPlaceholder')} bind:value={draft.gig_shift} /></Field>
           </fieldset>
         {/if}

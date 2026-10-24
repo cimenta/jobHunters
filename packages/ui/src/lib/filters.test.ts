@@ -65,6 +65,11 @@ describe('sortJobs', () => {
     row('g', '2026-10-06T10:00:00Z', Number.NaN),
   ];
   const ids = (order: Parameters<typeof sortJobs>[1], input: readonly JobRow[] = rows) => sortJobs(input, order).map((j) => j.id);
+  it('puts high-priority gigs first, newest first within both groups', () => {
+    const gig = (id: string, found_at: string, gig_priority: boolean): JobRow => ({ ...row(id, found_at, null), is_gig: true, gig_priority } as JobRow);
+    const list = [gig('a', '2026-10-01T10:00:00Z', true), gig('b', '2026-10-03T10:00:00Z', false), gig('c', '2026-10-02T10:00:00Z', true), gig('d', '2026-10-04T10:00:00Z', false)];
+    expect(sortJobs(list, 'priority_desc').map((j) => j.id)).toEqual(['c', 'a', 'd', 'b']);
+  });
   it('sorts by found_at', () => {
     expect(ids('newest')).toEqual(['g', 'f', 'e', 'b', 'c', 'a', 'd']);
     expect(ids('oldest')).toEqual(['d', 'a', 'c', 'b', 'e', 'f', 'g']);

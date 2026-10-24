@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.23.0] - 2026-10-24
+
+- **Setup is needed** (once, adds the column gig_priority to the sheet Jobs; the red "!" by Settings says so). Until then jobs cannot be read from the sheet.
+- A gig can be marked **High priority**: a checkbox that appears while Gig is ticked, in Add job and in the detail of a job. A gig with high priority shows a red badge on its card and in its detail; unticking Gig clears the priority.
+- While the Jobs filter is **Gigs only**, the Sort by list also offers **Priority (high first)**: high-priority gigs come first, the others follow, newest first in both groups. With another filter the choice is not offered and the list falls back to Newest.
+
 ## [0.22.0] - 2026-10-24
 
 - The Dashboard can be arranged by the user. The new menu **⋯** in the upper right (next to Add a job) has **Edit layout**: the sections (Reminders, AI tasks waiting, Applications by status) become widgets that can be **moved** (drag the title, or arrow keys on it), **resized** (drag the corner, or Shift and arrow keys) on a 12-column grid, **removed** and **added back** from the Add a widget list. Widgets pushed by another one move down; the layout is **saved automatically** and Reset to default brings the original one back. On narrow screens the widgets are stacked. New field `dashboard_layout` in the interface settings.

@@ -12,7 +12,7 @@ const JOB_COLUMNS = [
   'is_gig', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
   'employment_type', 'remote', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'availability',
   'availability_reason', 'offline_strikes', 'last_checked_at', 'flags', 'folder_url', 'notes', 'status', 'match_percent', 'ai_salary',
-  'contact_person', 'no_reason', 'gig_shift', 'match_note',
+  'contact_person', 'no_reason', 'gig_shift', 'match_note', 'gig_priority',
 ] as const satisfies readonly (keyof Job)[];
 
 const APPLICATION_COLUMNS = [
@@ -85,7 +85,7 @@ export type ColumnType = 'string' | 'number' | 'boolean';
 
 const NUMBER_COLUMNS = new Set(['attempt', 'salary_min', 'salary_max', 'offline_strikes', 'position', 'max_sentences', 'match_percent', 'board_position', 'version']);
 const NULLABLE_NUMBER_COLUMNS = new Set(['salary_min', 'salary_max', 'max_sentences', 'match_percent', 'board_position']);
-const BOOLEAN_COLUMNS = new Set(['is_gig', 'is_remote', 'is_hybrid', 'pinned', 'is_bulk']);
+const BOOLEAN_COLUMNS = new Set(['is_gig', 'gig_priority', 'is_remote', 'is_hybrid', 'pinned', 'is_bulk']);
 
 export function columnType(column: string): ColumnType {
   if (NUMBER_COLUMNS.has(column)) return 'number';

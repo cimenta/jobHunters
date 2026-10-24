@@ -2,8 +2,10 @@ import { parseDashboardLayout, type DashboardLayout } from './dashboard-layout';
 import { LIST_SORT_KEYS, sortKeysFor, type ListSortKey, type SortChoice } from './application-sort';
 import { isApplicationStatus } from './status';
 
-export type JobSort = 'newest' | 'oldest' | 'match_desc' | 'match_asc';
-export const JOB_SORTS: readonly JobSort[] = ['newest', 'oldest', 'match_desc', 'match_asc'];
+export type JobSort = 'newest' | 'oldest' | 'match_desc' | 'match_asc' | 'priority_desc';
+export const JOB_SORTS: readonly JobSort[] = ['newest', 'oldest', 'match_desc', 'match_asc', 'priority_desc'];
+/** Sorts that only make sense while the gig switch shows gigs only. */
+export const GIG_ONLY_SORTS: readonly JobSort[] = ['priority_desc'];
 
 /** What the interface remembers for the user; stored in the setting ui_state. */
 export interface UiState {

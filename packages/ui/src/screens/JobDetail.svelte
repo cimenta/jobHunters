@@ -131,6 +131,7 @@
             <Badge text={availabilityLabel(job.availability)} color={job.availability === 'online' ? 'var(--success-soft)' : job.availability === 'offline' ? 'var(--danger-soft)' : 'var(--surface-2)'} textColor="var(--text)" />
             <Badge text={current.text} color={current.color} textColor={current.textColor} />
             {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
+            {#if job.is_gig && job.gig_priority === true}<Badge text={tr('ui.job.gigPriority')} color="var(--danger-soft)" textColor="var(--text)" />{/if}
             {#if typeof job.match_percent === 'number' && current.code !== 'new'}<span class="muted small">{tr('jobStatus.match', { percent: job.match_percent })}</span>{/if}
             {#if job.last_checked_at !== ''}<span class="muted small">{tr('ui.job.checked', { date: formatDate(job.last_checked_at) })}</span>{/if}
             {#if job.availability_reason !== ''}<span class="muted small" data-ui="job-detail.availability-reason">{availabilityReasonLabel(job.availability_reason)}</span>{/if}
@@ -148,7 +149,7 @@
                 {/if}
               {/each}
               {#if job.status !== 'awaiting'}
-                <GigBox jobId={job.id} isGig={job.is_gig} ui="job-detail" />
+                <GigBox jobId={job.id} isGig={job.is_gig} isPriority={job.gig_priority === true} ui="job-detail" />
                 <InlineText wide="two" label={tr('ui.job.contactPerson')} value={job.contact_person ?? ''} maxlength={300} ui="job-detail.contact-person" onsave={(text) => api.updateJob(job.id, { contact_person: text })} />
                 {#if job.is_gig}
                   <InlineText wide="two" label={tr('ui.job.gigShift')} value={job.gig_shift ?? ''} maxlength={300} placeholder={tr('ui.job.gigShiftPlaceholder')} ui="job-detail.gig-shift" onsave={(text) => api.updateJob(job.id, { gig_shift: text })} />

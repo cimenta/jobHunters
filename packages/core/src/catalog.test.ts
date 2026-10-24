@@ -227,6 +227,16 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { gig_shift: '' })).toMatchObject({ gig_shift: '' });
   });
 
+  it('keeps the high priority only on a gig', () => {
+    const { service } = setup();
+    expect(service.updateJob('j1', { gig_priority: true })).toMatchObject({ gig_priority: false });
+    expect(service.updateJob('j1', { is_gig: true, gig_priority: true })).toMatchObject({ is_gig: true, gig_priority: true });
+    expect(service.updateJob('j1', { notes: 'x' })).toMatchObject({ gig_priority: true });
+    expect(service.updateJob('j1', { gig_priority: false })).toMatchObject({ gig_priority: false });
+    service.updateJob('j1', { gig_priority: true });
+    expect(service.updateJob('j1', { is_gig: false })).toMatchObject({ is_gig: false, gig_priority: false });
+  });
+
   it('sets the link of a job: a web address no other job has, trimmed, with the availability starting again', () => {
     const jobRepo = new InMemoryRepository<Job>([
       makeJob({ id: 'j1', url: '', availability: 'offline', offline_strikes: 2, last_checked_at: '2026-10-01T00:00:00.000Z' }),

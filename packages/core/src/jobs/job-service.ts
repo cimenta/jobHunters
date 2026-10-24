@@ -12,11 +12,11 @@ import { jobUrlKey, normalizeJobUrl, parseUrl, titleFromUrl } from './url';
 
 export const EDITABLE_JOB_FIELDS = [
   'title', 'company', 'location', 'salary_min', 'salary_max', 'salary_currency', 'salary_period',
-  'employment_type', 'is_gig', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'notes', 'contact_person', 'gig_shift',
+  'employment_type', 'is_gig', 'is_remote', 'is_hybrid', 'posted_at', 'valid_until', 'description', 'language', 'notes', 'contact_person', 'gig_shift', 'gig_priority',
 ] as const;
 
 /** Values the user confirmed or corrected in the form; they win over the parsed ones. */
-export type JobOverrides = Partial<Omit<ParsedJob, 'missing'>> & { notes?: string; contact_person?: string; gig_shift?: string };
+export type JobOverrides = Partial<Omit<ParsedJob, 'missing'>> & { notes?: string; contact_person?: string; gig_shift?: string; gig_priority?: boolean };
 
 export interface JobInput {
   url: string;
@@ -170,13 +170,13 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '', match_note: '',
+      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '', match_note: '', gig_priority: false,
     });
   }
 
   private persist(url: string, acquired: Acquired, input: JobInput): SaveResult {
     const { jobs, newId, now } = this.deps;
-    const fields = { ...acquired.parsed, ...definedOnly(input.overrides) } as ParsedJob & { notes?: string; contact_person?: string; gig_shift?: string };
+    const fields = { ...acquired.parsed, ...definedOnly(input.overrides) } as ParsedJob & { notes?: string; contact_person?: string; gig_shift?: string; gig_priority?: boolean };
     const warnings: AppWarning[] = [];
     if (!acquired.fetched && acquired.content === undefined) {
       warnings.push({ code: 'page_not_fetched', params: { status: acquired.fetchStatus } });
@@ -230,6 +230,7 @@ export class JobService {
       no_reason: '',
       gig_shift: fields.is_gig ? (fields.gig_shift ?? '').trim().slice(0, MAX_GIG_SHIFT) : '',
       match_note: '',
+      gig_priority: fields.is_gig && fields.gig_priority === true,
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

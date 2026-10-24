@@ -41,7 +41,7 @@ describe('buildSetupPlan', () => {
   });
 
   it('uses checkboxes for booleans', () => {
-    expect(sheet('Jobs').checkboxColumns).toEqual(['is_gig', 'is_remote', 'is_hybrid'].map((name) => sheet('Jobs').headers.indexOf(name) + 1));
+    expect(sheet('Jobs').checkboxColumns).toEqual(['is_gig', 'is_remote', 'is_hybrid', 'gig_priority'].map((name) => sheet('Jobs').headers.indexOf(name) + 1));
     expect(sheet('Companies').checkboxColumns).toEqual([]);
   });
 

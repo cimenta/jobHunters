@@ -54,6 +54,7 @@ export function sortJobs(rows: readonly JobRow[], order: JobSort): JobRow[] {
   const out = [...rows];
   if (order === 'newest') return out.sort(byNewest);
   if (order === 'oldest') return out.sort((a, b) => -byNewest(a, b));
+  if (order === 'priority_desc') return out.sort((a, b) => Number(b.gig_priority === true) - Number(a.gig_priority === true) || byNewest(a, b));
   const sign = order === 'match_desc' ? -1 : 1;
   return out.sort((a, b) => {
     const x = matchOf(a);

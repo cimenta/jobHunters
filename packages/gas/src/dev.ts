@@ -179,7 +179,7 @@ function seed(backend: DevBackend, now: () => string): void {
   });
   backend.container.jobs.update(android, { ai_salary: '75000 (65000-90000)' });
   const analyst = save('https://example.com/jobs/analyst', `Data Analyst (part time)\n\n${lorem}`, {
-    company: 'Sample GmbH', location: 'Brno', is_gig: true, salary_min: 250, salary_max: 300, salary_currency: 'CZK', salary_period: 'hour',
+    company: 'Sample GmbH', location: 'Brno', is_gig: true, gig_priority: true, salary_min: 250, salary_max: 300, salary_currency: 'CZK', salary_period: 'hour',
   });
   save(
     'https://example.com/jobs/long-title',

@@ -143,6 +143,12 @@ describe('save from a downloaded page', () => {
     expect(plain).toMatchObject({ contact_person: '', gig_shift: '' });
   });
 
+  it('saves the high priority only for a gig', () => {
+    const { service } = setup({ [URL1]: ok(), [URL2]: ok() });
+    expect(service.save({ url: URL1, overrides: { is_gig: true, gig_priority: true } }).job.gig_priority).toBe(true);
+    expect(service.save({ url: URL2, overrides: { gig_priority: true } }).job.gig_priority).toBe(false);
+  });
+
   it('reuses an existing company whose name differs only by legal suffix, case or diacritics', () => {
     const existing: Company = { id: 'c1', name: 'EXAMPLE', website: '', notes: '' };
     const { service, companies } = setup({ [URL1]: ok() }, new FakeDrive(), [existing]);

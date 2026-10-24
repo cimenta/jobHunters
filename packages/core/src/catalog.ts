@@ -209,11 +209,12 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; location?: string; url?: string; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; gig_priority?: boolean; location?: string; url?: string; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
     if (patch.is_gig !== undefined) change.is_gig = patch.is_gig;
+    if (patch.gig_priority !== undefined) change.gig_priority = patch.gig_priority;
     if (patch.is_remote !== undefined) change.is_remote = patch.is_remote;
     if (patch.is_hybrid !== undefined) change.is_hybrid = patch.is_hybrid;
     if (patch.url !== undefined) Object.assign(change, this.urlChange(id, patch.url));
@@ -221,6 +222,8 @@ export class CatalogService {
     if (patch.no_reason !== undefined) change.no_reason = patch.no_reason.trim().slice(0, MAX_NO_REASON);
     if (patch.location !== undefined) change.location = patch.location.trim().slice(0, MAX_LOCATION);
     if (patch.gig_shift !== undefined) change.gig_shift = patch.gig_shift.trim().slice(0, MAX_GIG_SHIFT);
+    if (change.is_gig === false) change.gig_priority = false;
+    if (change.gig_priority === true && change.is_gig === undefined && !this.deps.jobs.get(id)!.is_gig) change.gig_priority = false;
     if (patch.status !== undefined) {
       const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
       if (patch.status === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, patch.status)) {

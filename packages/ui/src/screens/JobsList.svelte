@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { JOB_SORTS, type JobRow, type JobSort } from '@jobhunters/core';
+  import { GIG_ONLY_SORTS, JOB_SORTS, type JobRow, type JobSort } from '@jobhunters/core';
   import { api } from '../api';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
@@ -36,7 +36,9 @@
   /** The status No as the user named it (the names of the statuses can be changed in Settings). */
   const noText = $derived(jobStatusOptions(true).find((option) => option.code === 'no')?.text ?? 'No');
   const archivedText = $derived(jobStatusOptions(true).find((option) => option.code === 'archived')?.text ?? 'Archived');
-  const sort = $derived(uiState().jobs_sort);
+  /** The sorts offered: the priority sort only while the gig switch shows gigs only. */
+  const sortOptions = $derived(JOB_SORTS.filter((option) => gig === 'only' || !GIG_ONLY_SORTS.includes(option)));
+  const sort = $derived<JobSort>(sortOptions.includes(uiState().jobs_sort) ? uiState().jobs_sort : 'newest');
 
   const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied, hideNo }), sort));
   const filtered = $derived(text.trim() !== '' || availability !== '' || gig !== '' || status !== '' || hideApplied || hideNo);
@@ -173,7 +175,7 @@
       </Field>
       <Field label={tr('ui.jobs.sort')} for="job-sort">
         <select id="job-sort" data-ui="jobs.sort" class="input" value={sort} onchange={(event) => saveUiState({ jobs_sort: event.currentTarget.value as JobSort })}>
-          {#each JOB_SORTS as option (option)}<option value={option}>{tr(`ui.jobs.sort.${option}`)}</option>{/each}
+          {#each sortOptions as option (option)}<option value={option}>{tr(`ui.jobs.sort.${option}`)}</option>{/each}
         </select>
       </Field>
       <div class="checks" data-ui="jobs.checks">
@@ -208,6 +210,7 @@
                   <span class="row wrap small">
                     <Badge text={current.text} color={current.color} textColor={current.textColor} />
                     {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
+                    {#if job.is_gig && job.gig_priority === true}<Badge text={tr('ui.job.gigPriority')} color="var(--danger-soft)" textColor="var(--text)" />{/if}
                     {#if job.application_count > 0}<span class="muted">{tr('summary.applications', { count: job.application_count })}</span>{/if}
                   </span>
                   {#if canEvaluate(job) && !hasExperience && job.match_task_status !== 'pending' && job.match_task_status !== 'in_progress' && job.id === hintId}

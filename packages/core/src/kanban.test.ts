@@ -161,7 +161,7 @@ describe('ui state setting', () => {
     expect(parseUiState('{"dashboard_gig":"all"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_hide_empty":true,"applications_status_list":[],"applications_status_board":[]}'))
       .toMatchObject({ jobs_hide_applied: false, jobs_sort: 'newest' });
-    expect(JOB_SORTS).toEqual(['newest', 'oldest', 'match_desc', 'match_asc']);
+    expect(JOB_SORTS).toEqual(['newest', 'oldest', 'match_desc', 'match_asc', 'priority_desc']);
   });
 
   it('refuses a wrong shape', () => {
