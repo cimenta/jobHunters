@@ -121,6 +121,8 @@ export interface DashboardReminder {
 export interface Dashboard {
   reminders: { overdue: DashboardReminder[]; today: DashboardReminder[]; soon: DashboardReminder[] };
   statusCounts: Record<ApplicationStatus, number>;
+  /** The same counts for applications whose job is a gig; the rest are the other applications. */
+  gigStatusCounts: Record<ApplicationStatus, number>;
   /** AI tasks still waiting for the AI (pending or in progress), in total and per task type. */
   aiTasksWaiting: { total: number; byType: Record<string, number> };
 }
@@ -172,13 +174,18 @@ export function buildDashboard(input: {
   };
   const buckets = reminderBuckets(input.reminders, input.today);
   const statusCounts = Object.fromEntries(APPLICATION_STATUSES.map((status) => [status, 0])) as Record<ApplicationStatus, number>;
+  const gigStatusCounts = { ...statusCounts };
+  const gigJobs = new Set(input.jobs.filter((job) => job.is_gig).map((job) => job.id));
   for (const application of input.applications) {
-    if ((APPLICATION_STATUSES as readonly string[]).includes(application.status)) statusCounts[application.status as ApplicationStatus]++;
+    if (!(APPLICATION_STATUSES as readonly string[]).includes(application.status)) continue;
+    statusCounts[application.status as ApplicationStatus]++;
+    if (gigJobs.has(application.job_id)) gigStatusCounts[application.status as ApplicationStatus]++;
   }
   const { total, byType } = countWaitingTasks(input.tasks);
   return {
     reminders: { overdue: buckets.overdue.map(describe), today: buckets.today.map(describe), soon: buckets.soon.map(describe) },
     statusCounts,
+    gigStatusCounts,
     aiTasksWaiting: { total, byType },
   };
 }

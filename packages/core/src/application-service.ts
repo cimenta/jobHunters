@@ -2,7 +2,7 @@ import { t, type Locale } from './i18n';
 import { NotFoundError, ValidationError } from './errors';
 import type { AppendLog, Repository } from './repository';
 import { sortBoard } from './board';
-import { canTransition, isApplicationStatus, type ApplicationStatus, type StatusTransitions } from './status';
+import { canTransition, isApplicationStatus, isDatedStatus, type ApplicationStatus, type StatusTransitions } from './status';
 import { DEFAULT_JOB_STATUS_STYLES, type JobStatusStyles } from './job-status';
 import { jobStatusOnRejection } from './job-lifecycle';
 import type { Application, Job, Reminder, StatusHistoryEntry } from './types';
@@ -24,7 +24,7 @@ export interface ApplicationServiceDeps {
 }
 
 export interface SetStatusOptions {
-  /** Required when moving to `waiting`: YYYY-MM-DD, a real date, not before today. */
+  /** Required when moving to `waiting` (the reminder date) or `homework` (the deadline): YYYY-MM-DD, a real date, not before today. */
   remindAt?: string;
 }
 
@@ -46,7 +46,8 @@ export class ApplicationService {
     }
 
     const from = application.status;
-    const reschedule = from === 'waiting' && to === 'waiting';
+    // A dated status can be entered again to move its date (a new reminder date, a new homework deadline).
+    const reschedule = from === to && isDatedStatus(to);
     if (!reschedule && !canTransition(from, to, this.deps.transitions?.())) {
       throw new ValidationError('transition_not_allowed', `Cannot move application ${applicationId} from ${from} to ${to}`, {
         id: applicationId,
@@ -56,19 +57,19 @@ export class ApplicationService {
     }
 
     const timestamp = now();
-    const remindAt = to === 'waiting' ? requireReminderDate(options.remindAt, timestamp) : undefined;
+    const remindAt = isDatedStatus(to) ? requireReminderDate(options.remindAt, timestamp) : undefined;
 
     // All validation is done; from here on we write.
-    if (from === 'waiting') this.closeWaitingReminders(applicationId, timestamp);
+    if (isDatedStatus(from)) this.closeReminders(applicationId, from as 'waiting' | 'homework', timestamp);
     if (remindAt !== undefined) {
       reminders.insert({
         id: newId(),
         application_id: applicationId,
         job_id: application.job_id,
         due_at: remindAt,
-        text: t('reminder.waiting', {}, locale()),
+        text: t(to === 'homework' ? 'reminder.homework' : 'reminder.waiting', {}, locale()),
         status: 'open',
-        source: 'waiting',
+        source: to as 'waiting' | 'homework',
         created_at: timestamp,
         done_at: '',
         reminded_at: '',
@@ -111,10 +112,10 @@ export class ApplicationService {
     if (next !== undefined) jobs.update(jobId, { status: next });
   }
 
-  private closeWaitingReminders(applicationId: string, timestamp: string): void {
+  private closeReminders(applicationId: string, source: 'waiting' | 'homework', timestamp: string): void {
     const { reminders } = this.deps;
     for (const reminder of reminders.list()) {
-      if (reminder.application_id === applicationId && reminder.source === 'waiting' && reminder.status === 'open') {
+      if (reminder.application_id === applicationId && reminder.source === source && reminder.status === 'open') {
         reminders.update(reminder.id, { status: 'done', done_at: timestamp });
       }
     }
@@ -124,7 +125,7 @@ export class ApplicationService {
 export function requireReminderDate(remindAt: string | undefined, nowIso: string): string {
   const match = remindAt === undefined ? null : /^(\d{4})-(\d{2})-(\d{2})$/.exec(remindAt);
   if (remindAt === undefined || !match) {
-    throw new ValidationError('reminder_date_required', 'Status "waiting" needs a reminder date in YYYY-MM-DD format');
+    throw new ValidationError('reminder_date_required', 'Status "waiting" or "homework" needs a date in YYYY-MM-DD format');
   }
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
   const check = new Date(Date.UTC(year, month - 1, day));

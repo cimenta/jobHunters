@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/sve
 import { describe, expect, it } from 'vitest';
 import { api } from '../api';
 import { router } from '../lib/router.svelte';
+import { loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import Dashboard from './Dashboard.svelte';
@@ -54,6 +55,29 @@ describe('Dashboard', () => {
     expect(screen.getByText('You have no applications yet.')).toBeInTheDocument();
     await fireEvent.click(screen.getByRole('button', { name: 'Add a job' }));
     expect(router.current.name).toBe('job-new');
+  });
+});
+
+describe('Dashboard gig switch and total', () => {
+  const total = () => Number(document.querySelector('[data-ui="dashboard.total"] strong')!.textContent);
+  const press = (id: 'only' | 'except') => fireEvent.click(document.querySelector(`[data-ui="dashboard.gig.${id}"]`)!);
+
+  it('splits the total into gigs and the rest, and remembers the choice', async () => {
+    useDevBackend();
+    await loadApp();
+    render(Dashboard);
+    await screen.findByText('Send the portfolio');
+    const all = total();
+    expect(all).toBeGreaterThan(0);
+    await press('only');
+    const gigs = total();
+    expect(document.querySelector('[data-ui="dashboard.gig.only"]')!.getAttribute('aria-pressed')).toBe('true');
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.dashboard_gig).toBe('only'));
+    await press('except');
+    expect(gigs + total()).toBe(all);
+    await press('except');
+    expect(document.querySelector('[data-ui="dashboard.gig.except"]')!.getAttribute('aria-pressed')).toBe('false');
+    expect(total()).toBe(all);
   });
 });
 

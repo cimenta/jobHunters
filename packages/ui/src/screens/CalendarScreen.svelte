@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { CalendarInterview, CalendarWaiting } from '@jobhunters/core';
+  import type { CalendarHomework, CalendarInterview, CalendarWaiting } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
@@ -18,7 +18,7 @@
   const today = todayKey();
   let month = $state(today.slice(0, 7));
 
-  const weeks = $derived(buildMonth(month, calendar.data?.interviews ?? [], calendar.data?.waitings ?? [], today));
+  const weeks = $derived(buildMonth(month, calendar.data?.interviews ?? [], calendar.data?.waitings ?? [], today, calendar.data?.homeworks ?? []));
   const title = $derived(new Date(`${month}-01T00:00:00Z`).toLocaleDateString(ui.locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }));
   /** Monday first: 2026-10-05 is a Monday. */
   const weekdays = $derived(
@@ -32,6 +32,7 @@
   const name = (item: { company_name: string; job_title: string }): string => [item.company_name, item.job_title].filter((part) => part !== '').join(' – ');
   const interviewHref = (item: CalendarInterview): string => (item.application_id !== '' ? paths.application(item.application_id) : paths.job(item.job_id));
   const interviewTip = (item: CalendarInterview): string => [formatTime(item.datetime), name(item), item.summary].filter((part) => part !== '').join(' · ');
+  const homeworkTip = (item: CalendarHomework): string => `${tr('ui.calendar.homework')}: ${name(item)}`;
   const waitingTip = (item: CalendarWaiting, late: boolean): string => `${tr(late ? 'ui.calendar.waitingLate' : 'ui.calendar.waiting')}: ${name(item)}`;
 </script>
 
@@ -49,6 +50,7 @@
     <span><i class="key interview"></i>{tr('ui.calendar.interview')}</span>
     <span><i class="key waiting"></i>{tr('ui.calendar.waiting')}</span>
     <span><i class="key late"></i>{tr('ui.calendar.waitingLate')}</span>
+    <span><i class="key homework"></i>{tr('ui.calendar.homework')}</span>
   </div>
 
   {#if calendar.status === 'loading'}
@@ -71,6 +73,11 @@
                   {#each day.interviews as item (item.id)}
                     <a class="chip" class:past={day.date < today} data-ui="calendar.interview.{item.id}" href={interviewHref(item)} title={interviewTip(item)}>
                       <Icon name={channelIcon(item.channel)} size={14} /><b>{formatTime(item.datetime)}</b><span class="what">{item.company_name || item.job_title}</span>
+                    </a>
+                  {/each}
+                  {#each day.homeworks as item (item.application_id)}
+                    <a class="chip homework" class:late={day.date < today} data-ui="calendar.homework.{item.application_id}" href={paths.application(item.application_id)} title={homeworkTip(item)}>
+                      <Icon name="task" size={14} /><span class="what">{item.company_name || item.job_title}</span>
                     </a>
                   {/each}
                 </div>
@@ -107,6 +114,7 @@
   .key.interview { background: var(--cal-interview, var(--accent-soft)); }
   .key.waiting { background: var(--cal-waiting, var(--warning-soft)); }
   .key.late { background: var(--cal-late, var(--danger-soft)); }
+  .key.homework { background: var(--cal-homework, color-mix(in srgb, var(--kind-meeting) 18%, var(--surface))); }
   .scroll { overflow-x: auto; }
   .grid { min-width: 720px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); overflow: hidden; }
   .dow, .days, .bars { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -125,6 +133,8 @@
   .wbar.cr { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: 0; }
   .chip { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; line-height: 18px; padding: 1px 6px; margin-top: 2px; border-radius: var(--radius-s); background: var(--cal-interview, var(--accent-soft)); color: var(--cal-interview-ink, var(--text)); text-decoration: none; min-width: 0; }
   .chip.past { opacity: 0.6; }
+  .chip.homework { background: var(--cal-homework, color-mix(in srgb, var(--kind-meeting) 18%, var(--surface))); color: var(--cal-homework-ink, var(--text)); font-weight: 600; }
+  .chip.homework.late { background: var(--danger-soft); color: var(--danger); }
   .chip:hover, .wbar:hover { filter: brightness(0.95); }
   .what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 </style>

@@ -12,8 +12,8 @@ describe('inkFor', () => {
 
 describe('calendarColorStyle', () => {
   it('sets the variables of the chosen colors only', () => {
-    expect(calendarColorStyle({ interview: '', waiting: '', late: '' })).toBe('');
-    expect(calendarColorStyle({ interview: '#000000', waiting: '', late: '#ffffff' })).toBe(
+    expect(calendarColorStyle({ interview: '', waiting: '', late: '', homework: '' })).toBe('');
+    expect(calendarColorStyle({ interview: '#000000', waiting: '', late: '#ffffff', homework: '' })).toBe(
       '--cal-interview: #000000; --cal-interview-ink: #ffffff; --cal-late: #ffffff; --cal-late-ink: #18202a',
     );
   });

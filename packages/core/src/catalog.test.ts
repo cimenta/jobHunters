@@ -103,7 +103,18 @@ describe('buildDashboard', () => {
     expect(dashboard.reminders.today[1]).toMatchObject({ id: 'r6', application_label: '', job_title: '', company_name: '' });
   });
   it('counts applications per known status and ignores unknown ones', () => {
-    expect(dashboard.statusCounts).toEqual({ draft: 1, sent: 1, waiting: 0, interview: 0, offer: 0, rejected: 0, ghosted: 0, withdrawn: 0 });
+    expect(dashboard.statusCounts).toEqual({ draft: 1, sent: 1, waiting: 0, interview: 0, homework: 0, offer: 0, rejected: 0, ghosted: 0, withdrawn: 0 });
+  });
+});
+
+describe('buildDashboard gig counts', () => {
+  it('counts per status the applications whose job is a gig', () => {
+    const gigJobs = [makeJob({ id: 'j1', is_gig: true }), makeJob({ id: 'j2' })];
+    const apps = [makeApplication({ id: 'a1', job_id: 'j1', status: 'sent' }), makeApplication({ id: 'a2', job_id: 'j2', status: 'sent' }), makeApplication({ id: 'a3', job_id: 'j1', status: 'weird' })];
+    const result = buildDashboard({ reminders: [], applications: apps, jobs: gigJobs, companies: [], tasks: [], today: '2026-10-11' });
+    expect(result.statusCounts.sent).toBe(2);
+    expect(result.gigStatusCounts.sent).toBe(1);
+    expect(result.gigStatusCounts.draft).toBe(0);
   });
 });
 

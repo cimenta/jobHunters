@@ -36,11 +36,17 @@
   // "After a meeting" may also set the status Waiting; that status needs a reminder date.
   let setWaiting = $state(false);
   let remindAt = $state('');
+  // A received homework may also set the status Homework; its deadline is required.
+  let setHomework = $state(true);
+  let homeworkDue = $state('');
   const today = todayLocal();
   const status = $derived(detail.application.status);
   const canWait = $derived(isApplicationStatus(status) && (status === 'waiting' || canTransition(status, 'waiting', app.settings?.status_transitions)));
   const waitingNeeded = $derived(editing?.id === undefined && kind === 'after_meeting' && canWait);
   const waitingReady = $derived(!(waitingNeeded && setWaiting) || (remindAt !== '' && remindAt >= today));
+  const canHomework = $derived(isApplicationStatus(status) && (status === 'homework' || canTransition(status, 'homework', app.settings?.status_transitions)));
+  const homeworkNeeded = $derived(editing?.id === undefined && kind === 'homework' && direction === 'incoming' && canHomework);
+  const homeworkReady = $derived(!(homeworkNeeded && setHomework) || (homeworkDue !== '' && homeworkDue >= today));
   const canReject = $derived(isApplicationStatus(status) && canTransition(status, 'rejected', app.settings?.status_transitions));
 
   function pickKind(next: CommunicationKind): void {
@@ -62,6 +68,8 @@
     when = '';
     rejecting = false;
     setWaiting = false;
+    setHomework = true;
+    homeworkDue = '';
     remindAt = plusDays(today, 7);
     editing = {};
   }
@@ -98,6 +106,7 @@
       // The status moves only after the entry is saved.
       if (rejecting && canReject) await api.setApplicationStatus(detail.application.id, 'rejected');
       else if (waitingNeeded && setWaiting) await api.setApplicationStatus(detail.application.id, 'waiting', remindAt);
+      else if (homeworkNeeded && setHomework) await api.setApplicationStatus(detail.application.id, 'homework', homeworkDue);
     } else {
       await api.updateCommunication(editing.id, { kind, direction, channel: kind === 'after_meeting' ? '' : channel, summary, details });
     }
@@ -184,12 +193,22 @@
         {/if}
       </div>
     {/if}
+    {#if homeworkNeeded}
+      <div class="stack waiting" data-ui="communication.homework">
+        <label class="check"><input data-ui="communication.set-homework" type="checkbox" bind:checked={setHomework} />{tr('ui.comm.setHomework')}</label>
+        {#if setHomework}
+          <Field label={tr('ui.comm.homeworkDue')} for="comm-homework-due" hint={homeworkDue === '' ? tr('ui.comm.homeworkDueNeeded') : undefined}>
+            <input data-ui="communication.homework-due" id="comm-homework-due" class="input" type="date" min={today} bind:value={homeworkDue} required />
+          </Field>
+        {/if}
+      </div>
+    {/if}
     {#if kind === 'meeting'}<p class="muted small" data-ui="communication.meeting-hint">{tr('ui.comm.meetingHint')}</p>{/if}
     {#if kind === 'confirmation'}<p class="muted small" data-ui="communication.confirm-note">{tr('ui.comm.confirmNote')}</p>{/if}
   </div>
   {#snippet footer()}
     <Button ui="communication.cancel" onclick={() => (editing = undefined)}>{tr('ui.cancel')}</Button>
-    <Button ui="communication.save" variant="primary" disabled={!waitingReady} onclick={save}>{tr('ui.save')}</Button>
+    <Button ui="communication.save" variant="primary" disabled={!waitingReady || !homeworkReady} onclick={save}>{tr('ui.save')}</Button>
   {/snippet}
 </Dialog>
 

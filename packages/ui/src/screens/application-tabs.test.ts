@@ -278,6 +278,47 @@ describe('Communication tab', () => {
     expect((await api.getApplication(id)).communications.some((c) => c.kind === 'after_meeting')).toBe(true);
   });
 
+  it('a received homework sets the status Homework and cannot be saved without the deadline', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    expect(within(dialog).queryByLabelText('Set the status Homework')).toBeNull();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Homework' }));
+    const box = within(dialog).getByLabelText('Set the status Homework') as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    const date = within(dialog).getByLabelText('Homework due (required)') as HTMLInputElement;
+    expect(date.value).toBe('');
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeDisabled();
+    await fireEvent.input(date, { target: { value: '2099-01-01' } });
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('homework'));
+    expect((await api.getApplication(id)).communications.some((c) => c.kind === 'homework' && c.direction === 'incoming')).toBe(true);
+    expect((await api.getApplication(id)).reminders.some((r) => r.source === 'homework' && r.due_at === '2099-01-01' && r.status === 'open')).toBe(true);
+  });
+
+  it('a received homework with the status box unticked needs no deadline and keeps the status', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Homework' }));
+    await fireEvent.click(within(dialog).getByLabelText('Set the status Homework'));
+    expect(within(dialog).queryByLabelText('Homework due (required)')).toBeNull();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.some((c) => c.kind === 'homework')).toBe(true));
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+  });
+
+  it('a submitted homework does not ask for a deadline', async () => {
+    await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Homework' }));
+    await fireEvent.change(within(dialog).getByLabelText('What happened'), { target: { value: 'outgoing' } });
+    expect(within(dialog).queryByLabelText('Set the status Homework')).toBeNull();
+    expect(within(dialog).getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+
   it('keeps the status when the checkbox is not ticked and drops the rejection when another type is picked', async () => {
     const id = await open(/Communication/);
     await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));

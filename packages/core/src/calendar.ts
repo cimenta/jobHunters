@@ -27,9 +27,20 @@ export interface CalendarWaiting {
   job_title: string;
 }
 
+/** An application in the status homework with the deadline of its open homework reminder. */
+export interface CalendarHomework {
+  application_id: string;
+  job_id: string;
+  /** YYYY-MM-DD. */
+  due_at: string;
+  company_name: string;
+  job_title: string;
+}
+
 export interface CalendarData {
   interviews: CalendarInterview[];
   waitings: CalendarWaiting[];
+  homeworks: CalendarHomework[];
 }
 
 export interface CalendarInput {
@@ -74,12 +85,18 @@ export function buildCalendar(input: CalendarInput): CalendarData {
     const latest = started.get(entry.application_id);
     if (latest === undefined || entry.at > latest) started.set(entry.application_id, entry.at);
   }
-  const due = new Map<string, string>();
-  for (const reminder of input.reminders) {
-    if (reminder.source !== 'waiting' || reminder.status !== 'open' || reminder.due_at === '') continue;
-    const latest = due.get(reminder.application_id);
-    if (latest === undefined || reminder.due_at > latest) due.set(reminder.application_id, reminder.due_at);
-  }
+  // The latest open reminder of each dated status, by application.
+  const openDue = (source: 'waiting' | 'homework'): Map<string, string> => {
+    const due = new Map<string, string>();
+    for (const reminder of input.reminders) {
+      if (reminder.source !== source || reminder.status !== 'open' || reminder.due_at === '') continue;
+      const latest = due.get(reminder.application_id);
+      if (latest === undefined || reminder.due_at > latest) due.set(reminder.application_id, reminder.due_at);
+    }
+    return due;
+  };
+  const due = openDue('waiting');
+  const homeworkDue = openDue('homework');
 
   const waitings: CalendarWaiting[] = [];
   for (const application of input.applications) {
@@ -94,5 +111,13 @@ export function buildCalendar(input: CalendarInput): CalendarData {
   }
   waitings.sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
 
-  return { interviews, waitings };
+  const homeworks: CalendarHomework[] = [];
+  for (const application of input.applications) {
+    const dueAt = homeworkDue.get(application.id);
+    if (application.status !== 'homework' || dueAt === undefined) continue;
+    homeworks.push({ application_id: application.id, job_id: application.job_id, due_at: dueAt, ...describe(application.job_id) });
+  }
+  homeworks.sort((a, b) => (a.due_at < b.due_at ? -1 : a.due_at > b.due_at ? 1 : 0));
+
+  return { interviews, waitings, homeworks };
 }

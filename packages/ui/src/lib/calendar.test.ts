@@ -39,6 +39,13 @@ describe('buildMonth', () => {
     expect(day.interviews.map((i) => i.id)).toEqual(['a', 'b']);
     expect(weeks.flatMap((w) => w.days).flatMap((d) => d.interviews)).toHaveLength(2);
   });
+  it('puts a homework deadline on its day', () => {
+    const homework = { application_id: 'h', job_id: 'j', due_at: '2026-10-29', company_name: 'X', job_title: 'Y' };
+    const weeks = buildMonth('2026-10', [], [], '2026-10-23', [homework]);
+    const day = weeks.flatMap((w) => w.days).find((d) => d.date === '2026-10-29')!;
+    expect(day.homeworks).toEqual([homework]);
+    expect(weeks.flatMap((w) => w.days).flatMap((d) => d.homeworks)).toHaveLength(1);
+  });
   it('draws a waiting across weeks, cut at the week edges, red once the reminder has passed', () => {
     const weeks = buildMonth('2026-10', [], [waiting('a', '2026-10-06T08:00:00.000Z', '2026-10-20')], '2026-10-23');
     const bars = weeks.map((w) => w.bars[0]);

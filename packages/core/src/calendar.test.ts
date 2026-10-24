@@ -34,6 +34,27 @@ describe('buildCalendar interviews', () => {
   });
 });
 
+describe('buildCalendar homeworks', () => {
+  it('lists the applications in homework with the deadline of the open homework reminder, soonest first', () => {
+    const apps = [makeApplication({ id: 'h1', job_id: 'j1', status: 'homework' }), makeApplication({ id: 'h2', job_id: 'j2', status: 'homework' }), makeApplication({ id: 'h3', job_id: 'j1', status: 'interview' })];
+    const { homeworks } = buildCalendar({
+      ...base,
+      applications: apps,
+      reminders: [
+        makeReminder({ id: 'r1', application_id: 'h1', source: 'homework', status: 'open', due_at: '2026-10-30' }),
+        makeReminder({ id: 'r2', application_id: 'h2', source: 'homework', status: 'open', due_at: '2026-10-28' }),
+        makeReminder({ id: 'r3', application_id: 'h3', source: 'homework', status: 'open', due_at: '2026-10-29' }),
+        makeReminder({ id: 'r4', application_id: 'h1', source: 'homework', status: 'done', due_at: '2026-10-01' }),
+      ],
+    });
+    expect(homeworks.map((h) => [h.application_id, h.due_at, h.job_title])).toEqual([['h2', '2026-10-28', 'Gig'], ['h1', '2026-10-30', 'Analyst']]);
+  });
+  it('skips a homework application without an open deadline', () => {
+    const { homeworks } = buildCalendar({ ...base, applications: [makeApplication({ id: 'h1', job_id: 'j1', status: 'homework' })] });
+    expect(homeworks).toEqual([]);
+  });
+});
+
 describe('buildCalendar waitings', () => {
   it('lists the applications in waiting with the start of the waiting and the due date of the open reminder', () => {
     const { waitings } = buildCalendar({

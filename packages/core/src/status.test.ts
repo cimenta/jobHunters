@@ -19,7 +19,7 @@ describe('isApplicationStatus', () => {
 describe('canTransition', () => {
   it('lists the statuses from the spec', () => {
     expect([...APPLICATION_STATUSES]).toEqual([
-      'draft', 'sent', 'waiting', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn',
+      'draft', 'sent', 'waiting', 'interview', 'homework', 'offer', 'rejected', 'ghosted', 'withdrawn',
     ]);
   });
 
@@ -41,11 +41,18 @@ describe('canTransition', () => {
   });
 
   it('allows every active status to end as rejected or withdrawn', () => {
-    const active: ApplicationStatus[] = ['sent', 'waiting', 'interview', 'offer', 'ghosted'];
+    const active: ApplicationStatus[] = ['sent', 'waiting', 'interview', 'homework', 'offer', 'ghosted'];
     for (const status of active) {
       expect(canTransition(status, 'rejected')).toBe(true);
       expect(canTransition(status, 'withdrawn')).toBe(true);
     }
+  });
+
+  it('allows homework from every started status and out of it to the later ones', () => {
+    for (const status of ['sent', 'waiting', 'interview', 'offer', 'ghosted'] as ApplicationStatus[]) expect(canTransition(status, 'homework')).toBe(true);
+    expect(canTransition('draft', 'homework')).toBe(false);
+    for (const to of ['waiting', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn'] as ApplicationStatus[]) expect(canTransition('homework', to)).toBe(true);
+    expect(canTransition('homework', 'sent')).toBe(false);
   });
 
   it('lets a ghosted application come back when they reply late', () => {

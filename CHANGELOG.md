@@ -2,6 +2,18 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.21.0] - 2026-10-24
+
+- The Dashboard card **Applications by status** has the **Gigs only / No gigs** switch of the Jobs screen (click a button to select it, click it again to show all) and a **Total** badge next to its title; both follow the switch. The choice is remembered with the other interface settings, separately from the Jobs screen. New field `gigStatusCounts` in the API method `getDashboard`.
+- No Setup is needed for this update.
+
+## [0.20.3] - 2026-10-24
+
+- **Setup is needed** (once, puts the new status Homework and the reminder source homework into the dropdown lists of the sheets Applications and Reminders; the red "!" says so). Until then the sheet marks a Homework application as an invalid value.
+- New application status **Homework** (Domácí úkol), between Interview and Offer in the list, the Kanban board, Settings (colors and allowed changes) and the Dashboard. Moving an application to it by hand (the status menu, a Kanban drag or the "Move to" menu) asks for the **deadline**, like Waiting asks for the reminder date; the deadline becomes a reminder "Homework due" and is closed when the status is left. Entering Homework again moves the deadline. By default Sent, Waiting, Interview, Offer and Ghosted can go to Homework, and Homework can go to Waiting, Interview, Offer, Rejected, Ghosted and Withdrawn; Settings can change this like the other rules.
+- Adding a communication entry of type Homework that you **received** offers "Set the status Homework" (ticked) with a **required deadline**: the entry cannot be saved without it, unless you untick the status. A submitted homework needs no deadline and does not change the status.
+- The Calendar shows a new event type, **Homework deadline** (a purple chip with a task icon on the day of the deadline, red once it has passed), with its own color in Settings, Calendar colors. New field `homeworks` in the API method `getCalendar`.
+
 ## [0.20.2] - 2026-10-24
 
 - New setting **Show the Rejected icon on application cards in the Kanban board** (Settings, card Kanban; off by default, remembered with the other interface settings). With it on, cards that may move to Rejected get a red icon next to Ghosted and Withdrawn. One click opens a small dialog with the channel (E-mail), the time (now) and an optional note filled in; confirming adds an incoming message "Rejection from the company" to the communication of the application, sets the application to Rejected and archives its job (a new or applied one, as with every rejection; a job set to No or to an own status stays as it is).

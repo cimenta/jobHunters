@@ -30,6 +30,7 @@ export const SETTING_KEYS = [
   'job_status_migration',
   'sheet_formats_repaired',
   'communication_kinds_listed',
+  'status_homework_listed',
   'offline_texts',
   'pdf_service_order',
   'default_document_set',
@@ -80,6 +81,8 @@ export interface Settings {
   sheet_formats_repaired: string;
   /** 1 once Setup put the list of communication types (with "after_meeting") into the dropdown of the sheet Communications. */
   communication_kinds_listed: string;
+  /** 1 once Setup put the status Homework (and the reminder source homework) into the dropdowns of the sheets Applications and Reminders. */
+  status_homework_listed: string;
   /** Phrases that mark an ad as offline. Stored one per line. */
   offline_texts: string[];
   /** PDF service ids in priority order. Stored comma-separated. */
@@ -128,6 +131,7 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   job_status_migration: '',
   sheet_formats_repaired: '',
   communication_kinds_listed: '',
+  status_homework_listed: '',
   offline_texts: ['no longer available', 'position has been filled', 'už není aktuální', 'nabídka byla ukončena'].join('\n'),
   pdf_service_order: '',
   default_document_set: 'resume,cover_letter',
@@ -192,6 +196,7 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   menu_numbers: parseMenuNumbers,
   sheet_formats_repaired: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   communication_kinds_listed: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
+  status_homework_listed: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   job_status_migration: (raw) => (raw.trim() === '' || raw.trim() === '1' ? raw.trim() : undefined),
   offline_texts: (raw) => items(raw, /\r?\n/),
   pdf_service_order: (raw) => items(raw, /,/),

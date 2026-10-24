@@ -126,6 +126,7 @@
       <li>{tr('ui.help.applications.i9')}</li>
       <li>{tr('ui.help.applications.i10')}</li>
       <li>{tr('ui.help.applications.i11')}</li>
+      <li>{tr('ui.help.applications.i12')}</li>
       <li>{tr('ui.help.applications.interview', { max: MAX_INTERVIEW_PREP.toLocaleString(ui.locale) })}</li>
     </ul>
     <Screenshot ui="help.shot.applications" src={applicationsShot} caption={tr('ui.help.shot.applications')} />
@@ -149,6 +150,7 @@
       <li>{tr('ui.help.calendar.i2')}</li>
       <li>{tr('ui.help.calendar.i3')}</li>
       <li>{tr('ui.help.calendar.i4')}</li>
+      <li>{tr('ui.help.calendar.i6')}</li>
       <li>{tr('ui.help.calendar.i5')}</li>
     </ul>
     <p><a data-ui="help.open.calendar" href={paths.calendar}>{tr('ui.help.open', { name: tr('ui.help.calendar.title') })}</a></p>

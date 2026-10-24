@@ -27,6 +27,8 @@ describe('api', () => {
     const api = createApi({ handlers: createHandlers(container), log: container.log });
     expect(api('getSetupStatus')).toMatchObject({ ok: true, data: { needed: true, reasons: expect.arrayContaining([expect.stringContaining('communication types')]) } });
     container.settings.update({ sheet_formats_repaired: '1', communication_kinds_listed: '1' });
+    expect(api('getSetupStatus')).toMatchObject({ ok: true, data: { needed: true, reasons: [expect.stringContaining('status Homework')] } });
+    container.settings.update({ status_homework_listed: '1' });
     expect(api('getSetupStatus')).toEqual({ ok: true, data: { needed: false, reasons: [] } });
   });
 
@@ -647,6 +649,19 @@ describe('job import api', () => {
     expect(data.waitings).toHaveLength(1);
     expect(data.waitings[0]).toMatchObject({ application_id: applicationId, due_at: '2026-11-05' });
     expect(data.waitings[0]!.start).not.toBe('');
+  });
+
+  it('setApplicationStatus homework needs a date, lists the deadline in getCalendar and drops it when the status is left', () => {
+    const { api } = setup(pages());
+    const jobId = (api('saveJob', { url: 'https://example.com/jobs/2', overrides: { title: 'Analyst', company: 'Example' } }) as { data: { job: { id: string } } }).data.job.id;
+    const applicationId = (api('createApplication', { jobId }) as { data: { application: { id: string } } }).data.application.id;
+    api('setApplicationStatus', { id: applicationId, to: 'sent' });
+    expect(api('setApplicationStatus', { id: applicationId, to: 'homework' })).toMatchObject({ ok: false });
+    expect(api('setApplicationStatus', { id: applicationId, to: 'homework', remindAt: '2099-03-01' })).toMatchObject({ ok: true });
+    const homeworks = (): unknown[] => (api('getCalendar') as { data: { homeworks: unknown[] } }).data.homeworks;
+    expect(homeworks()).toMatchObject([{ application_id: applicationId, due_at: '2099-03-01', job_title: 'Analyst' }]);
+    api('setApplicationStatus', { id: applicationId, to: 'interview' });
+    expect(homeworks()).toEqual([]);
   });
 
   it('getDashboard counts waiting AI tasks', () => {

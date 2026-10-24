@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { APPLICATION_STATUSES, canTransition, isApplicationStatus, type ApplicationStatus } from '@jobhunters/core';
+  import { APPLICATION_STATUSES, canTransition, isApplicationStatus, isDatedStatus, type ApplicationStatus } from '@jobhunters/core';
   import { api } from '../api';
   import type { Application } from '../api/types';
   import Button from '../components/Button.svelte';
@@ -21,10 +21,11 @@
   // Only moves the rules allow: from "waiting" it is also possible to reschedule (waiting -> waiting).
   const options = $derived<ApplicationStatus[]>(
     isApplicationStatus(application.status)
-      ? APPLICATION_STATUSES.filter((to) => (application.status === 'waiting' && to === 'waiting') || canTransition(application.status as ApplicationStatus, to, app.settings?.status_transitions))
+      ? APPLICATION_STATUSES.filter((to) => (isDatedStatus(application.status) && to === application.status) || canTransition(application.status as ApplicationStatus, to, app.settings?.status_transitions))
       : [],
   );
-  const needsDate = $derived(target === 'waiting');
+  const needsDate = $derived(isDatedStatus(target));
+  const dateLabel = $derived(tr(target === 'homework' ? 'ui.app.homeworkDue' : 'ui.app.remindOn'));
   const ready = $derived(target !== '' && (!needsDate || (remindAt !== '' && remindAt >= today)));
 
   $effect(() => {
@@ -57,7 +58,7 @@
     </select>
     {#if target !== ''}
       {#if needsDate}
-        <input data-ui="status-control.remind-date" id="status-remind" class="input" type="date" min={today} aria-label={tr('ui.app.remindOn')} title={tr('ui.app.remindOn')} bind:value={remindAt} />
+        <input data-ui="status-control.remind-date" id="status-remind" class="input" type="date" min={today} aria-label={dateLabel} title={dateLabel} bind:value={remindAt} />
       {/if}
       <div class="buttons">
         <Button variant="primary" label={tr('ui.app.changeStatus')} ui="status-control.change" disabled={!ready} onclick={change}><Icon name="check" size={18} /></Button>

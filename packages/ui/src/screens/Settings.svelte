@@ -128,7 +128,7 @@
     toast.success(tr('ui.settings.savedTheme', { mode: tr(`ui.theme.${uiTheme}`) }));
   }
 
-  const CALENDAR_COLOR_LABELS: Record<CalendarColorKey, string> = { interview: 'ui.calendar.interview', waiting: 'ui.calendar.waiting', late: 'ui.calendar.waitingLate' };
+  const CALENDAR_COLOR_LABELS: Record<CalendarColorKey, string> = { interview: 'ui.calendar.interview', waiting: 'ui.calendar.waiting', late: 'ui.calendar.waitingLate', homework: 'ui.calendar.homework' };
   /** What the pickers show: the chosen color, or the default of the light theme when none was chosen. */
   let calendarColors = $state<Record<CalendarColorKey, string>>({ ...DEFAULT_CALENDAR_COLORS });
   $effect(() => {
@@ -144,7 +144,7 @@
   }
 
   function resetCalendarColors(): void {
-    saveUiState({ calendar_colors: { interview: '', waiting: '', late: '' } });
+    saveUiState({ calendar_colors: { interview: '', waiting: '', late: '', homework: '' } });
     toast.success(tr('ui.settings.savedCalendarColors'));
   }
 

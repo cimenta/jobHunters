@@ -48,7 +48,7 @@ describe('buildSetupPlan', () => {
   it('adds dropdowns for restricted columns, without the empty value', () => {
     const applications = sheet('Applications');
     const status = applications.dropdowns.find((d) => d.column === applications.headers.indexOf('status') + 1);
-    expect(status?.values).toHaveLength(8);
+    expect(status?.values).toHaveLength(9);
     const jobs = sheet('Jobs');
     const remote = jobs.dropdowns.find((d) => d.column === jobs.headers.indexOf('remote') + 1);
     expect(remote?.values).toEqual(['yes', 'no', 'hybrid']);

@@ -16,6 +16,7 @@
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { navigate } from '../lib/router.svelte';
+  import { saveUiState, uiState } from '../state/ui-state';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
 
@@ -31,9 +32,15 @@
         ].filter((group) => group.items.length > 0)
       : [],
   );
+  const gig = $derived(uiState().dashboard_gig);
   const counts = $derived(
-    APPLICATION_STATUSES.map((status) => ({ status, count: dashboard.data?.statusCounts[status] ?? 0 })).filter((entry) => entry.count > 0),
+    APPLICATION_STATUSES.map((status) => {
+      const all = dashboard.data?.statusCounts[status] ?? 0;
+      const gigs = dashboard.data?.gigStatusCounts?.[status] ?? 0;
+      return { status, count: gig === 'only' ? gigs : gig === 'except' ? all - gigs : all };
+    }).filter((entry) => entry.count > 0),
   );
+  const total = $derived(counts.reduce((sum, entry) => sum + entry.count, 0));
 
   const aiTasks = $derived.by(() => {
     const waiting = dashboard.data?.aiTasksWaiting ?? { total: 0, byType: {} };
@@ -119,7 +126,13 @@
     </Card>
 
     <Card ui="dashboard.status-counts">
-      <h2>{tr('ui.dashboard.applications')}</h2>
+      <div class="head">
+        <h2>{tr('ui.dashboard.applications')}<span class="total" data-ui="dashboard.total">{tr('ui.dashboard.total')} <strong>{total}</strong></span></h2>
+        <span class="seg" role="group" data-ui="dashboard.gig" title={tr('ui.jobs.gigHint')} aria-label={tr('ui.dashboard.gigGroup')}>
+          <button type="button" data-ui="dashboard.gig.only" aria-pressed={gig === 'only'} onclick={() => saveUiState({ dashboard_gig: gig === 'only' ? '' : 'only' })}>{tr('ui.jobs.gigOnly')}</button>
+          <button type="button" data-ui="dashboard.gig.except" aria-pressed={gig === 'except'} onclick={() => saveUiState({ dashboard_gig: gig === 'except' ? '' : 'except' })}>{tr('ui.jobs.gigExcept')}</button>
+        </span>
+      </div>
       {#if counts.length === 0}
         <p class="muted">{tr('ui.dashboard.noApplications')}</p>
       {:else}
@@ -147,6 +160,13 @@
   .text { font-weight: 600; }
   .big { font-size: var(--text-xl, 2rem); margin: 0; }
   .plain { padding: 0; margin: 0; list-style: none; }
+  .head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+  .total { display: inline-block; margin-left: var(--space-2); padding: 2px var(--space-2); font-size: var(--text-s); font-weight: 400; vertical-align: middle; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-m); }
+  .seg { display: inline-flex; border: 1px solid var(--accent); border-radius: var(--radius-s); overflow: hidden; background: var(--surface); }
+  .seg button { min-height: 28px; padding: 0 var(--space-2); font: inherit; font-size: var(--text-s); color: var(--text); background: var(--surface); border: 0; cursor: pointer; white-space: nowrap; }
+  .seg button + button { border-left: 1px solid var(--accent); }
+  .seg button:hover { background: var(--accent-soft); }
+  .seg button[aria-pressed='true'] { color: var(--on-accent); font-weight: 600; background: var(--accent); }
   .counts { display: flex; flex-wrap: wrap; gap: var(--space-3); padding: 0; margin: 0; list-style: none; }
   .count-link { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); color: var(--text); text-decoration: none; border: 1px solid var(--border); border-radius: var(--radius-m); }
   .count-link:hover { border-color: var(--accent); }

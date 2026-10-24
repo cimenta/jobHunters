@@ -43,9 +43,9 @@ describe('Settings', () => {
     expect(pick('interview').value).toBe('#d9f1ee');
     await fireEvent.input(pick('interview'), { target: { value: '#112233' } });
     await click('save');
-    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '#112233', waiting: '', late: '' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '#112233', waiting: '', late: '', homework: '' }));
     await click('reset');
-    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '', waiting: '', late: '' }));
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.calendar_colors).toEqual({ interview: '', waiting: '', late: '', homework: '' }));
   });
 
   it('switches the result notices off and on', async () => {

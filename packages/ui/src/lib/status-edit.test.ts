@@ -7,7 +7,7 @@ describe('initialEdits', () => {
     const edits = initialEdits({}, 'en');
     expect(edits.sent).toEqual({ text: '', color: DEFAULT_STATUS_COLORS.sent, check: true });
     expect(edits.offer.check).toBe(false);
-    expect(Object.keys(edits)).toHaveLength(8);
+    expect(Object.keys(edits)).toHaveLength(9);
   });
   it('shows the customisation of the current language only', () => {
     const styles = { sent: { text: { en: 'Applied', cs: 'Podáno' }, color: '#fde68a' } };

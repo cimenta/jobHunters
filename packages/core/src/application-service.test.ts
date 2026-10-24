@@ -82,6 +82,30 @@ describe('setStatus basics', () => {
     expect(service.setStatus('a1', 'sent').applied_at).toBe('2026-09-01T00:00:00.000Z');
   });
 
+  it('moves to homework with a deadline: an open reminder from the homework source, closed when the status is left', () => {
+    const { service, reminders, applications } = setup({ status: 'interview', job_id: 'j7' });
+    expect(() => service.setStatus('a1', 'homework')).toThrow(ValidationError);
+    expect(applications.get('a1')?.status).toBe('interview');
+    service.setStatus('a1', 'homework', { remindAt: '2026-10-20' });
+    expect(reminders.list()).toEqual([
+      expect.objectContaining({ application_id: 'a1', job_id: 'j7', due_at: '2026-10-20', text: 'Homework due', status: 'open', source: 'homework' }),
+    ]);
+    service.setStatus('a1', 'offer');
+    expect(reminders.list()[0]).toMatchObject({ status: 'done', done_at: NOW });
+  });
+
+  it('moves the deadline when homework is entered again, and keeps the waiting reminder apart', () => {
+    const { service, reminders } = setup({ status: 'homework' }, [
+      makeReminder({ id: 'h', application_id: 'a1', source: 'homework', due_at: '2026-10-15' }),
+      makeReminder({ id: 'w', application_id: 'a1', source: 'waiting', due_at: '2026-10-16' }),
+    ]);
+    service.setStatus('a1', 'homework', { remindAt: '2026-10-25' });
+    const byId = Object.fromEntries(reminders.list().map((r) => [r.id, r]));
+    expect(byId.h).toMatchObject({ status: 'done' });
+    expect(byId.w).toMatchObject({ status: 'open' });
+    expect(reminders.list().filter((r) => r.status === 'open' && r.source === 'homework').map((r) => r.due_at)).toEqual(['2026-10-25']);
+  });
+
   it('throws NotFoundError for an unknown application', () => {
     const { service } = setup();
     expect(() => service.setStatus('nope', 'interview')).toThrow(NotFoundError);

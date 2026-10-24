@@ -3,6 +3,7 @@ export const APPLICATION_STATUSES = [
   'sent',
   'waiting',
   'interview',
+  'homework',
   'offer',
   'rejected',
   'ghosted',
@@ -14,6 +15,13 @@ export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 /** Statuses in which an application is over: it no longer counts as active. */
 export const INACTIVE_APPLICATION_STATUSES: readonly string[] = ['rejected', 'withdrawn', 'ghosted'];
 
+/** Statuses that carry a date: a reminder for waiting, the deadline for homework. Moving to one of them asks for the date. */
+export const DATED_STATUSES: readonly string[] = ['waiting', 'homework'];
+
+export function isDatedStatus(value: string): boolean {
+  return DATED_STATUSES.includes(value);
+}
+
 export function isApplicationStatus(value: unknown): value is ApplicationStatus {
   return typeof value === 'string' && (APPLICATION_STATUSES as readonly string[]).includes(value);
 }
@@ -23,11 +31,12 @@ export type StatusTransitions = Record<ApplicationStatus, readonly ApplicationSt
 
 export const DEFAULT_TRANSITIONS: StatusTransitions = {
   draft: ['sent', 'waiting', 'withdrawn'],
-  sent: ['waiting', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn'],
-  waiting: ['sent', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn'],
-  interview: ['waiting', 'offer', 'rejected', 'ghosted', 'withdrawn'],
-  offer: ['waiting', 'interview', 'rejected', 'withdrawn'],
-  ghosted: ['waiting', 'interview', 'rejected', 'withdrawn'],
+  sent: ['waiting', 'interview', 'homework', 'offer', 'rejected', 'ghosted', 'withdrawn'],
+  waiting: ['sent', 'interview', 'homework', 'offer', 'rejected', 'ghosted', 'withdrawn'],
+  interview: ['waiting', 'homework', 'offer', 'rejected', 'ghosted', 'withdrawn'],
+  homework: ['waiting', 'interview', 'offer', 'rejected', 'ghosted', 'withdrawn'],
+  offer: ['waiting', 'interview', 'homework', 'rejected', 'withdrawn'],
+  ghosted: ['waiting', 'interview', 'homework', 'rejected', 'withdrawn'],
   rejected: [],
   withdrawn: [],
 };

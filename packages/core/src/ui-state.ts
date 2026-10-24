@@ -20,6 +20,8 @@ export interface UiState {
   jobs_hide_no: boolean;
   /** The gig switch of the Jobs screen: '' = all jobs, 'only' = only gigs, 'except' = everything but gigs. */
   jobs_gig: JobGigFilter;
+  /** The gig switch of the Dashboard card Applications by status; same values as jobs_gig. */
+  dashboard_gig: JobGigFilter;
   /** Order of the Jobs screen. */
   jobs_sort: JobSort;
   /** Order of the cards of each Kanban column; a status without an entry is ordered by hand. */
@@ -32,16 +34,16 @@ export interface UiState {
   calendar_colors: CalendarColors;
 }
 
-export const CALENDAR_COLOR_KEYS = ['interview', 'waiting', 'late'] as const;
+export const CALENDAR_COLOR_KEYS = ['interview', 'waiting', 'late', 'homework'] as const;
 export type CalendarColorKey = (typeof CALENDAR_COLOR_KEYS)[number];
 export type CalendarColors = Record<CalendarColorKey, string>;
-export const NO_CALENDAR_COLORS: Readonly<CalendarColors> = { interview: '', waiting: '', late: '' };
+export const NO_CALENDAR_COLORS: Readonly<CalendarColors> = { interview: '', waiting: '', late: '', homework: '' };
 const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -91,6 +93,10 @@ export function parseUiState(raw: string): UiState | undefined {
   if (entry.jobs_gig !== undefined) {
     if (typeof entry.jobs_gig !== 'string' || !JOB_GIG_FILTERS.includes(entry.jobs_gig)) return undefined;
     out.jobs_gig = entry.jobs_gig as JobGigFilter;
+  }
+  if (entry.dashboard_gig !== undefined) {
+    if (typeof entry.dashboard_gig !== 'string' || !JOB_GIG_FILTERS.includes(entry.dashboard_gig)) return undefined;
+    out.dashboard_gig = entry.dashboard_gig as JobGigFilter;
   }
   if (entry.jobs_sort !== undefined) {
     if (typeof entry.jobs_sort !== 'string' || !(JOB_SORTS as readonly string[]).includes(entry.jobs_sort)) return undefined;

@@ -84,7 +84,7 @@ export interface Reminder {
   due_at: string;
   text: string;
   status: 'open' | 'done' | 'dismissed';
-  source: 'manual' | 'waiting';
+  source: 'manual' | 'waiting' | 'homework';
   created_at: string;
   done_at: string;
   reminded_at: string;

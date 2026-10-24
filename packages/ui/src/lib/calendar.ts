@@ -1,4 +1,4 @@
-import type { CalendarInterview, CalendarWaiting } from '@jobhunters/core';
+import type { CalendarHomework, CalendarInterview, CalendarWaiting } from '@jobhunters/core';
 import { plusDays, zone } from './format';
 import { ui } from './i18n.svelte';
 
@@ -44,6 +44,8 @@ export interface CalendarDay {
   inMonth: boolean;
   today: boolean;
   interviews: CalendarInterview[];
+  /** Homework deadlines that fall on this day. */
+  homeworks: CalendarHomework[];
 }
 
 export interface CalendarBar {
@@ -85,7 +87,7 @@ function spanOf(waiting: CalendarWaiting, today: string): Omit<Span, 'lane'> {
 }
 
 /** Weeks start on Monday and cover the whole month, with the days of the neighbouring months that fill the first and last week. */
-export function buildMonth(month: string, interviews: readonly CalendarInterview[], waitings: readonly CalendarWaiting[], today: string): CalendarWeek[] {
+export function buildMonth(month: string, interviews: readonly CalendarInterview[], waitings: readonly CalendarWaiting[], today: string, homeworks: readonly CalendarHomework[] = []): CalendarWeek[] {
   const first = `${month}-01`;
   const weekday = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7;
   const gridStart = plusDays(first, -weekday);
@@ -98,6 +100,12 @@ export function buildMonth(month: string, interviews: readonly CalendarInterview
     const key = dayKey(interview.datetime);
     if (key === '') continue;
     byDay.set(key, [...(byDay.get(key) ?? []), interview]);
+  }
+
+  const deadlines = new Map<string, CalendarHomework[]>();
+  for (const homework of homeworks) {
+    const key = dayKey(homework.due_at);
+    if (key !== '') deadlines.set(key, [...(deadlines.get(key) ?? []), homework]);
   }
 
   // One lane per waiting for the whole month, the first one that is free over all of its days.
@@ -123,6 +131,7 @@ export function buildMonth(month: string, interviews: readonly CalendarInterview
         number: Number(date.slice(8)),
         inMonth: monthOf(date) === month,
         today: date === today,
+        homeworks: deadlines.get(date) ?? [],
         interviews: [...(byDay.get(date) ?? [])].sort((a, b) => (a.datetime < b.datetime ? -1 : a.datetime > b.datetime ? 1 : 0)),
       };
     });

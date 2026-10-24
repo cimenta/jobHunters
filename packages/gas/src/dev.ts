@@ -89,7 +89,7 @@ export function createDevBackend(options: { seed?: boolean; showcase?: boolean; 
     },
   });
   const api = createApi({ handlers: createHandlers(container), log: container.log });
-  container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION), sheet_formats_repaired: '1', communication_kinds_listed: '1' });
+  container.settings.update({ ai_prompts_version: options.promptsOutdated ? '' : String(PROMPTS_VERSION), sheet_formats_repaired: '1', communication_kinds_listed: '1', status_homework_listed: '1' });
   const backend: DevBackend = { call: (method, args) => api(method, args), container, drive };
   if (options.showcase) seedShowcase(backend, now);
   else if (options.seed) seed(backend, now);
@@ -137,7 +137,7 @@ function seedShowcase(backend: DevBackend, now: () => string): void {
 
   const apply = (jobId: string, steps: string[]): string => {
     const id = call<{ application: { id: string } }>('createApplication', { jobId }).application.id;
-    for (const to of steps) call('setApplicationStatus', { id, to, ...(to === 'waiting' ? { remindAt: addDays(today, 9) } : {}) });
+    for (const to of steps) call('setApplicationStatus', { id, to, ...(to === 'waiting' || to === 'homework' ? { remindAt: addDays(today, to === 'homework' ? 5 : 9) } : {}) });
     return id;
   };
   const sent = apply(jobs.android, ['sent']);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { canTransition, isApplicationStatus, sortApplications, sortBoard, sortKeysFor, type ApplicationSortKey, type ApplicationStatus, type SortChoice, type StatusTransitions } from '@jobhunters/core';
+  import { canTransition, isApplicationStatus, isDatedStatus, sortApplications, sortBoard, sortKeysFor, type ApplicationSortKey, type ApplicationStatus, type SortChoice, type StatusTransitions } from '@jobhunters/core';
   import { api } from '../api';
   import type { ApplicationRow } from '../api/types';
   import ApplicationFacts from '../components/ApplicationFacts.svelte';
@@ -34,7 +34,7 @@
 
   let dragging = $state<ApplicationRow>();
   let over = $state<string>();
-  let pending = $state<{ card: ApplicationRow; index: number }>();
+  let pending = $state<{ card: ApplicationRow; index: number; to: ApplicationStatus }>();
   let remindAt = $state('');
   const today = todayLocal();
 
@@ -122,9 +122,9 @@
       toast.warning(tr('ui.kanban.notAllowed', { label: card.label, from: statusStyle(card.status).text, to: statusStyle(to).text }));
       return;
     }
-    if (to === 'waiting' && card.status !== 'waiting') {
+    if (isDatedStatus(to) && card.status !== to) {
       remindAt = '';
-      pending = { card, index };
+      pending = { card, index, to };
       return;
     }
     await run(card, to, () => api.moveApplication(card.id, to, index));
@@ -134,7 +134,7 @@
     const current = pending;
     if (!current) return;
     pending = undefined;
-    await run(current.card, 'waiting', () => api.moveApplication(current.card.id, 'waiting', current.index, remindAt), remindAt);
+    await run(current.card, current.to, () => api.moveApplication(current.card.id, current.to, current.index, remindAt), remindAt);
   }
 
   /** Place among the other cards of the column: before the card dropped on, or after it in its lower half. */
@@ -256,8 +256,8 @@
 </div>
 {#if shown.length === 0}<p class="muted" data-ui="kanban.all-hidden">{tr('ui.kanban.allHidden')}</p>{/if}
 
-<Dialog open={pending !== undefined} title={tr('ui.kanban.waitingTitle')} onclose={() => (pending = undefined)} ui="kanban.waiting">
-  <Field label={tr('ui.app.remindOn')} for="kanban-remind">
+<Dialog open={pending !== undefined} title={tr(pending?.to === 'homework' ? 'ui.kanban.homeworkTitle' : 'ui.kanban.waitingTitle')} onclose={() => (pending = undefined)} ui="kanban.waiting">
+  <Field label={tr(pending?.to === 'homework' ? 'ui.app.homeworkDue' : 'ui.app.remindOn')} for="kanban-remind">
     <input data-ui="kanban.remind-date" id="kanban-remind" class="input" type="date" min={today} bind:value={remindAt} />
   </Field>
   {#snippet footer()}

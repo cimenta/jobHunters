@@ -119,6 +119,8 @@ export function createHandlers(c: Container): Record<string, Handler> {
       if (c.setupStatus && c.settings.raw('sheet_formats_repaired') !== '1') reasons.push('The formats of the sheet columns have to be put right (Setup does it)');
       // The new communication type (after a meeting) has to be in the dropdown of the sheet Communications.
       if (c.setupStatus && c.settings.raw('communication_kinds_listed') !== '1') reasons.push('The list of communication types in the sheet Communications has to be updated (Setup does it)');
+      // The new status Homework (and the reminder source homework) have to be in the dropdowns of the sheets.
+      if (c.setupStatus && c.settings.raw('status_homework_listed') !== '1') reasons.push('The status Homework has to be added to the lists of the sheets Applications and Reminders (Setup does it)');
       return reasons.length > status.reasons.length ? { needed: true, reasons } : status;
     },
 

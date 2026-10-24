@@ -37,7 +37,7 @@ describe('Kanban', () => {
     await waitFor(async () => expect((await api.getSettings()).settings.ui_state.applications_status_list).toEqual(['sent']));
     await fireEvent.click(screen.getByLabelText('Kanban'));
     await screen.findByRole('group', { name: 'Applications by status' });
-    expect(document.querySelectorAll('[data-ui^="kanban."]:not([data-ui^="kanban.card"]):not([data-ui*=".sort"])').length).toBe(8);
+    expect(document.querySelectorAll('[data-ui^="kanban."]:not([data-ui^="kanban.card"]):not([data-ui*=".sort"])').length).toBe(9);
     await fireEvent.click(within(screen.getByRole('group', { name: 'Status' })).getByLabelText('Waiting'));
     await waitFor(() => expect(document.querySelector('[data-ui="kanban.sent"]')).toBeNull());
     expect(column('waiting')).not.toBeNull();
@@ -249,7 +249,7 @@ describe('Allowed status changes', () => {
     await fireEvent.click(await screen.findByRole('tab', { name: 'Application statuses' }));
     await fireEvent.click(await screen.findByRole('tab', { name: 'Allowed changes' }));
     const matrix = (await screen.findByRole('heading', { name: 'Allowed status changes of applications' })).closest('section')!;
-    for (const to of ['Waiting', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn']) {
+    for (const to of ['Waiting', 'Interview', 'Homework', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn']) {
       await fireEvent.click(within(matrix).getByLabelText(`Allow moving from Sent to ${to}`));
     }
     expect(await within(matrix).findByText(/No move out of: Sent/)).toBeInTheDocument();
@@ -297,6 +297,21 @@ describe('List sort', () => {
       expect(saved.applications_list_sort).toEqual({ by: 'salary', up: false });
       expect(saved.applications_board_sort).toEqual({ draft: { by: 'created', up: false } });
     });
+  });
+});
+
+describe('Kanban Homework column', () => {
+  it('has a column between Interview and Offer and asks for the deadline when a card is moved there', async () => {
+    await board();
+    const order = [...document.querySelectorAll('[data-ui^="kanban."]')].map((el) => el.getAttribute('data-ui')!).filter((id) => /^kanban\.[a-z]+$/.test(id));
+    expect(order.indexOf('kanban.homework')).toBe(order.indexOf('kanban.interview') + 1);
+    expect(order.indexOf('kanban.offer')).toBe(order.indexOf('kanban.homework') + 1);
+    const target = (await api.listApplications()).find((a) => a.label.includes('Android Developer – #1'))!;
+    await fireEvent.change(document.querySelector(`[data-ui="kanban.card.${target.id}.move"]`)!, { target: { value: 'homework' } });
+    const date = await screen.findByLabelText('Homework due');
+    await fireEvent.input(date, { target: { value: '2099-02-02' } });
+    await fireEvent.click(document.querySelector('[data-ui="kanban.waiting.confirm"]')!);
+    await waitFor(async () => expect(await statusOf('Android Developer – #1')).toBe('homework'));
   });
 });
 

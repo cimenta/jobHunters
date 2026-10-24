@@ -63,6 +63,18 @@ describe('CalendarScreen', () => {
     expect(style).not.toContain('--cal-waiting');
   });
 
+  it('shows the deadline of a homework on its day and sends it to the application', async () => {
+    useDevBackend();
+    const application = (await api.listApplications()).find((a) => a.status === 'sent')!;
+    await api.setApplicationStatus(application.id, 'homework', todayKey());
+    render(CalendarScreen);
+    await screen.findByText('Mon');
+    const chip = ui(`calendar.homework.${application.id}`)!;
+    expect(chip).not.toBeNull();
+    expect(chip).toHaveAttribute('href', `#/applications/${application.id}`);
+    expect(ui(`calendar.day.${todayKey()}`)).toContainElement(chip);
+  });
+
   it('moves between months and comes back with Today', async () => {
     useDevBackend();
     render(CalendarScreen);
