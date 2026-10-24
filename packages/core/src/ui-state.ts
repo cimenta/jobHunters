@@ -1,3 +1,4 @@
+import { parseDashboardLayout, type DashboardLayout } from './dashboard-layout';
 import { LIST_SORT_KEYS, sortKeysFor, type ListSortKey, type SortChoice } from './application-sort';
 import { isApplicationStatus } from './status';
 
@@ -32,6 +33,8 @@ export interface UiState {
   kanban_reject_icon: boolean;
   /** Background colors of the entries in the Calendar, as #rrggbb; an empty text = the color of the theme. */
   calendar_colors: CalendarColors;
+  /** Where the Dashboard widgets are; null = the default layout, a widget missing from it is removed. */
+  dashboard_layout: DashboardLayout | null;
 }
 
 export const CALENDAR_COLOR_KEYS = ['interview', 'waiting', 'late', 'homework'] as const;
@@ -43,7 +46,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -121,6 +124,11 @@ export function parseUiState(raw: string): UiState | undefined {
       if (typeof color !== 'string' || (color !== '' && !HEX_COLOR.test(color))) return undefined;
       out.calendar_colors[key] = color.toLowerCase();
     }
+  }
+  if (entry.dashboard_layout !== undefined && entry.dashboard_layout !== null) {
+    const layout = parseDashboardLayout(entry.dashboard_layout);
+    if (layout === undefined) return undefined;
+    out.dashboard_layout = layout;
   }
   return out;
 }

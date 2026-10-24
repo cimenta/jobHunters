@@ -2,7 +2,7 @@
   export type IconName =
     | 'home' | 'briefcase' | 'file' | 'building' | 'settings' | 'plus' | 'check' | 'clock' | 'external'
     | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle' | 'help' | 'folder'
-    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out' | 'archive' | 'ban' | 'ghost' | 'undo' | 'reject';
+    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out' | 'archive' | 'ban' | 'ghost' | 'undo' | 'reject' | 'more' | 'layout' | 'move';
 
   const PATHS: Record<IconName, string> = {
     home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
@@ -40,6 +40,9 @@
     reject: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 9l6 6M15 9l-6 6',
     ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
     ghost: 'M5 21V11a7 7 0 0 1 14 0v10l-3.5-2-3.5 2-3.5-2zM9.5 11h.01M14.5 11h.01',
+    more: 'M5 12h.01M12 12h.01M19 12h.01',
+    layout: 'M3 4h18v16H3zM3 10h18M10 10v10',
+    move: 'M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3',
     undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3',
   };
 </script>

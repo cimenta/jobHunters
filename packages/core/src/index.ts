@@ -33,6 +33,7 @@ export * from './text-diff';
 export * from './board';
 export * from './status';
 export * from './ui-state';
+export * from './dashboard-layout';
 export * from './status-style';
 export * from './types';
 export * from './util';

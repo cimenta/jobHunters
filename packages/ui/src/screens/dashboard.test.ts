@@ -99,3 +99,59 @@ describe('Dashboard AI tasks', () => {
     expect(within(card).queryByText('Nothing is waiting for the AI')).toBeNull();
   });
 });
+
+describe('Dashboard layout editing', () => {
+  const ui = (id: string) => document.querySelector(`[data-ui="${id}"]`) as HTMLElement | null;
+  const openEditor = async () => {
+    await screen.findByText('Send the portfolio');
+    await fireEvent.click(ui('dashboard.menu')!);
+    await fireEvent.click(ui('dashboard.menu.edit-layout')!);
+  };
+
+  it('shows no layout controls until Edit layout is chosen from the menu', async () => {
+    useDevBackend();
+    await loadApp();
+    render(Dashboard);
+    await screen.findByText('Send the portfolio');
+    expect(ui('dashboard.edit-bar')).toBeNull();
+    expect(ui('dashboard.widget.reminders.drag')).toBeNull();
+    await openEditor();
+    expect(ui('dashboard.edit-bar')).not.toBeNull();
+    expect(ui('dashboard.widget.reminders.drag')).not.toBeNull();
+    await fireEvent.click(ui('dashboard.done')!);
+    expect(ui('dashboard.edit-bar')).toBeNull();
+  });
+
+  it('removes a widget, adds it back and saves each change', async () => {
+    useDevBackend();
+    await loadApp();
+    render(Dashboard);
+    await openEditor();
+    await fireEvent.click(ui('dashboard.widget.ai_tasks.remove')!);
+    expect(ui('dashboard.widget.ai_tasks')).toBeNull();
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.dashboard_layout?.ai_tasks).toBeUndefined());
+    await fireEvent.change(ui('dashboard.add-widget')!, { target: { value: 'ai_tasks' } });
+    expect(ui('dashboard.widget.ai_tasks')).not.toBeNull();
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.dashboard_layout?.ai_tasks).toBeDefined());
+  });
+
+  it('moves a widget with the arrow keys and resets to the default layout', async () => {
+    useDevBackend();
+    await loadApp();
+    render(Dashboard);
+    await openEditor();
+    await fireEvent.keyDown(ui('dashboard.widget.status_counts.drag')!, { key: 'ArrowDown' });
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.dashboard_layout?.status_counts?.y).toBe(5));
+    await fireEvent.click(ui('dashboard.reset-layout')!);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.dashboard_layout ?? null).toBeNull());
+  });
+
+  it('says the Dashboard is empty when every widget is removed', async () => {
+    useDevBackend();
+    await loadApp();
+    render(Dashboard);
+    await openEditor();
+    for (const id of ['reminders', 'ai_tasks', 'status_counts']) await fireEvent.click(ui(`dashboard.widget.${id}.remove`)!);
+    expect(ui('dashboard.no-widgets')).not.toBeNull();
+  });
+});

@@ -62,6 +62,7 @@
       <li>{tr('ui.help.dashboard.i2')}</li>
       <li>{tr('ui.help.dashboard.i3')}</li>
       <li>{tr('ui.help.dashboard.i4')}</li>
+      <li>{tr('ui.help.dashboard.i5')}</li>
     </ul>
     <p><a data-ui="help.open.dashboard" href={paths.dashboard}>{tr('ui.help.open', { name: tr('ui.help.dashboard.title') })}</a></p>
   </Card>

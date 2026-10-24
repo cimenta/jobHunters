@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.22.0] - 2026-10-24
+
+- The Dashboard can be arranged by the user. The new menu **⋯** in the upper right (next to Add a job) has **Edit layout**: the sections (Reminders, AI tasks waiting, Applications by status) become widgets that can be **moved** (drag the title, or arrow keys on it), **resized** (drag the corner, or Shift and arrow keys) on a 12-column grid, **removed** and **added back** from the Add a widget list. Widgets pushed by another one move down; the layout is **saved automatically** and Reset to default brings the original one back. On narrow screens the widgets are stacked. New field `dashboard_layout` in the interface settings.
+- No Setup is needed for this update.
+
 ## [0.21.0] - 2026-10-24
 
 - The Dashboard card **Applications by status** has the **Gigs only / No gigs** switch of the Jobs screen (click a button to select it, click it again to show all) and a **Total** badge next to its title; both follow the switch. The choice is remembered with the other interface settings, separately from the Jobs screen. New field `gigStatusCounts` in the API method `getDashboard`.
