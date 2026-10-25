@@ -35,9 +35,26 @@ describe('JobsList', () => {
     await waitFor(() => expect(ui(`job.${analyst.id}.archive`)).toBeNull());
     expect(ui(`job.${analyst.id}.no`)).not.toBeNull();
     await fireEvent.click(ui(`job.${analyst.id}.no`)!);
+    await fireEvent.click(await waitFor(() => { const keep = ui('jobs.withdraw.keep'); expect(keep).not.toBeNull(); return keep!; }));
     await waitFor(async () => expect((await api.getJob(analyst.id)).job.status).toBe('no'));
     await waitFor(() => expect(ui(`job.${analyst.id}.no`)).toBeNull());
     expect(ui(`job.${analyst.id}.archive`)).not.toBeNull();
+  });
+
+  it('asks to withdraw the open applications when the No icon is used on a job that has them', async () => {
+    useDevBackend();
+    render(JobsList);
+    await screen.findByText('Data Analyst (part time)');
+    const analyst = (await api.listJobs()).find((job) => job.title === 'Data Analyst (part time)')!;
+    const before = (await api.getJob(analyst.id)).applications;
+    expect(before.length).toBeGreaterThan(0);
+    const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+    await fireEvent.click(ui(`job.${analyst.id}.no`)!);
+    await screen.findByRole('dialog', { name: 'Withdraw the applications too?' });
+    expect((await api.getJob(analyst.id)).job.status).not.toBe('no');
+    await fireEvent.click(ui('jobs.withdraw.withdraw')!);
+    await waitFor(async () => expect((await api.getJob(analyst.id)).job.status).toBe('no'));
+    expect((await api.getJob(analyst.id)).applications.every((application) => ['withdrawn', 'rejected', 'ghosted'].includes(application.status))).toBe(true);
   });
 
   it('shows a muted line with work mode, type and salary, and the AI salary, only when there is something to show', async () => {

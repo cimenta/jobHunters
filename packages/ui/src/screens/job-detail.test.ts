@@ -297,6 +297,7 @@ describe('JobDetail status', () => {
     await screen.findByRole('heading', { name: 'Android Developer' });
     expect(await screen.findByText('Match 78 %')).toBeInTheDocument();
     await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    await fireEvent.click(await waitFor(() => { const keep = document.querySelector('[data-ui="job-detail.withdraw.keep"]'); expect(keep).not.toBeNull(); return keep!; }));
     await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('no'));
     expect(await screen.findByText('Match 78 %', { selector: 'span.muted' })).toBeInTheDocument();
     expect(screen.getAllByText('No').length).toBeGreaterThan(0);
@@ -512,6 +513,7 @@ describe('JobDetail contact person and reason why not', () => {
     await screen.findByRole('heading', { name: 'Android Developer' });
     expect(ui('job-detail.no-reason')).toBeNull();
     await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    await fireEvent.click(await waitFor(() => { const keep = document.querySelector('[data-ui="job-detail.withdraw.keep"]'); expect(keep).not.toBeNull(); return keep!; }));
     const input = await waitFor(() => {
       const found = ui('job-detail.no-reason.input') as HTMLInputElement | null;
       expect(found).not.toBeNull();
@@ -535,6 +537,7 @@ describe('JobDetail contact person and reason why not', () => {
     render(JobDetail, { id });
     await screen.findByRole('heading', { name: 'Android Developer' });
     await fireEvent.change(screen.getByLabelText('Status of the ad'), { target: { value: 'no' } });
+    await fireEvent.click(await waitFor(() => { const keep = document.querySelector('[data-ui="job-detail.withdraw.keep"]'); expect(keep).not.toBeNull(); return keep!; }));
     const input = await waitFor(() => {
       const found = ui('job-detail.no-reason.input') as HTMLInputElement | null;
       expect(found).not.toBeNull();
@@ -673,5 +676,58 @@ describe('Delete job (detail)', () => {
       const origins = [...document.querySelectorAll('[data-ui^="timeline.event."][data-ui$=".origin"]')].map((node) => node.textContent);
       expect(origins).toContain(application.label);
     });
+  });
+});
+
+describe('JobDetail setting the ad to No with open applications', () => {
+  const ui = (id: string) => document.querySelector(`[data-ui="${id}"]`) as HTMLElement | null;
+  const statusBox = () => ui('job-detail.status') as HTMLSelectElement;
+
+  async function open(): Promise<string> {
+    useDevBackend();
+    await loadApp();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    return id;
+  }
+
+  it('asks first, withdraws the open applications on request and sets the ad to No', async () => {
+    const id = await open();
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    const dialog = await screen.findByRole('dialog', { name: 'Withdraw the applications too?' });
+    expect((await api.getJob(id)).job.status).not.toBe('no');
+    expect(within(dialog).getByText('Sent')).toBeInTheDocument();
+    await fireEvent.click(ui('job-detail.withdraw.withdraw')!);
+    await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('no'));
+    expect((await api.getJob(id)).applications.map((application) => application.status)).toEqual(['withdrawn']);
+    expect(toasts.map((t) => t.text)).toContain('Applications set to Withdrawn: 1');
+  });
+
+  it('keeps the applications when asked to, and changes nothing on cancel', async () => {
+    const id = await open();
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    await screen.findByRole('dialog', { name: 'Withdraw the applications too?' });
+    await fireEvent.click(ui('job-detail.withdraw.cancel')!);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect((await api.getJob(id)).job.status).not.toBe('no');
+    expect(statusBox().value).not.toBe('no');
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    await screen.findByRole('dialog', { name: 'Withdraw the applications too?' });
+    await fireEvent.click(ui('job-detail.withdraw.keep')!);
+    await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('no'));
+    expect((await api.getJob(id)).applications.map((application) => application.status)).toEqual(['sent']);
+  });
+
+  it('does not ask for a job without applications', async () => {
+    useDevBackend();
+    await loadApp();
+    const plain = (await api.listJobs()).find((job) => job.application_count === 0 && job.status !== 'awaiting')!;
+    const id = plain.id;
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: plain.title });
+    await fireEvent.change(statusBox(), { target: { value: 'no' } });
+    await waitFor(async () => expect((await api.getJob(id)).job.status).toBe('no'));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });

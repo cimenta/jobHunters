@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.23.1] - 2026-10-25
+
+- Setting a job to **No** (in its detail, or with the No icon on its card in the Jobs list) asks what to do with its applications that are still open: **Withdraw them** sets them to Withdrawn and the job to No, **Keep them as they are** sets only the job, **Cancel** changes nothing. Applications already Rejected, Withdrawn or Ghosted, and those that the status rules in Settings do not allow to move to Withdrawn, are not listed. A job without open applications gets the status at once, as before.
+- No Setup is needed for this update.
+
 ## [0.23.0] - 2026-10-24
 
 - **Setup is needed** (once, adds the column gig_priority to the sheet Jobs; the red "!" by Settings says so). Until then jobs cannot be read from the sheet.

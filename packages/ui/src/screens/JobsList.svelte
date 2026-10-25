@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { GIG_ONLY_SORTS, JOB_SORTS, type JobRow, type JobSort } from '@jobhunters/core';
+  import { DEFAULT_TRANSITIONS, GIG_ONLY_SORTS, JOB_SORTS, type JobRow, type JobSort } from '@jobhunters/core';
   import { api } from '../api';
+  import type { ApplicationRow } from '../api/types';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
   import EmptyState from '../components/EmptyState.svelte';
@@ -8,6 +9,7 @@
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import WithdrawDialog from '../components/WithdrawDialog.svelte';
   import { describeWarning } from '../lib/errors';
   import { filterJobs, sortJobs, type GigFilter, type JobFilters } from '../lib/filters';
   import { tr } from '../lib/i18n.svelte';
@@ -19,6 +21,7 @@
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { navigate, router } from '../lib/router.svelte';
+  import { withdrawable, withdrawApplications } from '../lib/withdraw';
   import { app } from '../state/app.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { saveUiState, uiState } from '../state/ui-state';
@@ -54,11 +57,28 @@
   /** The job whose link is being added (the red icon of a job without a link). */
   let linking = $state<{ id: string; title: string } | undefined>();
 
-  /** One click on a card icon: the ad gets the status Archived or No at once (no question, the toast says what changed). */
+  /** The ad being set to No while it has open applications: the question whether to withdraw them is open while this is set. */
+  let withdrawing = $state<{ job: JobRow; applications: ApplicationRow[] }>();
+
+  /** One click on a card icon: the ad gets the status Archived or No at once (the toast says what changed); No asks about open applications first. */
   async function setStatus(job: JobRow, code: 'archived' | 'no'): Promise<void> {
+    if (code === 'no' && job.application_count > 0) {
+      const open = withdrawable((await api.getJob(job.id)).applications, app.settings?.status_transitions ?? DEFAULT_TRANSITIONS);
+      if (open.length > 0) {
+        withdrawing = { job, applications: open };
+        return;
+      }
+    }
+    await applyStatus(job, code, []);
+  }
+
+  async function applyStatus(job: JobRow, code: 'archived' | 'no', withdraw: ApplicationRow[]): Promise<void> {
     const from = jobStatus(job).text;
     await api.updateJob(job.id, { status: code });
+    const failed = await withdrawApplications(withdraw);
     toast.success(tr('ui.job.statusChanged', { title: job.title, from, to: code === 'no' ? noText : archivedText }));
+    if (withdraw.length > 0) toast.success(tr('ui.job.withdrawn', { count: withdraw.length - failed.length }));
+    if (failed.length > 0) toast.warning(tr('ui.job.withdrawSkipped', { labels: failed.map((application) => application.label).join(', ') }));
     invalidate();
   }
 
@@ -284,6 +304,11 @@
 
 {#if linking !== undefined}
   <AddLinkDialog open={true} job={linking} onclose={() => (linking = undefined)} />
+{/if}
+
+{#if withdrawing !== undefined}
+  {@const pending = withdrawing}
+  <WithdrawDialog open={true} jobTitle={pending.job.title} jobStatusText={noText} applications={pending.applications} onclose={() => (withdrawing = undefined)} onchoose={(withdraw) => applyStatus(pending.job, 'no', withdraw ? pending.applications : [])} ui="jobs.withdraw" />
 {/if}
 
 <style>

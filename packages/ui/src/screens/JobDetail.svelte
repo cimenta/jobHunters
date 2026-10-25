@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { DEFAULT_TRANSITIONS } from '@jobhunters/core';
   import { api } from '../api';
+  import type { ApplicationRow } from '../api/types';
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -11,6 +13,7 @@
   import GigBox from '../components/GigBox.svelte';
   import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import Skeleton from '../components/Skeleton.svelte';
+  import WithdrawDialog from '../components/WithdrawDialog.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, safeHttpUrl } from '../lib/format';
   import { jobFacts } from '../lib/job-facts';
@@ -21,6 +24,8 @@
   import { useResource } from '../lib/resource.svelte';
   import { paths } from '../lib/route';
   import { navigate } from '../lib/router.svelte';
+  import { withdrawable, withdrawApplications } from '../lib/withdraw';
+  import { app } from '../state/app.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
   import CreateApplicationDialog from './CreateApplicationDialog.svelte';
@@ -57,13 +62,32 @@
     invalidate();
   }
 
-  async function changeStatus(status: string): Promise<void> {
+  /** The open applications offered for Withdrawn while the ad is being set to No (the question is open while this is set). */
+  let withdrawing = $state<ApplicationRow[]>();
+
+  async function changeStatus(status: string, select?: HTMLSelectElement): Promise<void> {
+    const job = detail.data?.job;
+    if (status === 'no' && job && job.status !== 'no') {
+      const open = withdrawable(detail.data?.applications ?? [], app.settings?.status_transitions ?? DEFAULT_TRANSITIONS);
+      if (open.length > 0) {
+        if (select) select.value = jobStatus(job).code;
+        withdrawing = open;
+        return;
+      }
+    }
+    await applyStatus(status, []);
+  }
+
+  async function applyStatus(status: string, withdraw: ApplicationRow[]): Promise<void> {
     const job = detail.data?.job;
     const from = job ? jobStatus(job).text : '';
     const to = jobStatusOptions().find((option) => option.code === status)?.text ?? status;
     await api.updateJob(id, { status });
+    const failed = await withdrawApplications(withdraw);
     if (status === 'no') reasonEditing = true;
     toast.success(tr('ui.job.statusChanged', { title: job?.title ?? '', from, to }));
+    if (withdraw.length > 0) toast.success(tr('ui.job.withdrawn', { count: withdraw.length - failed.length }));
+    if (failed.length > 0) toast.warning(tr('ui.job.withdrawSkipped', { labels: failed.map((application) => application.label).join(', ') }));
     invalidate();
   }
 
@@ -101,7 +125,7 @@
       <div class="summary">
         <div class="side">
           {#if job.status !== 'awaiting'}
-            <select class="input" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value)}>
+            <select class="input" aria-label={tr('ui.job.status')} data-ui="job-detail.status" value={current.code} onchange={(event) => changeStatus(event.currentTarget.value, event.currentTarget)}>
               {#each jobStatusOptions() as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
             </select>
           {/if}
@@ -227,6 +251,7 @@
       </div>
     </Card>
 
+    <WithdrawDialog open={withdrawing !== undefined} jobTitle={job.title} jobStatusText={jobStatusOptions().find((option) => option.code === 'no')?.text ?? 'No'} applications={withdrawing ?? []} onclose={() => (withdrawing = undefined)} onchoose={(withdraw) => applyStatus('no', withdraw ? (withdrawing ?? []) : [])} ui="job-detail.withdraw" />
     <CreateApplicationDialog open={creating} {job} applications={detail.data.applications} onclose={() => (creating = false)} />
   {/if}
 </div>
