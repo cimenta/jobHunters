@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.24.0] - 2026-10-26
+
+- New **Refresh data** button (a circular arrow) next to the title JobHunters in the menu; on a narrow screen, where the title is not shown, it sits at the top right of the page. One click reads the data again: the screen you are on, the menu numbers, the settings and the Setup check. The arrow spins while it works and a notice says when it is done; what you are typing and open pop-ups stay as they are. The shortcut **Alt+Shift+R** does the same from anywhere, also while a pop-up covers the button (the pop-up's own data is refreshed too).
+- The **salary of the ad** (from, to, currency, per) is now always shown in the detail of a job and of an application, also when it is empty, and can be changed in place: double-click it or use the pencil, Enter saves, Escape cancels, empty amounts clear it. Numbers only, and the minimum cannot be above the maximum. New API fields `salary_min`, `salary_max`, `salary_currency` and `salary_period` (text) in `updateJob`.
+- No Setup is needed for this update.
+
 ## [0.23.2] - 2026-10-26
 
 - Adding a communication entry of type **Meeting** offers **Set the status Interview** (ticked; untick it to only record the entry), for both an invitation by the employer and a meeting you arranged. It is not offered when editing an entry, when the application is already in Interview, or when the status rules in Settings do not allow the move. The status changes after the entry is saved.

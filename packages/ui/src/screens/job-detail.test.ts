@@ -189,10 +189,11 @@ describe('JobDetail layout', () => {
     render(JobDetail, { id: analyst });
     await screen.findByRole('heading', { name: 'Data Analyst (part time)' });
     const empty = document.querySelector('[data-ui="job-detail.info"]');
-    // The location stays listed even when empty, because a double-click fills it in; the other facts are left out.
+    // The location and the salary stay listed even when empty, because a double-click fills them in; the other facts are left out.
     expect(empty).toHaveTextContent('Location');
+    expect(document.querySelector('[data-ui="job-detail.info.salary.text"]')).toHaveTextContent('Double-click to add');
     expect(document.querySelector('[data-ui="job-detail.location.text"]')).toHaveTextContent('Double-click to add');
-    expect(/Salary|Type|AI/.test(empty!.textContent ?? '')).toBe(false);
+    expect(/Type|AI/.test(empty!.textContent ?? '')).toBe(false);
   });
 
   it('always shows the Remote and Hybrid checkboxes, and a click is saved at once', async () => {
@@ -463,6 +464,53 @@ describe('JobDetail location', () => {
     await fireEvent.keyDown(ui('job-detail.location.input') as HTMLInputElement, { key: 'Enter' });
     await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
     expect((await api.getJob(id)).job.location).toBe('');
+  });
+});
+
+describe('JobDetail salary', () => {
+  const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+  const type = (name: string, value: string) => fireEvent.input(ui(name) as HTMLInputElement, { target: { value } });
+
+  it('is shown when empty, edited in place with four fields, refuses a wrong one and can be cleared', async () => {
+    const backend = useDevBackend();
+    const id = await idOf('Android Developer');
+    backend.container.jobs.update(id, { salary_min: null, salary_max: null, salary_currency: '', salary_period: '' });
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const text = () => ui('job-detail.info.salary.text')!;
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    await fireEvent.click(ui('job-detail.info.salary.edit')!);
+    await type('job-detail.info.salary.min', '90 000');
+    await type('job-detail.info.salary.max', '60000');
+    await type('job-detail.info.salary.currency', 'czk');
+    await fireEvent.change(ui('job-detail.info.salary.period')!, { target: { value: 'month' } });
+    await fireEvent.click(ui('job-detail.info.salary.save')!);
+    await waitFor(() => expect(toasts.some((t) => t.text.includes('The salary is not valid'))).toBe(true));
+    expect((await api.getJob(id)).job.salary_min ?? null).toBeNull();
+    await type('job-detail.info.salary.max', '100000');
+    await fireEvent.keyDown(ui('job-detail.info.salary.max')!, { key: 'Enter' });
+    await waitFor(() => expect(text()).toHaveTextContent('CZK / month'));
+    expect((await api.getJob(id)).job).toMatchObject({ salary_min: 90000, salary_max: 100000, salary_currency: 'CZK', salary_period: 'month' });
+    await fireEvent.dblClick(text());
+    await type('job-detail.info.salary.min', '');
+    await type('job-detail.info.salary.max', '');
+    await fireEvent.click(ui('job-detail.info.salary.save')!);
+    await waitFor(() => expect(text()).toHaveTextContent('Double-click to add'));
+    expect((await api.getJob(id)).job.salary_min ?? null).toBeNull();
+    expect((await api.getJob(id)).job.salary_max ?? null).toBeNull();
+  });
+
+  it('Escape leaves the salary as it was', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const before = (await api.getJob(id)).job.salary_min;
+    await fireEvent.dblClick(ui('job-detail.info.salary.text')!);
+    await type('job-detail.info.salary.min', '1');
+    await fireEvent.keyDown(ui('job-detail.info.salary.min')!, { key: 'Escape' });
+    expect(ui('job-detail.info.salary.min')).toBeNull();
+    expect((await api.getJob(id)).job.salary_min ?? null).toBe(before ?? null);
   });
 });
 

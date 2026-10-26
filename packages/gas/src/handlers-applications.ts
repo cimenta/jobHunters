@@ -213,10 +213,14 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const contactPerson = optionalString(input, 'contact_person', 'updateJob');
       const noReason = optionalString(input, 'no_reason', 'updateJob');
       const gigShift = optionalString(input, 'gig_shift', 'updateJob');
+      const salaryMin = optionalString(input, 'salary_min', 'updateJob');
+      const salaryMax = optionalString(input, 'salary_max', 'updateJob');
+      const salaryCurrency = optionalString(input, 'salary_currency', 'updateJob');
+      const salaryPeriod = optionalString(input, 'salary_period', 'updateJob');
       const location = optionalString(input, 'location', 'updateJob');
       const url = optionalString(input, 'url', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, gig_priority: gigPriority, location, url, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, gig_priority: gigPriority, salary_min: salaryMin, salary_max: salaryMax, salary_currency: salaryCurrency, salary_period: salaryPeriod, location, url, status }));
     },
 
     saveJobStatuses: (args) => {

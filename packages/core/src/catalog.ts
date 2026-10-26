@@ -195,6 +195,7 @@ export const MAX_CONTACT_PERSON = 300;
 export const MAX_NO_REASON = 1000;
 export const MAX_GIG_SHIFT = 300;
 export const MAX_LOCATION = 300;
+const SALARY_PERIODS: readonly string[] = ['hour', 'day', 'week', 'month', 'year'];
 /** Longest interview preparation: what a cell of the sheet holds, so a text that was accepted can always be saved. */
 export const MAX_INTERVIEW_PREP = CELL_LIMIT;
 
@@ -209,7 +210,7 @@ export interface CatalogServiceDeps {
 export class CatalogService {
   constructor(private readonly deps: CatalogServiceDeps) {}
 
-  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; gig_priority?: boolean; location?: string; url?: string; status?: string }): Job {
+  updateJob(id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; gig_priority?: boolean; salary_min?: string; salary_max?: string; salary_currency?: string; salary_period?: string; location?: string; url?: string; status?: string }): Job {
     if (!this.deps.jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
     const change: Partial<Omit<Job, 'id'>> = {};
     if (patch.notes !== undefined) change.notes = patch.notes;
@@ -221,6 +222,7 @@ export class CatalogService {
     if (patch.contact_person !== undefined) change.contact_person = patch.contact_person.trim().slice(0, MAX_CONTACT_PERSON);
     if (patch.no_reason !== undefined) change.no_reason = patch.no_reason.trim().slice(0, MAX_NO_REASON);
     if (patch.location !== undefined) change.location = patch.location.trim().slice(0, MAX_LOCATION);
+    Object.assign(change, this.salaryChange(this.deps.jobs.get(id)!, patch));
     if (patch.gig_shift !== undefined) change.gig_shift = patch.gig_shift.trim().slice(0, MAX_GIG_SHIFT);
     if (change.is_gig === false) change.gig_priority = false;
     if (change.gig_priority === true && change.is_gig === undefined && !this.deps.jobs.get(id)!.is_gig) change.gig_priority = false;
@@ -232,6 +234,35 @@ export class CatalogService {
       change.status = patch.status;
     }
     return this.deps.jobs.update(id, change);
+  }
+
+  /**
+   * The salary of an ad as the user typed it: amounts as text (empty clears one; spaces and a decimal comma are accepted),
+   * a currency code and a period. Anything else, or a minimum above the maximum, is refused.
+   */
+  private salaryChange(job: Job, patch: { salary_min?: string; salary_max?: string; salary_currency?: string; salary_period?: string }): Partial<Job> {
+    const change: Partial<Job> = {};
+    const bad = (): never => {
+      throw new ValidationError('job_salary_invalid', 'The salary is not valid', {});
+    };
+    const amount = (text: string): number | null => {
+      const compact = text.replace(/[\s\u00a0]/g, '').replace(',', '.');
+      if (compact === '') return null;
+      const value = Number(compact);
+      return Number.isFinite(value) && value >= 0 ? value : bad();
+    };
+    if (patch.salary_min !== undefined) change.salary_min = amount(patch.salary_min);
+    if (patch.salary_max !== undefined) change.salary_max = amount(patch.salary_max);
+    if (patch.salary_currency !== undefined) change.salary_currency = patch.salary_currency.trim().toUpperCase().slice(0, 3);
+    if (patch.salary_period !== undefined) {
+      const period = patch.salary_period.trim();
+      if (period !== '' && !SALARY_PERIODS.includes(period)) bad();
+      change.salary_period = period;
+    }
+    const min = 'salary_min' in change ? change.salary_min : job.salary_min;
+    const max = 'salary_max' in change ? change.salary_max : job.salary_max;
+    if (min != null && max != null && min > max) bad();
+    return change;
   }
 
   /**

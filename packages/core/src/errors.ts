@@ -25,6 +25,7 @@ export const ERROR_CODES = [
   'url_invalid',
   'job_not_found',
   'job_status_invalid',
+  'job_salary_invalid',
   'job_status_in_use',
   'language_invalid',
   'application_job_mismatch',

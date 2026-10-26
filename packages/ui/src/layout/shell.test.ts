@@ -9,7 +9,8 @@ it('has a navigation label for every section in both languages', () => {
   }
 });
 
-import { cleanup, render, screen, waitFor } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { toasts } from '../state/toast.svelte';
 import { api } from '../api';
 import { invalidate, invalidation } from '../state/invalidate.svelte';
 import { useDevBackend } from '../test/transport';
@@ -28,11 +29,12 @@ const counts = (v: { newJobs?: number; aiTasksWaiting?: number; draftApplication
 });
 
 
-it('shows the version in small text next to the application name', () => {
+it('shows the version in small text under the application name', () => {
   app.version = '0.5.0';
   render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
-  const brand = screen.getByText('JobHunters', { exact: false, selector: '.brand' });
+  const brand = document.querySelector('[data-ui="app.brand"]') as HTMLElement;
   expect(brand).toHaveTextContent('JobHunters');
+  expect(brand.querySelector('[data-ui="app.name"]')).toHaveTextContent('JobHunters');
   const version = screen.getByText('v0.5.0');
   expect(brand).toContainElement(version);
   expect(version).toHaveAttribute('data-ui', 'app.version');
@@ -42,6 +44,26 @@ it('omits the version while it is not known', () => {
   app.version = '';
   render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
   expect(document.querySelector('[data-ui="app.version"]')).toBeNull();
+});
+
+it('has a refresh button next to the title that re-reads the data of the screens and says so', async () => {
+  useDevBackend();
+  app.version = '0.5.0';
+  render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
+  const button = document.querySelector('[data-ui="app.refresh"]') as HTMLButtonElement;
+  expect(button).toHaveAttribute('aria-label', 'Refresh data (Alt+Shift+R)');
+  expect(document.querySelector('[data-ui="app.brand"]')).toContainElement(button);
+  expect(document.querySelector('[data-ui="app.refresh.corner"]')).not.toBeNull();
+  const before = invalidation.version;
+  await fireEvent.click(button);
+  expect(invalidation.version).toBe(before + 1);
+  await waitFor(() => expect(toasts.map((t) => t.text)).toContain('Data refreshed'));
+  await waitFor(() => expect(button).not.toHaveClass('spinning'));
+  await fireEvent.keyDown(window, { key: 'R', code: 'KeyR', altKey: true, shiftKey: true });
+  expect(invalidation.version).toBe(before + 2);
+  await waitFor(() => expect(button).not.toHaveClass('spinning'));
+  await fireEvent.keyDown(window, { key: 'r', code: 'KeyR', ctrlKey: true });
+  expect(invalidation.version).toBe(before + 2);
 });
 
 it('links the Help item last in the navigation', () => {

@@ -227,6 +227,20 @@ describe('CatalogService', () => {
     expect(service.updateJob('j1', { gig_shift: '' })).toMatchObject({ gig_shift: '' });
   });
 
+  it('changes the salary of an ad: amounts as text, currency and period, refusing what does not fit', () => {
+    const { service, jobRepo } = setup();
+    expect(service.updateJob('j1', { salary_min: ' 50 000 ', salary_max: '60 500,5', salary_currency: ' czk ', salary_period: 'month' }))
+      .toMatchObject({ salary_min: 50000, salary_max: 60500.5, salary_currency: 'CZK', salary_period: 'month' });
+    service.updateJob('j1', { notes: 'x' });
+    expect(jobRepo.get('j1')).toMatchObject({ salary_min: 50000, salary_currency: 'CZK' });
+    expect(service.updateJob('j1', { salary_min: '', salary_max: '' })).toMatchObject({ salary_min: null, salary_max: null });
+    expect(() => service.updateJob('j1', { salary_min: 'abc' })).toThrowError(expect.objectContaining({ code: 'job_salary_invalid' }));
+    expect(() => service.updateJob('j1', { salary_min: '-5' })).toThrowError(expect.objectContaining({ code: 'job_salary_invalid' }));
+    expect(() => service.updateJob('j1', { salary_period: 'decade' })).toThrowError(expect.objectContaining({ code: 'job_salary_invalid' }));
+    expect(() => service.updateJob('j1', { salary_min: '90', salary_max: '80' })).toThrowError(expect.objectContaining({ code: 'job_salary_invalid' }));
+    expect(jobRepo.get('j1')).toMatchObject({ salary_min: null, salary_max: null });
+  });
+
   it('keeps the high priority only on a gig', () => {
     const { service } = setup();
     expect(service.updateJob('j1', { gig_priority: true })).toMatchObject({ gig_priority: false });

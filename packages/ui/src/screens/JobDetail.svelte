@@ -10,6 +10,7 @@
   import Icon from '../components/Icon.svelte';
   import Tabs from '../components/Tabs.svelte';
   import InlineText from '../components/InlineText.svelte';
+  import SalaryEditor from '../components/SalaryEditor.svelte';
   import GigBox from '../components/GigBox.svelte';
   import WorkModeBoxes from '../components/WorkModeBoxes.svelte';
   import Skeleton from '../components/Skeleton.svelte';
@@ -102,7 +103,7 @@
   }
 
   /** The labelled facts of the ad; only the filled ones are listed. */
-  const facts = $derived(detail.data ? jobFacts(detail.data.job, { editableLocation: detail.data.job.status !== 'awaiting' }) : []);
+  const facts = $derived(detail.data ? jobFacts(detail.data.job, { editableLocation: detail.data.job.status !== 'awaiting', editableSalary: detail.data.job.status !== 'awaiting' }) : []);
 </script>
 
 <div class="stack" data-ui="job-detail">
@@ -166,6 +167,8 @@
               {#each facts as fact (fact.key)}
                 {#if fact.key === 'work-mode'}
                   {#if job.status !== 'awaiting'}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="job-detail" />{/if}
+                {:else if fact.key === 'salary' && job.status !== 'awaiting'}
+                  <SalaryEditor {job} ui="job-detail.info.salary" />
                 {:else if fact.key === 'location' && job.status !== 'awaiting'}
                   <InlineText label={fact.label} value={job.location ?? ''} maxlength={300} ui="job-detail.location" onsave={(text) => api.updateJob(job.id, { location: text })} />
                 {:else}

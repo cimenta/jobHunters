@@ -222,6 +222,7 @@
       <li>{tr('ui.help.tips.i3')}</li>
       <li>{tr('ui.help.tips.i4')}</li>
       <li>{tr('ui.help.tips.i5')}</li>
+      <li>{tr('ui.help.tips.refresh')}</li>
     </ul>
   </Card>
   {/if}

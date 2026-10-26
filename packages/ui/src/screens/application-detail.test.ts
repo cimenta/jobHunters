@@ -15,6 +15,24 @@ async function androidApplicationId(): Promise<string> {
   return rows.find((row) => row.job_title === 'Android Developer')!.id;
 }
 
+describe('ApplicationDetail salary of the ad', () => {
+  it('can be edited in the application detail too, and changes the job', async () => {
+    useDevBackend();
+    const id = await androidApplicationId();
+    render(ApplicationDetail, { id });
+    const text = await waitFor(() => {
+      const found = document.querySelector('[data-ui="application-detail.info.salary.text"]') as HTMLElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    await fireEvent.dblClick(text);
+    await fireEvent.input(document.querySelector('[data-ui="application-detail.info.salary.max"]') as HTMLInputElement, { target: { value: '95000' } });
+    await fireEvent.click(document.querySelector('[data-ui="application-detail.info.salary.save"]')!);
+    const application = (await api.getApplication(id)).application;
+    await waitFor(async () => expect((await api.getJob(application.job_id)).job.salary_max).toBe(95000));
+  });
+});
+
 describe('ApplicationsList', () => {
   it('lists applications with status, job and company', async () => {
     useDevBackend();

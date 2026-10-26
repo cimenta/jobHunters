@@ -8,8 +8,10 @@
   import { router } from '../lib/router.svelte';
   import { api } from '../api';
   import { useResource } from '../lib/resource.svelte';
-  import { app, settingsNeedAttention } from '../state/app.svelte';
-  import { invalidation } from '../state/invalidate.svelte';
+  import { notifyError } from '../lib/notify';
+  import { app, reloadSettings, reloadSetupStatus, settingsNeedAttention } from '../state/app.svelte';
+  import { invalidate, invalidation } from '../state/invalidate.svelte';
+  import { toast } from '../state/toast.svelte';
   import { createMenuPoller, menuRefreshSeconds } from '../lib/menu-poll';
   import { menuBadge } from '../lib/menu-numbers';
   import { DEFAULT_MENU_NUMBERS } from '@jobhunters/core';
@@ -58,6 +60,32 @@
     clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
     isHidden: () => document.hidden,
   });
+  let refreshing = $state(false);
+
+  /** Every screen that shows data re-reads it, and so do the settings, the menu numbers and the Setup check. */
+  async function refreshAll(): Promise<void> {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      invalidate();
+      poller.kick();
+      await Promise.all([reloadSettings(), reloadSetupStatus()]);
+      toast.success(tr('ui.refresh.done'));
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      refreshing = false;
+    }
+  }
+
+  // Alt+Shift+R refreshes from anywhere, also while a pop-up covers the menu button.
+  function onkeydown(event: KeyboardEvent): void {
+    if (event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && event.code === 'KeyR') {
+      event.preventDefault();
+      void refreshAll();
+    }
+  }
+
   $effect(() => {
     const refresh = () => poller.kick();
     const onVisible = () => {
@@ -91,9 +119,11 @@
   };
 </script>
 
+<svelte:window {onkeydown} />
+
 <div class="shell">
   <nav aria-label={tr('ui.nav.label')} data-ui="nav">
-    <span class="brand" data-ui="app.brand">JobHunters{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}</span>
+    <span class="brand" data-ui="app.brand"><span class="name" data-ui="app.name">JobHunters</span>{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}<button type="button" class="refresh" class:spinning={refreshing} data-ui="app.refresh" aria-label={tr('ui.refresh.label')} title={tr('ui.refresh.label')} onclick={refreshAll}><Icon name="refresh" size={18} /></button></span>
     <GlobalSearch />
     {#each items as item (item.section)}
       {@const badge = item.section === 'jobs' || item.section === 'tasks' || item.section === 'applications' ? badges[item.section] : undefined}
@@ -133,6 +163,7 @@
       {/if}
     {/each}
   </nav>
+  <button type="button" class="refresh corner" class:spinning={refreshing} data-ui="app.refresh.corner" aria-label={tr('ui.refresh.label')} title={tr('ui.refresh.label')} onclick={refreshAll}><Icon name="refresh" size={18} /></button>
   <main data-ui="content">{@render children?.()}</main>
 </div>
 
@@ -149,6 +180,12 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
   .brand { display: none; }
+  .refresh { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; color: var(--text-muted); background: transparent; border: 0; border-radius: var(--radius-s); cursor: pointer; }
+  .refresh:hover { color: var(--text); background: var(--accent-soft); }
+  .refresh.corner { position: fixed; z-index: 30; top: var(--space-2); right: var(--space-2); background: var(--surface); border: 1px solid var(--border); }
+  .refresh.spinning :global(svg) { animation: refresh-spin 0.8s linear infinite; }
+  @keyframes refresh-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .refresh.spinning :global(svg) { animation-duration: 2.4s; } }
   .item {
     display: flex;
     flex: 1;
@@ -235,8 +272,11 @@
 
   @media (min-width: 1024px) {
     nav { width: 232px; }
-    .brand { display: flex; align-items: baseline; gap: var(--space-2); padding: var(--space-3) var(--space-4); font-size: var(--text-l); font-weight: 700; }
-    .version { font-size: var(--text-s); font-weight: 400; color: var(--text-muted); }
+    .refresh.corner { display: none; }
+    .brand { display: grid; grid-template-columns: 1fr auto; grid-template-areas: 'name refresh' 'version refresh'; align-items: center; column-gap: var(--space-2); padding: var(--space-3) var(--space-4); }
+    .name { grid-area: name; font-size: var(--text-m); font-weight: 700; line-height: 1.2; }
+    .version { grid-area: version; font-size: 0.7rem; font-weight: 400; line-height: 1.2; color: var(--text-muted); }
+    .brand .refresh { grid-area: refresh; width: 28px; height: 28px; }
     .item { justify-content: flex-start; gap: var(--space-3); padding: 0 var(--space-4); font-size: var(--text-m); }
     .label { display: inline; }
     .item-group .item { flex: 0 1 auto; }
