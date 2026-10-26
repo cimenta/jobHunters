@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.23.2] - 2026-10-26
+
+- Adding a communication entry of type **Meeting** offers **Set the status Interview** (ticked; untick it to only record the entry), for both an invitation by the employer and a meeting you arranged. It is not offered when editing an entry, when the application is already in Interview, or when the status rules in Settings do not allow the move. The status changes after the entry is saved.
+- No Setup is needed for this update.
+
 ## [0.23.1] - 2026-10-25
 
 - Setting a job to **No** (in its detail, or with the No icon on its card in the Jobs list) asks what to do with its applications that are still open: **Withdraw them** sets them to Withdrawn and the job to No, **Keep them as they are** sets only the job, **Cancel** changes nothing. Applications already Rejected, Withdrawn or Ghosted, and those that the status rules in Settings do not allow to move to Withdrawn, are not listed. A job without open applications gets the status at once, as before.

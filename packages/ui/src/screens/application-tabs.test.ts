@@ -278,6 +278,29 @@ describe('Communication tab', () => {
     expect((await api.getApplication(id)).communications.some((c) => c.kind === 'after_meeting')).toBe(true);
   });
 
+  it('a new meeting sets the status Interview unless the box is unticked', async () => {
+    const id = await open(/Communication/);
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    let dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    expect(within(dialog).queryByLabelText('Set the status Interview')).toBeNull();
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Meeting' }));
+    const box = within(dialog).getByLabelText('Set the status Interview') as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    await fireEvent.click(box);
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).communications.some((c) => c.kind === 'meeting')).toBe(true));
+    expect((await api.getApplication(id)).application.status).toBe('sent');
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Meeting' }));
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await waitFor(async () => expect((await api.getApplication(id)).application.status).toBe('interview'));
+    await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));
+    dialog = screen.getByRole('dialog', { name: 'Add entry' });
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Meeting' }));
+    expect(within(dialog).queryByLabelText('Set the status Interview')).toBeNull();
+  });
+
   it('a received homework sets the status Homework and cannot be saved without the deadline', async () => {
     const id = await open(/Communication/);
     await fireEvent.click(await screen.findByRole('button', { name: 'Add entry' }));

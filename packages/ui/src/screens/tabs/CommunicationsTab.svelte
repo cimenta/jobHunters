@@ -39,6 +39,8 @@
   // A received homework may also set the status Homework; its deadline is required.
   let setHomework = $state(true);
   let homeworkDue = $state('');
+  // A new meeting may also set the status Interview.
+  let setInterview = $state(true);
   const today = todayLocal();
   const status = $derived(detail.application.status);
   const canWait = $derived(isApplicationStatus(status) && (status === 'waiting' || canTransition(status, 'waiting', app.settings?.status_transitions)));
@@ -47,6 +49,8 @@
   const canHomework = $derived(isApplicationStatus(status) && (status === 'homework' || canTransition(status, 'homework', app.settings?.status_transitions)));
   const homeworkNeeded = $derived(editing?.id === undefined && kind === 'homework' && direction === 'incoming' && canHomework);
   const homeworkReady = $derived(!(homeworkNeeded && setHomework) || (homeworkDue !== '' && homeworkDue >= today));
+  const canInterview = $derived(isApplicationStatus(status) && status !== 'interview' && canTransition(status, 'interview', app.settings?.status_transitions));
+  const interviewNeeded = $derived(editing?.id === undefined && kind === 'meeting' && canInterview);
   const canReject = $derived(isApplicationStatus(status) && canTransition(status, 'rejected', app.settings?.status_transitions));
 
   function pickKind(next: CommunicationKind): void {
@@ -69,6 +73,7 @@
     rejecting = false;
     setWaiting = false;
     setHomework = true;
+    setInterview = true;
     homeworkDue = '';
     remindAt = plusDays(today, 7);
     editing = {};
@@ -107,6 +112,7 @@
       if (rejecting && canReject) await api.setApplicationStatus(detail.application.id, 'rejected');
       else if (waitingNeeded && setWaiting) await api.setApplicationStatus(detail.application.id, 'waiting', remindAt);
       else if (homeworkNeeded && setHomework) await api.setApplicationStatus(detail.application.id, 'homework', homeworkDue);
+      else if (interviewNeeded && setInterview) await api.setApplicationStatus(detail.application.id, 'interview');
     } else {
       await api.updateCommunication(editing.id, { kind, direction, channel: kind === 'after_meeting' ? '' : channel, summary, details });
     }
@@ -201,6 +207,11 @@
             <input data-ui="communication.homework-due" id="comm-homework-due" class="input" type="date" min={today} bind:value={homeworkDue} required />
           </Field>
         {/if}
+      </div>
+    {/if}
+    {#if interviewNeeded}
+      <div class="stack waiting" data-ui="communication.interview">
+        <label class="check"><input data-ui="communication.set-interview" type="checkbox" bind:checked={setInterview} />{tr('ui.comm.setInterview')}</label>
       </div>
     {/if}
     {#if kind === 'meeting'}<p class="muted small" data-ui="communication.meeting-hint">{tr('ui.comm.meetingHint')}</p>{/if}
