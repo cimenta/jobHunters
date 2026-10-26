@@ -8,7 +8,7 @@ import type {
 export type JobOverrides = Partial<{
   title: string; company: string; location: string; salary_min: number | null; salary_max: number | null; salary_currency: string;
   salary_period: string; employment_type: string; is_gig: boolean; is_remote: boolean; is_hybrid: boolean; description: string; language: string; notes: string;
-  contact_person: string; gig_shift: string; gig_priority: boolean;
+  contact_person: string; gig_shift: string; gig_priority: boolean; is_contract: boolean;
 }>;
 
 export interface CommunicationInput {
@@ -46,7 +46,7 @@ export const api = {
   saveJobStatuses: (styles: JobStatusStyles) => call<JobStatusStyles>('saveJobStatuses', { styles }),
   checkJobAvailability: (id: string) => call<AvailabilityCheck>('checkJobAvailability', { id }),
   refreshJob: (id: string) => call<RefreshResult>('refreshJob', { id }),
-  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; gig_priority?: boolean; salary_min?: string; salary_max?: string; salary_currency?: string; salary_period?: string; location?: string; url?: string; status?: string }) => call<Job>('updateJob', { id, ...patch }),
+  updateJob: (id: string, patch: { notes?: string; is_gig?: boolean; is_remote?: boolean; is_hybrid?: boolean; is_contract?: boolean; contact_person?: string; no_reason?: string; gig_shift?: string; gig_priority?: boolean; salary_min?: string; salary_max?: string; salary_currency?: string; salary_period?: string; location?: string; url?: string; status?: string }) => call<Job>('updateJob', { id, ...patch }),
   requestJobMatch: (id: string) => call<AiTask>('requestJobMatch', { id }),
   requestDocumentAi: (documentId: string, notes: string) => call<AiTask>('requestDocumentAi', { documentId, notes }),
   requestQuestionAi: (questionId: string, notes: string) => call<AiTask>('requestQuestionAi', { questionId, notes }),

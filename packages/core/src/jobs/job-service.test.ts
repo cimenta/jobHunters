@@ -143,6 +143,12 @@ describe('save from a downloaded page', () => {
     expect(plain).toMatchObject({ contact_person: '', gig_shift: '' });
   });
 
+  it('saves the contract only flag the user ticked, and defaults to off', () => {
+    const { service } = setup({ [URL1]: ok(), [URL2]: ok() });
+    expect(service.save({ url: URL1, overrides: { is_contract: true } }).job.is_contract).toBe(true);
+    expect(service.save({ url: URL2 }).job.is_contract).toBe(false);
+  });
+
   it('saves the high priority only for a gig', () => {
     const { service } = setup({ [URL1]: ok(), [URL2]: ok() });
     expect(service.save({ url: URL1, overrides: { is_gig: true, gig_priority: true } }).job.gig_priority).toBe(true);

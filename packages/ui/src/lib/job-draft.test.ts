@@ -26,7 +26,7 @@ describe('toDraft / toOverrides', () => {
       valid: true,
       overrides: {
         title: 'Dev', company: 'Acme', location: '', salary_min: 60000, salary_max: 80000, salary_currency: 'CZK', salary_period: 'month',
-        contact_person: '', gig_shift: '', gig_priority: false, is_gig: true, is_remote: false, is_hybrid: false, description: 'Text', notes: '',
+        contact_person: '', gig_shift: '', gig_priority: false, is_gig: true, is_remote: false, is_hybrid: false, is_contract: false, description: 'Text', notes: '',
       },
     });
   });

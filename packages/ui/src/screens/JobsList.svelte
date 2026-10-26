@@ -230,6 +230,7 @@
                   <span class="row wrap small">
                     <Badge text={current.text} color={current.color} textColor={current.textColor} />
                     {#if job.is_gig}<Badge text={tr('ui.job.gig')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
+                    {#if job.is_contract === true}<Badge text={tr('ui.job.contractOnly')} color="var(--accent-soft)" textColor="var(--text)" />{/if}
                     {#if job.is_gig && job.gig_priority === true}<Badge text={tr('ui.job.gigPriority')} color="var(--danger-soft)" textColor="var(--text)" />{/if}
                     {#if job.application_count > 0}<span class="muted">{tr('summary.applications', { count: job.application_count })}</span>{/if}
                   </span>

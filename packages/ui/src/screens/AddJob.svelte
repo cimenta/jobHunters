@@ -210,6 +210,7 @@
           <label class="check"><input data-ui="add-job.gig" type="checkbox" bind:checked={draft.is_gig} />{tr('ui.job.gig')}</label>
           <label class="check"><input data-ui="add-job.remote" type="checkbox" bind:checked={draft.is_remote} />{tr('ui.job.remote')}</label>
           <label class="check"><input data-ui="add-job.hybrid" type="checkbox" bind:checked={draft.is_hybrid} />{tr('ui.job.hybrid')}</label>
+          <label class="check"><input data-ui="add-job.contract" type="checkbox" bind:checked={draft.is_contract} />{tr('ui.job.contractOnly')}</label>
         </div>
         {#if draft.is_gig}
           <fieldset class="gig" data-ui="add-job.gig-details">

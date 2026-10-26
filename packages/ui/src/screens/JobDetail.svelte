@@ -166,7 +166,7 @@
             <dl class="facts" data-ui="job-detail.info">
               {#each facts as fact (fact.key)}
                 {#if fact.key === 'work-mode'}
-                  {#if job.status !== 'awaiting'}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="job-detail" />{/if}
+                  {#if job.status !== 'awaiting'}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} isContract={job.is_contract === true} ui="job-detail" />{/if}
                 {:else if fact.key === 'salary' && job.status !== 'awaiting'}
                   <SalaryEditor {job} ui="job-detail.info.salary" />
                 {:else if fact.key === 'location' && job.status !== 'awaiting'}

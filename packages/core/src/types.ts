@@ -53,6 +53,8 @@ export interface Job {
   gig_shift: string;
   /** A gig the user marked as high priority (only a gig can have it). */
   gig_priority: boolean;
+  /** The user marked the job as contract work only (a checkbox next to Remote and Hybrid). */
+  is_contract: boolean;
   /** The evaluation of the match (strengths, gaps, verdict), written by the AI together with match_percent by whichever task evaluated it. */
   match_note: string;
 }

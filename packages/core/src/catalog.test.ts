@@ -241,6 +241,14 @@ describe('CatalogService', () => {
     expect(jobRepo.get('j1')).toMatchObject({ salary_min: null, salary_max: null });
   });
 
+  it('marks and unmarks a job as contract only, keeping it through other changes', () => {
+    const { service, jobRepo } = setup();
+    expect(service.updateJob('j1', { is_contract: true })).toMatchObject({ is_contract: true });
+    service.updateJob('j1', { notes: 'x' });
+    expect(jobRepo.get('j1')).toMatchObject({ is_contract: true });
+    expect(service.updateJob('j1', { is_contract: false })).toMatchObject({ is_contract: false });
+  });
+
   it('keeps the high priority only on a gig', () => {
     const { service } = setup();
     expect(service.updateJob('j1', { gig_priority: true })).toMatchObject({ gig_priority: false });

@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.24.1] - 2026-10-26
+
+- **Setup is needed** (once, adds the column is_contract to the sheet Jobs; the red "!" by Settings says so). Until then jobs cannot be read from the sheet.
+- New checkbox **Contract only**, next to Remote and Hybrid in the detail of a job and of an application, and in Add job. A click in a detail is saved at once; a job marked so shows a **Contract only** badge on its card in the Jobs list.
+- The Help line about the editable salary of an ad, added in 0.24.0, is now listed in the Help screen.
+
 ## [0.24.0] - 2026-10-26
 
 - New **Refresh data** button (a circular arrow) next to the title JobHunters in the menu; on a narrow screen, where the title is not shown, it sits at the top right of the page. One click reads the data again: the screen you are on, the menu numbers, the settings and the Setup check. The arrow spins while it works and a notice says when it is done; what you are typing and open pop-ups stay as they are. The shortcut **Alt+Shift+R** does the same from anywhere, also while a pop-up covers the button (the pop-up's own data is refreshed too).

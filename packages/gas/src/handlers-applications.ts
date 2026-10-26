@@ -210,6 +210,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const gigPriority = optionalBoolean(input, 'gig_priority', 'updateJob');
       const isRemote = optionalBoolean(input, 'is_remote', 'updateJob');
       const isHybrid = optionalBoolean(input, 'is_hybrid', 'updateJob');
+      const isContract = optionalBoolean(input, 'is_contract', 'updateJob');
       const contactPerson = optionalString(input, 'contact_person', 'updateJob');
       const noReason = optionalString(input, 'no_reason', 'updateJob');
       const gigShift = optionalString(input, 'gig_shift', 'updateJob');
@@ -220,7 +221,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       const location = optionalString(input, 'location', 'updateJob');
       const url = optionalString(input, 'url', 'updateJob');
       const status = optionalString(input, 'status', 'updateJob');
-      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, gig_priority: gigPriority, salary_min: salaryMin, salary_max: salaryMax, salary_currency: salaryCurrency, salary_period: salaryPeriod, location, url, status }));
+      return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, is_contract: isContract, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, gig_priority: gigPriority, salary_min: salaryMin, salary_max: salaryMax, salary_currency: salaryCurrency, salary_period: salaryPeriod, location, url, status }));
     },
 
     saveJobStatuses: (args) => {

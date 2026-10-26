@@ -562,6 +562,20 @@ describe('JobsList sort and hide', () => {
   });
 });
 
+describe('JobsList contract badge', () => {
+  it('shows a Contract only badge on the card of a job marked so', async () => {
+    useDevBackend();
+    const jobs = await api.listJobs();
+    const target = jobs.find((job) => job.title === 'Android Developer')!;
+    await api.updateJob(target.id, { is_contract: true });
+    render(JobsList);
+    const row = (await screen.findByText('Android Developer')).closest('a')!;
+    await waitFor(() => expect(within(row).getByText('Contract only')).toBeInTheDocument());
+    const other = (await screen.findByText(/^Senior Principal Staff/)).closest('a')!;
+    expect(within(other).queryByText('Contract only')).toBeNull();
+  });
+});
+
 describe('JobsList priority sort', () => {
   const sortBox = () => screen.getByLabelText('Sort by') as HTMLSelectElement;
   const options = () => [...sortBox().options].map((option) => option.value);

@@ -467,6 +467,26 @@ describe('JobDetail location', () => {
   });
 });
 
+describe('JobDetail contract only', () => {
+  it('has a Contract only checkbox next to Remote and Hybrid that is saved at once and shown as a badge in the list', async () => {
+    useDevBackend();
+    const id = await idOf('Android Developer');
+    render(JobDetail, { id });
+    await screen.findByRole('heading', { name: 'Android Developer' });
+    const box = (await waitFor(() => {
+      const found = document.querySelector('[data-ui="job-detail.work-mode.contract"]') as HTMLInputElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    }));
+    expect(box.checked).toBe(false);
+    expect(screen.getByLabelText('Contract only')).toBe(box);
+    await fireEvent.click(box);
+    await waitFor(async () => expect((await api.getJob(id)).job.is_contract).toBe(true));
+    await fireEvent.click(document.querySelector('[data-ui="job-detail.work-mode.contract"]')!);
+    await waitFor(async () => expect((await api.getJob(id)).job.is_contract).toBe(false));
+  });
+});
+
 describe('JobDetail salary', () => {
   const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
   const type = (name: string, value: string) => fireEvent.input(ui(name) as HTMLInputElement, { target: { value } });

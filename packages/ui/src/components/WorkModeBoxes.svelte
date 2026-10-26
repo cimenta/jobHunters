@@ -5,12 +5,12 @@
   import { invalidate } from '../state/invalidate.svelte';
 
   /**
-   * The Remote and Hybrid checkboxes of a job as one cell of the facts grid (put it inside the `dl`); a click is saved at
+   * The Remote, Hybrid and Contract only checkboxes of a job as one cell of the facts grid (put it inside the `dl`); a click is saved at
    * once. They belong to the job, so every screen that shows them edits the same value.
    */
-  let { jobId, isRemote, isHybrid, ui }: { jobId: string; isRemote: boolean; isHybrid: boolean; ui: string } = $props();
+  let { jobId, isRemote, isHybrid, isContract = false, ui }: { jobId: string; isRemote: boolean; isHybrid: boolean; isContract?: boolean; ui: string } = $props();
 
-  async function change(patch: { is_remote?: boolean; is_hybrid?: boolean }, box: HTMLInputElement, was: boolean): Promise<void> {
+  async function change(patch: { is_remote?: boolean; is_hybrid?: boolean; is_contract?: boolean }, box: HTMLInputElement, was: boolean): Promise<void> {
     try {
       await api.updateJob(jobId, patch);
     } catch (error) {
@@ -26,6 +26,7 @@
   <dd>
     <label class="check"><input data-ui="{ui}.work-mode.remote" type="checkbox" checked={isRemote} onchange={(event) => change({ is_remote: event.currentTarget.checked }, event.currentTarget, isRemote)} />{tr('ui.job.remote')}</label>
     <label class="check"><input data-ui="{ui}.work-mode.hybrid" type="checkbox" checked={isHybrid} onchange={(event) => change({ is_hybrid: event.currentTarget.checked }, event.currentTarget, isHybrid)} />{tr('ui.job.hybrid')}</label>
+    <label class="check"><input data-ui="{ui}.work-mode.contract" type="checkbox" checked={isContract} onchange={(event) => change({ is_contract: event.currentTarget.checked }, event.currentTarget, isContract)} />{tr('ui.job.contractOnly')}</label>
   </dd>
 </div>
 

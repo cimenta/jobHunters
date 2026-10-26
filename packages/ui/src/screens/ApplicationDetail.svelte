@@ -101,7 +101,7 @@
             <dl class="facts" data-ui="application-detail.info">
               {#each facts as fact (fact.key)}
                 {#if fact.key === 'work-mode'}
-                  {#if job}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} ui="application-detail" />{/if}
+                  {#if job}<WorkModeBoxes jobId={job.id} isRemote={job.is_remote} isHybrid={job.is_hybrid} isContract={job.is_contract === true} ui="application-detail" />{/if}
                 {:else if fact.key === 'ai-salary'}
                   <!-- The salary asked for sits right next to the AI estimate, on the same row. -->
                   <div class="pair">
