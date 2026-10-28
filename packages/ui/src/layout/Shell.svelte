@@ -37,6 +37,8 @@
   const waiting = $derived(showCounts ? (counts.data?.aiTasksWaiting ?? 0) : 0);
   // The numbers the user chose in Settings for the menu items that show them.
   const chosen = $derived(app.settings?.menu_numbers ?? DEFAULT_MENU_NUMBERS);
+  const emailsUnparsed = $derived(showCounts ? (counts.data?.emailsUnparsed ?? 0) : 0);
+  const emailsBadge = $derived(emailsUnparsed > 0 ? { text: formatCount(emailsUnparsed), title: tr('ui.nav.emailsUnparsed', { count: emailsUnparsed }), label: tr('ui.nav.emailsUnparsed', { count: emailsUnparsed }) } : undefined);
   const badges = $derived({
     jobs: showCounts ? menuBadge('jobs', chosen.jobs, counts.data?.metrics?.jobs) : undefined,
     applications: showCounts ? menuBadge('applications', chosen.applications, counts.data?.metrics?.applications) : undefined,
@@ -126,7 +128,7 @@
     <span class="brand" data-ui="app.brand"><span class="name" data-ui="app.name">JobHunters</span>{#if version !== ''}<small class="version" data-ui="app.version">{version}</small>{/if}<button type="button" class="refresh" class:spinning={refreshing} data-ui="app.refresh" aria-label={tr('ui.refresh.label')} title={tr('ui.refresh.label')} onclick={refreshAll}><Icon name="refresh" size={18} /></button></span>
     <GlobalSearch />
     {#each items as item (item.section)}
-      {@const badge = item.section === 'jobs' || item.section === 'tasks' || item.section === 'applications' ? badges[item.section] : undefined}
+      {@const badge = item.section === 'jobs' || item.section === 'tasks' || item.section === 'applications' ? badges[item.section] : item.section === 'emails' ? emailsBadge : undefined}
       {#snippet link()}
         <a
           class="item"
@@ -147,6 +149,8 @@
             <span class="count alert" data-ui="nav.action-needed" aria-hidden="true" title={tr('ui.nav.actionNeededTip')}>!</span>
           {:else if item.section === 'applications' && badge}
             <span class="count" data-ui="nav.count.applications" aria-hidden="true" title={badge.title}>{badge.text}</span>
+          {:else if item.section === 'emails' && badge}
+            <span class="count" data-ui="nav.count.emails" aria-hidden="true" title={badge.title}>{badge.text}</span>
           {/if}
         </a>
       {/snippet}

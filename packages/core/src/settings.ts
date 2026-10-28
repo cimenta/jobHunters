@@ -9,6 +9,7 @@ import type { HistorySource } from './types';
 import { parseJobStatusStyles, type JobStatusStyles } from './job-status';
 import { DEFAULT_MENU_NUMBERS, parseMenuNumbers, stringifyMenuNumbers, type MenuNumbers } from './menu-metrics';
 import { parseStatusTransitions, type StatusTransitions } from './status';
+import { parseEmailRules, type EmailRulesOverride } from './email-rules';
 import { parseUiState, type UiState } from './ui-state';
 import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
@@ -38,6 +39,8 @@ export const SETTING_KEYS = [
   'job_status_styles',
   'status_transitions',
   'ui_state',
+  'email_rules',
+  'email_auto_save',
   'history_max_versions',
   'ai_prompt_resume_tailor',
   'ai_prompt_cover_letter',
@@ -97,6 +100,10 @@ export interface Settings {
   status_transitions: StatusTransitions;
   /** What the interface remembers: Kanban on or off and the selected statuses. */
   ui_state: UiState;
+  /** The categories of e-mail rules the user changed, see email-rules.ts; the others use the defaults. */
+  email_rules: EmailRulesOverride;
+  /** Whether parsing saves confident e-mail suggestions as communication entries by itself. */
+  email_auto_save: boolean;
   /** Most unpinned versions kept per tracked text; at the limit saves are refused. */
   history_max_versions: number;
   /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
@@ -139,6 +146,8 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   job_status_styles: '{}',
   status_transitions: '{}',
   ui_state: '{}',
+  email_rules: '{}',
+  email_auto_save: 'false',
   history_max_versions: '50',
   ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
   ai_prompt_cover_letter: defaultPrompt('cover_letter'),
@@ -208,6 +217,8 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   job_status_styles: (raw) => parseJobStatusStyles(raw),
   status_transitions: (raw) => parseStatusTransitions(raw),
   ui_state: (raw) => parseUiState(raw),
+  email_rules: (raw) => parseEmailRules(raw),
+  email_auto_save: (raw) => (['true', 'false'].includes(raw.trim().toLowerCase()) ? raw.trim().toLowerCase() === 'true' : undefined),
   history_max_versions: (raw) => {
     const text = raw.trim();
     if (!/^\d{1,4}$/.test(text)) return undefined;

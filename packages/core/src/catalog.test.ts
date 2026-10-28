@@ -157,6 +157,7 @@ describe('buildMenuCounts', () => {
   it('is zero without data', () => {
     expect(buildMenuCounts({ jobs: [], tasks: [], applications: [] })).toEqual({
       aiTasksWaiting: 0,
+      emailsUnparsed: 0,
       metrics: { jobs: { new: 0, new_no_application: 0, no_application: 0, all: 0 }, applications: { draft: 0, waiting: 0, sent: 0, active: 0 }, tasks: { waiting: 0, needs_input: 0, failed: 0 } },
     });
   });

@@ -24,6 +24,8 @@
   import { toast } from '../state/toast.svelte';
   import { saveUiState, uiState } from '../state/ui-state';
   import JobStatusStylesEditor from './JobStatusStylesEditor.svelte';
+  import EmailMarksEditor from './EmailMarksEditor.svelte';
+  import EmailRulesEditor from './EmailRulesEditor.svelte';
   import StatusStylesEditor from './StatusStylesEditor.svelte';
   import TransitionsEditor from './TransitionsEditor.svelte';
 
@@ -74,6 +76,7 @@
   let uiLanguage = $state('en');
   let uiTheme = $state('system');
   let resultNotices = $state(true);
+  let emailAutoSave = $state(false);
   let menuNormal = $state('60');
   let menuBusy = $state('15');
   let menuNormalError = $state('');
@@ -95,6 +98,7 @@
       uiLanguage = settings.ui_language;
       uiTheme = settings.ui_theme;
       resultNotices = settings.result_notices;
+      emailAutoSave = settings.email_auto_save;
       experience = settings.candidate_experience;
       historyMax = String(settings.history_max_versions);
       historyMaxError = '';
@@ -156,6 +160,12 @@
   function saveKanban(): void {
     saveUiState({ kanban_reject_icon: kanbanRejectIcon });
     toast.success(tr('ui.settings.savedKanban'));
+  }
+
+  async function saveEmailAutoSave(): Promise<void> {
+    await api.updateSettings({ email_auto_save: String(emailAutoSave) });
+    await reloadSettings();
+    toast.success(tr(emailAutoSave ? 'ui.settings.emailAutoSaveOn' : 'ui.settings.emailAutoSaveOff'));
   }
 
   async function saveNotices(): Promise<void> {
@@ -328,6 +338,7 @@
       { id: 'profile', label: tr('ui.settings.tab.profile') },
       { id: 'templates', label: tr('ui.settings.tab.templates') },
       { id: 'statuses', label: tr('ui.settings.tab.statuses') },
+      { id: 'emails', label: tr('ui.settings.tab.emails') },
       { id: 'about', label: tr('ui.settings.tab.about') },
     ]}
     bind:active={tab}
@@ -693,6 +704,31 @@
   </div>
   {/if}
   </div>
+
+  {:else if tab === 'emails'}
+  <Card ui="settings.email-auto-save">
+    <div class="head">
+      <h2>{tr('ui.settings.emailAutoSave')}</h2>
+      <HelpTip ui="settings.help.email-auto-save" label={tr('ui.settings.emailAutoSave')} text={tr('ui.settings.tip.emailAutoSave')} />
+    </div>
+    <p class="muted small">{tr('ui.settings.emailAutoSaveHint')}</p>
+    <label class="check"><input data-ui="settings.email-auto-save.box" type="checkbox" bind:checked={emailAutoSave} />{tr('ui.settings.emailAutoSaveLabel')}</label>
+    <div><Button variant="primary" ui="settings.email-auto-save.save" onclick={saveEmailAutoSave}>{tr('ui.save')}</Button></div>
+  </Card>
+  <Card ui="settings.email-marks">
+    <div class="head">
+      <h2>{tr('ui.settings.emailMarks')}</h2>
+      <HelpTip ui="settings.help.email-marks" label={tr('ui.settings.emailMarks')} text={tr('ui.settings.tip.emailMarks')} />
+    </div>
+    <EmailMarksEditor />
+  </Card>
+  <Card ui="settings.email-rules">
+    <div class="head">
+      <h2>{tr('ui.settings.emailRules')}</h2>
+      <HelpTip ui="settings.help.email-rules" label={tr('ui.settings.emailRules')} text={tr('ui.settings.tip.emailRules')} />
+    </div>
+    <EmailRulesEditor />
+  </Card>
 
   {:else}
   <Card ui="settings.about">

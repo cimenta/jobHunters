@@ -7,7 +7,10 @@ import {
   AvailabilityService,
   CatalogService,
   CommunicationService,
+  compileEmailRules,
   DocumentService,
+  effectiveEmailRules,
+  EmailService,
   HistoryService,
   InMemoryKeyValueStore,
   JobImportService,
@@ -158,6 +161,17 @@ export function buildContainer(deps: ContainerDeps) {
   const documentService = new DocumentService({ documents, applications, drive: deps.drive, jobs, companies, profileName: () => profile.getAll().name ?? '', now: deps.now });
   const questionService = new QuestionService({ questions, applications, newId: deps.newId, now: deps.now });
   const communicationService = new CommunicationService({ communications, applications, jobs, newId: deps.newId, now: deps.now });
+  const emailService = new EmailService({
+    emails,
+    applications,
+    jobs,
+    companies,
+    communicationService,
+    applicationService,
+    rules: () => compileEmailRules(effectiveEmailRules(settings.get().settings.email_rules)),
+    autoSave: () => settings.get().settings.email_auto_save,
+    transitions: () => settings.get().settings.status_transitions,
+  });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
   const catalogService = new CatalogService({ jobs, applications, companies, jobStatuses: () => settings.get().settings.job_status_styles });
   const jobStatusService = new JobStatusService({ jobs, settings });
@@ -228,6 +242,7 @@ export function buildContainer(deps: ContainerDeps) {
     documentService,
     questionService,
     communicationService,
+    emailService,
     reminderService,
     catalogService,
     jobStatusService,

@@ -9,6 +9,7 @@
   import EmptyState from '../../components/EmptyState.svelte';
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
+  import LongText from '../../components/LongText.svelte';
   import { kindIcon } from '../../lib/entry-style';
   import { formatDate, shorten } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
@@ -104,7 +105,7 @@
             {#if application}<a class="origin" data-ui="job-comm.{entry.id}.application" href={application.href}>{application.label}</a>{:else}<span class="origin job" data-ui="job-comm.{entry.id}.job">{tr('ui.timeline.originJob')}</span>{/if}
           </div>
           {#if entry.summary !== ''}<p class="summary">{entry.summary}</p>{/if}
-          {#if entry.details !== ''}<p class="details muted">{entry.details}</p>{/if}
+          {#if entry.details !== ''}<LongText text={entry.details} ui="job-comm.{entry.id}.details" />{/if}
           {#if application === undefined}
             <div class="row">
               <Button ui="job-comm.{entry.id}.edit" variant="ghost" label={tr('ui.edit')} onclick={() => openEdit(entry)}><Icon name="edit" size={18} /></Button>
@@ -159,7 +160,6 @@
   .entry { flex-direction: column; align-items: stretch; }
   .head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
   .summary { font-weight: 600; }
-  .details { white-space: pre-wrap; }
   .origin { padding: 1px 8px; font-size: var(--text-s); color: var(--accent); text-decoration: none; border: 1px solid var(--accent); border-radius: 999px; }
   .origin.job { color: var(--text-muted); border-color: var(--border); }
   .kind { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); cursor: pointer; }

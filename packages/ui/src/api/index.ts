@@ -1,8 +1,8 @@
-import type { AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRemoveResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
+import type { ConfirmInput as ConfirmEmailInput, AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRemoveResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
-  CalendarData, CreateApplicationResult, Email, EmailRow, SearchResult, SearchType, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
+  CalendarData, CreateApplicationResult, Email, EmailRow, SearchResult, SearchType, PrepareResult, TestApplicationResult, TestJobResult, SetupResult, SetupStatus, EmailDetail, ParseSummary, Dashboard, DocumentView, Job, JobDetail, JobPreview, JobRow, Profile, Question, Reminder, RefreshResult, SaveResult, Template, AvailabilityCheck,
 } from './types';
 
 export type JobOverrides = Partial<{
@@ -64,6 +64,12 @@ export const api = {
   getCalendar: () => call<CalendarData>('getCalendar'),
   listEmails: () => call<EmailRow[]>('listEmails'),
   getEmail: (id: string) => call<Email>('getEmail', { id }),
+  parseEmails: () => call<ParseSummary>('parseEmails'),
+  parseEmail: (id: string) => call<EmailDetail>('parseEmail', { id }),
+  getEmailDetail: (id: string) => call<EmailDetail>('getEmailDetail', { id }),
+  confirmEmail: (input: ConfirmEmailInput & { id: string }) => call<Communication>('confirmEmail', input),
+  ignoreEmail: (id: string) => call<Email>('ignoreEmail', { id }),
+  restoreEmail: (id: string) => call<Email>('restoreEmail', { id }),
   listCompanies: () => call<CompanyRow[]>('listCompanies'),
   getCompany: (id: string) => call<CompanyDetail>('getCompany', { id }),
   updateCompany: (id: string, patch: { name?: string; website?: string; notes?: string }) => call<Company>('updateCompany', { id, ...patch }),

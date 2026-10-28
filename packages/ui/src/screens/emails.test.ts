@@ -12,7 +12,7 @@ describe('EmailsList', () => {
     render(EmailsList);
     await screen.findByText('Jana Novakova');
     const order = [...document.querySelectorAll('[data-ui^="email.mail-"]')].filter((el) => /^email\.mail-\d$/.test(el.getAttribute('data-ui')!)).map((el) => el.getAttribute('data-ui'));
-    expect(order).toEqual(['email.mail-1', 'email.mail-2', 'email.mail-3', 'email.mail-4']);
+    expect(order).toEqual(['email.mail-6', 'email.mail-5', 'email.mail-1', 'email.mail-2', 'email.mail-3', 'email.mail-4']);
     expect(ui('email.mail-1')).toHaveAttribute('href', '#/emails/mail-1');
     expect(ui('email.mail-1.attachments')).toHaveTextContent('2');
     expect(ui('email.mail-2')).toHaveTextContent('To: Petr Svoboda');
@@ -35,17 +35,42 @@ describe('EmailsList', () => {
     expect(ui('emails.no-match')).not.toBeNull();
   });
 
-  it('filters by direction and hides bulk mail', async () => {
+  it('filters with buttons: all, incoming, outgoing, unprocessed and bulk', async () => {
     useDevBackend();
     render(EmailsList);
     await screen.findByText('Jana Novakova');
-    await fireEvent.change(ui('emails.direction')!, { target: { value: 'outgoing' } });
-    expect(ui('email.mail-2')).not.toBeNull();
-    expect(ui('email.mail-1')).toBeNull();
-    await fireEvent.change(ui('emails.direction')!, { target: { value: '' } });
-    await fireEvent.click(ui('emails.hide-bulk')!);
-    expect(ui('email.mail-3')).toBeNull();
-    expect(ui('email.mail-1')).not.toBeNull();
+    const on = (id: string) => ui(`emails.filter.${id}`)!.getAttribute('aria-pressed') === 'true';
+    expect(on('all')).toBe(true);
+    expect(ui('emails.direction')).toBeNull();
+    expect(ui('emails.hide-bulk')).toBeNull();
+    const shown = () => [...document.querySelectorAll('[data-ui^="email.mail-"]')].map((el) => el.getAttribute('data-ui')).filter((id) => /^email\.mail-\d$/.test(id!));
+
+    await fireEvent.click(ui('emails.filter.outgoing')!);
+    expect(on('outgoing')).toBe(true);
+    expect(on('all')).toBe(false);
+    expect(shown()).toEqual(['email.mail-2']);
+
+    await fireEvent.click(ui('emails.filter.incoming')!);
+    expect(shown()).not.toContain('email.mail-2');
+    expect(shown()).toContain('email.mail-1');
+
+    await fireEvent.click(ui('emails.filter.bulk')!);
+    expect(shown()).toEqual(['email.mail-3']);
+
+    await fireEvent.click(ui('emails.filter.all')!);
+    expect(shown()).toHaveLength(6);
+  });
+
+  it('shows only the mail that is not saved or ignored under Unprocessed', async () => {
+    const backend = useDevBackend();
+    backend.container.emails.update('mail-1', { state: 'confirmed' });
+    backend.container.emails.update('mail-2', { state: 'ignored' });
+    backend.container.emails.update('mail-5', { state: 'suggested' });
+    render(EmailsList);
+    await screen.findByText('Jana Novakova');
+    await fireEvent.click(ui('emails.filter.unprocessed')!);
+    const shown = [...document.querySelectorAll('[data-ui^="email.mail-"]')].map((el) => el.getAttribute('data-ui')).filter((id) => /^email\.mail-\d$/.test(id!));
+    expect(shown).toEqual(['email.mail-6', 'email.mail-5', 'email.mail-3', 'email.mail-4']);
   });
 
   it('shows hostile text as text', async () => {

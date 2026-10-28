@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
 import { parseSettings } from '@jobhunters/core';
 import { createRawSnippet } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
@@ -17,6 +17,7 @@ import Dialog from './Dialog.svelte';
 import EmptyState from './EmptyState.svelte';
 import ErrorBlock from './ErrorBlock.svelte';
 import Field from './Field.svelte';
+import SearchSelect from './SearchSelect.svelte';
 import StatusBadge from './StatusBadge.svelte';
 import ToastHost from './ToastHost.svelte';
 import WarningList from './WarningList.svelte';
@@ -216,5 +217,57 @@ describe('Dialog scroll lock and focus', () => {
     expect(document.body.style.overflow).toBe('hidden');
     b.unmount();
     expect(document.body.style.overflow).toBe('');
+  });
+});
+
+describe('SearchSelect', () => {
+  const options = [
+    { value: 'a1', label: 'Příliš žluťoučký kůň – #1', hint: 'Acme, sent', group: 'Applications' },
+    { value: 'a2', label: 'Backend Developer – #1', hint: 'Globex, draft', group: 'Applications' },
+    { value: 'j1', label: 'Data Analyst', hint: 'Initech', group: 'Jobs' },
+  ];
+  const open = async (onchange = vi.fn(), value = '') => {
+    render(SearchSelect, { options, value, onchange, label: 'Belongs to', ui: 'ss' });
+    const input = screen.getByRole('combobox', { name: 'Belongs to' }) as HTMLInputElement;
+    await fireEvent.click(input);
+    return { input, onchange };
+  };
+  const shownValues = () => [...document.querySelectorAll('[role=option]')].map((node) => node.getAttribute('data-ui')?.replace('ss.option.', ''));
+
+  it('lists every option under its group and shows the selected one in the field', async () => {
+    const { input } = await open(vi.fn(), 'a2');
+    expect(shownValues()).toEqual(['a1', 'a2', 'j1']);
+    expect([...document.querySelectorAll('.group')].map((node) => node.textContent)).toEqual(['Applications', 'Jobs']);
+    await fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input.value).toBe('Backend Developer – #1');
+  });
+
+  it('filters while typing, ignoring case and diacritics, and also searches the second line', async () => {
+    const { input } = await open();
+    await fireEvent.input(input, { target: { value: 'PRILIS zlutoucky' } });
+    expect(shownValues()).toEqual(['a1']);
+    await fireEvent.input(input, { target: { value: 'globex' } });
+    expect(shownValues()).toEqual(['a2']);
+    await fireEvent.input(input, { target: { value: 'nothing like it' } });
+    expect(shownValues()).toEqual([]);
+    expect(screen.getByText('Nothing found')).toBeInTheDocument();
+  });
+
+  it('chooses by click and by keyboard', async () => {
+    const first = await open();
+    await fireEvent.click(document.querySelector('[data-ui="ss.option.j1"]')!);
+    expect(first.onchange).toHaveBeenCalledWith('j1');
+    cleanup();
+    const second = await open();
+    await fireEvent.keyDown(second.input, { key: 'ArrowDown' });
+    await fireEvent.keyDown(second.input, { key: 'Enter' });
+    expect(second.onchange).toHaveBeenCalledWith('a2');
+    expect(document.querySelector('[role=listbox]')).toBeNull();
+  });
+
+  it('does not report a choice that is already selected', async () => {
+    const { input, onchange } = await open(vi.fn(), 'a1');
+    await fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onchange).not.toHaveBeenCalled();
   });
 });

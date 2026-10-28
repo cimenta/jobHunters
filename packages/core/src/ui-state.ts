@@ -1,4 +1,5 @@
 import { parseDashboardLayout, type DashboardLayout } from './dashboard-layout';
+import { parseEmailMarks, type EmailMarks } from './email-marks';
 import { LIST_SORT_KEYS, sortKeysFor, type ListSortKey, type SortChoice } from './application-sort';
 import { isApplicationStatus } from './status';
 
@@ -37,6 +38,8 @@ export interface UiState {
   calendar_colors: CalendarColors;
   /** Where the Dashboard widgets are; null = the default layout, a widget missing from it is removed. */
   dashboard_layout: DashboardLayout | null;
+  /** The icon and the color of the marks of the e-mails in the list; a mark with no choice uses the default. */
+  email_marks: EmailMarks;
 }
 
 export const CALENDAR_COLOR_KEYS = ['interview', 'waiting', 'late', 'homework'] as const;
@@ -48,7 +51,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null, email_marks: {} };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -83,7 +86,7 @@ export function parseUiState(raw: string): UiState | undefined {
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
   const entry = value as Record<string, unknown>;
-  const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { ...NO_CALENDAR_COLORS } };
+  const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { ...NO_CALENDAR_COLORS }, email_marks: {} };
   for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no', 'kanban_reject_icon'] as const) {
     if (entry[key] === undefined) continue;
     if (typeof entry[key] !== 'boolean') return undefined;
@@ -131,6 +134,11 @@ export function parseUiState(raw: string): UiState | undefined {
     const layout = parseDashboardLayout(entry.dashboard_layout);
     if (layout === undefined) return undefined;
     out.dashboard_layout = layout;
+  }
+  if (entry.email_marks !== undefined) {
+    const marks = parseEmailMarks(entry.email_marks);
+    if (marks === undefined) return undefined;
+    out.email_marks = marks;
   }
   return out;
 }

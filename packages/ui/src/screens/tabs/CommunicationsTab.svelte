@@ -9,6 +9,7 @@
   import EmptyState from '../../components/EmptyState.svelte';
   import Field from '../../components/Field.svelte';
   import Icon from '../../components/Icon.svelte';
+  import LongText from '../../components/LongText.svelte';
   import { kindIcon } from '../../lib/entry-style';
   import { formatDate, plusDays, shorten, todayLocal } from '../../lib/format';
   import { tr } from '../../lib/i18n.svelte';
@@ -145,7 +146,7 @@
             <span class="muted small">{entry.channel === '' ? '' : `${channelLabel(entry.channel)} · `}{formatDate(entry.datetime)}</span>
           </div>
           {#if entry.summary !== ''}<p class="summary">{entry.summary}</p>{/if}
-          {#if entry.details !== ''}<p class="details muted">{entry.details}</p>{/if}
+          {#if entry.details !== ''}<LongText text={entry.details} ui="comm.{entry.id}.details" />{/if}
           <div class="row">
             <Button ui="comm.{entry.id}.edit" variant="ghost" label={tr('ui.edit')} onclick={() => openEdit(entry)}><Icon name="edit" size={18} /></Button>
             <Button ui="comm.{entry.id}.remove" variant="ghost" label={tr('ui.delete')} onclick={() => (removing = entry.id)}><Icon name="trash" size={18} /></Button>
@@ -229,7 +230,6 @@
   .entry { flex-direction: column; align-items: stretch; }
   .head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
   .summary { font-weight: 600; }
-  .details { white-space: pre-wrap; }
   .kind { display: inline-flex; align-items: center; gap: var(--space-2); min-height: var(--tap); padding: 0 var(--space-3); font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-s); cursor: pointer; }
   .kind[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
   .label-text { font-weight: 600; font-size: var(--text-s); }

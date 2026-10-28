@@ -26,6 +26,17 @@ export function formatDate(value: string): string {
 }
 
 /** A null number can arrive as undefined, so every check here treats both as "missing". */
+/** An ISO date-time as the value of a datetime-local field (`YYYY-MM-DDTHH:MM`), in the time zone of the app; '' when it cannot be read. */
+export function toDateTimeInput(value: string): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  try {
+    return date.toLocaleString('sv-SE', { timeZone: zone(), hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(' ', 'T').slice(0, 16);
+  } catch {
+    return '';
+  }
+}
+
 export function formatSalary(job: { salary_min?: number | null; salary_max?: number | null; salary_currency?: string; salary_period?: string }): string {
   const { salary_min: min, salary_max: max } = job;
   const low = min ?? max;

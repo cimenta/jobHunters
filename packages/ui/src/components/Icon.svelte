@@ -2,7 +2,7 @@
   export type IconName =
     | 'home' | 'briefcase' | 'file' | 'building' | 'settings' | 'plus' | 'check' | 'clock' | 'external'
     | 'trash' | 'edit' | 'copy' | 'search' | 'alert' | 'back' | 'refresh' | 'download' | 'close' | 'sparkle' | 'help' | 'folder'
-    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out' | 'archive' | 'ban' | 'ghost' | 'undo' | 'reject' | 'more' | 'layout' | 'move';
+    | 'flag' | 'mail' | 'phone' | 'chat' | 'calendar' | 'task' | 'video' | 'bell' | 'arrow-in' | 'arrow-out' | 'archive' | 'ban' | 'ghost' | 'undo' | 'reject' | 'more' | 'layout' | 'move' | 'eye-off' | 'wand';
 
   const PATHS: Record<IconName, string> = {
     home: 'M3 11l9-8 9 8M5 10v10h14V10M10 20v-6h4v6',
@@ -40,11 +40,16 @@
     reject: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9 9l6 6M15 9l-6 6',
     ban: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM5.6 5.6l12.8 12.8',
     ghost: 'M5 21V11a7 7 0 0 1 14 0v10l-3.5-2-3.5 2-3.5-2zM9.5 11h.01M14.5 11h.01',
+    'eye-off': 'M3 3l18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 5.1A9.7 9.7 0 0 1 12 5c5 0 8.5 4 9.5 7a13 13 0 0 1-2.2 3.4M6.5 6.6A13 13 0 0 0 2.5 12c1 3 4.5 7 9.5 7a9.6 9.6 0 0 0 4.1-.9',
+    wand: 'M4 20l10-10M13 5l1.5-2L16 5l2 1.5L16 8l-1.5 2L13 8l-2-1.5zM18 13l.8-1 .8 1 1 .8-1 .8-.8 1-.8-1-1-.8z',
     more: 'M5 12h.01M12 12h.01M19 12h.01',
     layout: 'M3 4h18v16H3zM3 10h18M10 10v10',
     move: 'M12 3v18M3 12h18M9 6l3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3',
     undo: 'M9 14l-5-5 5-5M4 9h10a6 6 0 0 1 0 12h-3',
   };
+
+  /** Every icon of the interface by name. */
+  export const ICON_NAMES = Object.keys(PATHS) as IconName[];
 </script>
 
 <script lang="ts">

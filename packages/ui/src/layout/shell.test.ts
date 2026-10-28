@@ -21,6 +21,7 @@ import Shell from './Shell.svelte';
 /** The answer of getMenuCounts for the three numbers these tests care about; every other number is 0. */
 const counts = (v: { newJobs?: number; aiTasksWaiting?: number; draftApplications?: number }) => ({
   aiTasksWaiting: v.aiTasksWaiting ?? 0,
+  emailsUnparsed: 0,
   metrics: {
     jobs: { new: v.newJobs ?? 0, new_no_application: 0, no_application: 0, all: 0 },
     applications: { draft: v.draftApplications ?? 0, waiting: 0, sent: 0, active: 0 },
@@ -83,6 +84,21 @@ it('has a separate green plus link next to Jobs that opens Add job', () => {
   expect(plus.closest('a.item')).toBeNull();
   expect(plus.parentElement).toBe(jobs.parentElement);
   expect(document.querySelectorAll('nav a.item')).toHaveLength(9);
+});
+
+describe('number of unparsed e-mails', () => {
+  it('shows the number next to Emails while e-mails are not parsed, and nothing when all are', async () => {
+    useDevBackend();
+    render(Shell, { children: createRawSnippet(() => ({ render: () => '<p>Body</p>' })) });
+    const badge = () => document.querySelector('[data-ui="nav.count.emails"]');
+    await waitFor(() => expect(badge()).toHaveTextContent('6'));
+    expect(badge()).toHaveAttribute('title', 'Unparsed e-mails: 6');
+    expect(screen.getByRole('link', { name: 'Emails, Unparsed e-mails: 6' })).toHaveAttribute('data-ui', 'nav.emails');
+    await api.parseEmails();
+    invalidate();
+    await waitFor(() => expect(badge()).toBeNull());
+    expect(screen.getByRole('link', { name: 'Emails' })).toBeInTheDocument();
+  });
 });
 
 describe('menu counts', () => {
@@ -208,6 +224,7 @@ describe('menu counts', () => {
     const jobsBadge = () => count('jobs');
     const metrics = (jobs: Record<string, number>) => ({
       aiTasksWaiting: 0,
+      emailsUnparsed: 0,
       metrics: { ...counts({}).metrics, jobs: { new: 0, new_no_application: 0, no_application: 0, all: 0, ...jobs } },
     });
     async function choose(numbers: Record<string, string[]>): Promise<void> {

@@ -144,10 +144,16 @@ export interface MenuCounts {
   aiTasksWaiting: number;
   /** Every number the menu can show, by menu item and number id (see menu-metrics.ts). */
   metrics: MenuMetrics;
+  /** E-mails that were not parsed yet (state empty); shown next to Emails in the menu. */
+  emailsUnparsed: number;
 }
 
-export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; applications: readonly Application[]; styles?: JobStatusStyles }): MenuCounts {
-  return { aiTasksWaiting: countWaitingTasks(input.tasks).total, metrics: computeMenuMetrics(input) };
+export function buildMenuCounts(input: { jobs: readonly Job[]; tasks: readonly AiTask[]; applications: readonly Application[]; styles?: JobStatusStyles; emails?: readonly { state: string }[] }): MenuCounts {
+  return {
+    aiTasksWaiting: countWaitingTasks(input.tasks).total,
+    metrics: computeMenuMetrics(input),
+    emailsUnparsed: (input.emails ?? []).filter((email) => email.state === '').length,
+  };
 }
 
 export function buildDashboard(input: {

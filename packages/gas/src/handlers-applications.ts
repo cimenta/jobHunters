@@ -24,6 +24,15 @@ import type { Handler } from './api';
 import { asRecord, invalidArguments, optionalBoolean, optionalNumber, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
 
+/** The sheet Emails is optional: without it the menu simply has no number for it. */
+function optionalEmails(c: Container): Email[] {
+  try {
+    return c.emails.list();
+  } catch {
+    return [];
+  }
+}
+
 const COMMUNICATION_FIELDS = ['kind', 'direction', 'channel', 'summary', 'details', 'datetime', 'contactId', 'attachmentUrl'] as const;
 
 function communicationPatch(input: Record<string, unknown>, method: string): Partial<Omit<CommunicationInput, 'applicationId' | 'jobId'>> {
@@ -288,6 +297,48 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return email;
     },
 
+    parseEmails: () => c.lock.run(() => c.emailService.parseAll()),
+
+    parseEmail: (args) => {
+      const id = requireString(asRecord(args, 'parseEmail'), 'id', 'parseEmail');
+      return c.lock.run(() => c.emailService.parseOne(id));
+    },
+
+    getEmailDetail: (args) => {
+      const id = requireString(asRecord(args, 'getEmailDetail'), 'id', 'getEmailDetail');
+      return c.emailService.detail(id);
+    },
+
+    confirmEmail: (args) => {
+      const input = asRecord(args, 'confirmEmail');
+      const id = requireString(input, 'id', 'confirmEmail');
+      return c.lock.run(() =>
+        c.emailService.confirm(id, {
+          applicationId: optionalString(input, 'applicationId', 'confirmEmail'),
+          jobId: optionalString(input, 'jobId', 'confirmEmail'),
+          kind: requireString(input, 'kind', 'confirmEmail'),
+          direction: requireString(input, 'direction', 'confirmEmail'),
+          channel: optionalString(input, 'channel', 'confirmEmail'),
+          summary: optionalString(input, 'summary', 'confirmEmail'),
+          at: optionalString(input, 'at', 'confirmEmail'),
+          notes: optionalString(input, 'notes', 'confirmEmail'),
+          includeText: optionalBoolean(input, 'includeText', 'confirmEmail'),
+          status: optionalString(input, 'status', 'confirmEmail'),
+          statusDate: optionalString(input, 'statusDate', 'confirmEmail'),
+        }),
+      );
+    },
+
+    ignoreEmail: (args) => {
+      const id = requireString(asRecord(args, 'ignoreEmail'), 'id', 'ignoreEmail');
+      return c.lock.run(() => c.emailService.ignore(id));
+    },
+
+    restoreEmail: (args) => {
+      const id = requireString(asRecord(args, 'restoreEmail'), 'id', 'restoreEmail');
+      return c.lock.run(() => c.emailService.restore(id));
+    },
+
     listCompanies: () => companyRows(c.companies.list(), c.jobs.list(), c.applications.list()),
 
     getCompany: (args) => {
@@ -319,7 +370,7 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       }),
 
     getMenuCounts: () =>
-      buildMenuCounts({ jobs: c.jobs.list(), tasks: c.tasks.list(), applications: c.applications.list(), styles: c.settings.get().settings.job_status_styles }),
+      buildMenuCounts({ jobs: c.jobs.list(), tasks: c.tasks.list(), applications: c.applications.list(), styles: c.settings.get().settings.job_status_styles, emails: optionalEmails(c) }),
 
     getApplication: (args) => {
       const id = requireString(asRecord(args, 'getApplication'), 'id', 'getApplication');

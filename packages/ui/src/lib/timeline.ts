@@ -46,10 +46,14 @@ export function eventSubline(event: TimelineEvent): string {
   }
 }
 
+/** The hover card shows the start of long details (the text of an e-mail); the whole text is in the Communication tab. */
+export const HOVER_DETAILS_MAX = 1200;
+
 /** The text of the hover card of a communication entry: the summary and the details, or undefined when the entry has neither. */
 export function eventHoverText(event: TimelineEvent): { summary: string; details: string } | undefined {
   if (event.type !== 'message' && event.type !== 'meeting' && event.type !== 'after_meeting' && event.type !== 'homework' && event.type !== 'confirmation') return undefined;
   const summary = event.data.summary ?? '';
-  const details = event.data.details ?? '';
+  const full = event.data.details ?? '';
+  const details = full.length > HOVER_DETAILS_MAX ? `${full.slice(0, HOVER_DETAILS_MAX).trimEnd()}…` : full;
   return summary === '' && details === '' ? undefined : { summary, details };
 }
