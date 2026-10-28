@@ -190,6 +190,15 @@ describe('hints about the job and the company', () => {
     expect(extractHints('x', 'děkujeme za Váš zájem o pozici Vibecoder / AI Developer a za zaslané podklady.\n').titleHints).toContain('Vibecoder / AI Developer');
   });
 
+  it('reads the company from "applying to COMPANY" in the subject or the text, and not a role or a lowercase continuation', () => {
+    expect(extractHints('Thanks for applying to RevoData', '').companyHints).toContain('RevoData');
+    expect(extractHints('Your application to Acme Corp', '').companyHints).toContain('Acme Corp');
+    expect(extractHints('x', 'Thank you for applying to Globex! We will be in touch.').companyHints).toContain('Globex');
+    expect(extractHints('x', 'Thanks for applying to Initech s.r.o. and for your time.').companyHints).toContain('Initech s.r.o.');
+    expect(extractHints('Thanks for applying to the Data Analyst role', '').companyHints).not.toContain('the');
+    expect(extractHints('Thanks for applying', '').companyHints).toEqual([]);
+  });
+
   it('reads the company from a signature of a recruiting team', () => {
     expect(extractHints('Thank you', 'Thank you for applying.\n\nThe HERE Talent Acquisition Team').companyHints).toContain('HERE');
     expect(extractHints('x', 'Best regards,\nWhalebone Recruitment Team\n').companyHints).toContain('Whalebone');

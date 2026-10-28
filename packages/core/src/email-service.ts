@@ -187,7 +187,7 @@ export class EmailService {
   detail(id: string): EmailDetail {
     const email = this.require(id);
     if (email.state === '') return { email, suggestion: undefined };
-    const stored = readStoredSuggestion(email.signals) ?? toStored(this.parse(email));
+    const stored = this.withFreshHints(email, readStoredSuggestion(email.signals) ?? toStored(this.parse(email)));
     const match = this.match(email, stored);
     return {
       email,
@@ -265,6 +265,17 @@ export class EmailService {
 
   private parse(email: Email): EmailParse {
     return parseEmail(email, this.deps.rules());
+  }
+
+  /**
+   * A mail that is not saved yet also gets the names the current rules find, so a better reader helps a mail that was parsed
+   * earlier without "Parse again". What was stored stays first; a saved or ignored mail is left as it is.
+   */
+  private withFreshHints(email: Email, stored: StoredSuggestion): StoredSuggestion {
+    if (email.state !== 'suggested') return stored;
+    const fresh = toStored(this.parse(email));
+    const join = (old: string[], added: string[]): string[] => [...old, ...added.filter((item) => !old.some((known) => known.toLowerCase() === item.toLowerCase()))].slice(0, 4);
+    return { ...stored, titles: join(stored.titles, fresh.titles), companies: join(stored.companies, fresh.companies) };
   }
 
   private match(email: Email, stored: StoredSuggestion): MatchResult {

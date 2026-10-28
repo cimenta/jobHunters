@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.3] - 2026-10-30
+
+- E-mail parsing finds the company in the phrase **"applying to COMPANY"**, in the subject or the text ("Thanks for applying to Acme", "Your application to Acme Corp"; company forms such as s.r.o., Inc. or B.V. are kept), so a confirmation like this is matched to the job or application of that company. A role after the words ("applying to the Data Analyst role") is not taken for a company. An e-mail that was parsed earlier and is not saved yet picks up the new reading when its popup is opened, so **Parse again** is not needed.
+- No Setup is needed for this update.
+
 ## [0.25.2] - 2026-10-30
 
 - New reader for **Greenhouse** job boards (job-boards.greenhouse.io, job-boards.eu.greenhouse.io and boards.greenhouse.io, links like `.../<company>/jobs/<number>`). It takes the title, the company, the place of work (an ad that says Remote is marked remote, one that says hybrid is marked hybrid), the date it was published, the application deadline, the pay range when the ad gives one (as a yearly amount) and the whole text of the ad with its headings and lists. The type of contract is not given by Greenhouse, so it stays empty. The tracking parameters `utm_*` and `gh_src` are removed from the link, and every link to one ad gets the same key, so adding the same ad twice is recognised.

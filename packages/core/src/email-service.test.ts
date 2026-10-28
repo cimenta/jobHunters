@@ -176,6 +176,15 @@ describe('EmailService.detail, parseOne, ignore, restore', () => {
     expect(service.parseOne('e1').email.state).toBe('suggested');
   });
 
+  it('lets a suggested mail use the names the current rules find, though its stored suggestion has none', () => {
+    const old = { rule: '', kind: 'confirmation', dir: 'incoming', at: '', hint: '', titles: [], companies: [], summary: '' };
+    const { service: later, emails } = setup({ emails: [mail({ subject: 'Thanks for applying to Acme', body: 'We will be in touch.', from_email: 'bot@portal.example', from_name: 'Bot', state: 'suggested', type: 'confirmation', signals: JSON.stringify(old) })] });
+    expect(emails.get('e1')!.signals).toContain('"companies":[]');
+    const suggestion = later.detail('e1').suggestion!;
+    expect(suggestion.candidates.map((candidate) => candidate.jobId)).toEqual(['j1']);
+    expect(suggestion.companies).toContain('Acme');
+  });
+
   it('ignores and restores', () => {
     const { service, emails } = setup();
     service.parseAll();

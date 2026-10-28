@@ -188,6 +188,9 @@ export function extractHints(subject: string, body: string): { titleHints: strin
     pushTitle(titleHints, titled[1]);
     pushCompany(companyHints, titled[2]);
   }
+  // "Thanks for applying to RevoData", "Your application to Acme Corp": the company follows the preposition, as capitalized words.
+  const applied = /\b(?:[Aa]pplying|[Aa]pplied|[Aa]pplication)\s+(?:to|at|with)\s+((?:[A-Z0-9][^\s,!?:;]*)(?:[ \t]+[A-Z0-9&][^\s,!?:;]*){0,3}(?:[ \t]+(?:s\.r\.o|a\.s|inc|ltd|gmbh|b\.v|llc)\b\.?)?)/.exec(text);
+  if (applied) pushCompany(companyHints, applied[1]);
   const subjectTitle = /(?:pozici|position|role)\s+(.+)$/i.exec(subject.trim());
   if (subjectTitle) pushTitle(titleHints, subjectTitle[1]);
   const dashTail = /^(.{3,80}?)\s+-\s+([A-Z][^\n]{1,50})$/.exec(subject.trim());
