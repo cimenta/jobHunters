@@ -52,6 +52,9 @@
   let statusDate = $state('');
   /** Shows the e-mail in place of the form; the form stays as it is and comes back with its values. */
   let preview = $state(false);
+  // The Rejected button fills the form as a rejection; what it replaced comes back when it is switched off.
+  let rejecting = $state(false);
+  let beforeReject = { kind: 'message' as CommunicationKind, direction: 'incoming', summary: '' };
   const attachments = $derived(email.attachments.split('|').map((name) => name.trim()).filter((name) => name !== ''));
   const sender = $derived(email.from_name.trim() === '' ? email.from_email : `${email.from_name.trim()} <${email.from_email}>`);
 
@@ -68,7 +71,7 @@
   });
 
   const application = $derived(target.startsWith('a:') ? applications.data?.find((row) => `a:${row.id}` === target) : undefined);
-  const statusFor = $derived(application ? suggestStatus(kind, suggestion?.hint, application.status, app.settings?.status_transitions ?? DEFAULT_TRANSITIONS) : undefined);
+  const statusFor = $derived(application ? suggestStatus(kind, rejecting ? 'rejected' : suggestion?.hint, application.status, app.settings?.status_transitions ?? DEFAULT_TRANSITIONS) : undefined);
   const dated = $derived(statusFor === 'homework');
   // The box follows what the entry implies; a new target or type brings it back ticked.
   $effect(() => {
@@ -78,7 +81,23 @@
   const dateReady = $derived(!(statusFor && setStatus && dated) || (statusDate !== '' && statusDate >= today));
   const ready = $derived(target !== '' && dateReady);
 
+  function toggleReject(): void {
+    if (rejecting) {
+      ({ kind, direction, summary } = beforeReject);
+      rejecting = false;
+      return;
+    }
+    beforeReject = { kind, direction, summary };
+    kind = 'message';
+    direction = 'incoming';
+    if (channel === '') channel = 'email';
+    summary = tr('ui.comm.rejectSummary');
+    rejecting = true;
+  }
+
   function pickKind(next: CommunicationKind): void {
+    // Choosing another type by hand is no longer a rejection.
+    if (rejecting && next !== 'message') rejecting = false;
     direction = DIRECTIONS_BY_KIND[next].includes(direction) ? direction : DEFAULT_DIRECTION[next];
     channel = next === 'after_meeting' ? '' : channel === '' ? 'email' : channel;
     kind = next;
@@ -155,7 +174,9 @@
             <Icon name={kindIcon(option, option === 'message' ? channel || 'email' : '')} size={18} />{kindLabel(option)}
           </button>
         {/each}
+        <button data-ui="email-suggest.rejected" type="button" class="rejected" aria-pressed={rejecting} onclick={toggleReject}><Icon name="reject" size={18} />{tr('ui.emails.rejected')}</button>
       </div>
+      {#if rejecting}<p class="reject-note small" data-ui="email-suggest.reject-note">{statusFor === 'rejected' ? tr('ui.emails.rejectedNote') : tr('ui.emails.rejectedNoteNoStatus')}</p>{/if}
       {#if suggestion && suggestion.rule !== ''}<p class="muted small" data-ui="email-suggest.rule">{tr('ui.emails.rule', { rule: suggestion.rule, confidence: suggestion.confidence === 'high' ? tr('ui.emails.high') : tr('ui.emails.low') })}</p>{/if}
     </div>
 
@@ -208,6 +229,9 @@
   .label-text { font-size: var(--text-s); font-weight: 600; }
   .kind { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 0 var(--space-3); font: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); cursor: pointer; }
   .kind[aria-pressed='true'] { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+  .rejected { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; margin-left: var(--space-2); padding: 0 var(--space-3); font: inherit; color: var(--danger); background: var(--danger-soft); border: 1px solid var(--danger); border-radius: var(--radius-m); cursor: pointer; }
+  .rejected[aria-pressed='true'] { color: #fff; background: var(--danger); }
+  .reject-note { margin: 0; color: var(--danger); }
   .status { padding: var(--space-2) var(--space-3); background: var(--accent-soft); border-radius: var(--radius-m); }
   .check { display: flex; align-items: center; gap: var(--space-2); min-height: var(--tap); }
   .hint { margin: 0; }

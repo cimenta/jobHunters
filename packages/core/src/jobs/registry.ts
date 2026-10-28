@@ -3,6 +3,7 @@ import { FAJN_PARSER } from './fajn';
 import { FLEK_PARSER } from './flek';
 import { GENERIC_PARSER } from './generic';
 import { GIGAPRACE_PARSER } from './gigaprace';
+import { GREENHOUSE_PARSER } from './greenhouse';
 import { htmlToText } from './html';
 import { JOBS_CZ_PARSER } from './jobs-cz';
 import { JOOBLE_PARSER } from './jooble';
@@ -13,7 +14,7 @@ import { emptyParsedJob, finishParsedJob, mergeParsed, type JobParser, type Pars
 import { SPRAVNYKROK_PARSER } from './spravnykrok';
 import { STARTUPJOBS_PARSER } from './startupjobs';
 
-export const PORTAL_PARSERS: readonly JobParser[] = [JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER];
+export const PORTAL_PARSERS: readonly JobParser[] = [JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER];
 
 export interface ParseOptions {
   parsers?: readonly JobParser[];

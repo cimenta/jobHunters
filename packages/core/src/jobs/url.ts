@@ -15,7 +15,7 @@ const URL_PATTERN = /^(https?):\/\/([^\/?#]+)([^?#]*)(?:\?([^#]*))?(?:#(.*))?$/i
 
 const TRACKING_PARAMS = new Set([
   'fbclid', 'gclid', 'msclkid', 'mc_cid', 'mc_eid', 'igshid', '_ga',
-  'trk', 'trackingid', 'refid', 'ref', 'searchid', 'rps', 'vstup',
+  'trk', 'gh_src', 'trackingid', 'refid', 'ref', 'searchid', 'rps', 'vstup',
 ]);
 
 export function parseUrl(raw: string): ParsedUrl | undefined {
@@ -114,6 +114,10 @@ export function jobUrlKey(url: string): string {
   if (hostIs(url, 'jooble.org')) {
     const match = /^\/(?:desc|jdp)\/(-?\d+)\/?$/.exec(parsed.path);
     if (match) return `jooble:${match[1]}`;
+  }
+  if (hostIs(url, 'greenhouse.io')) {
+    const match = /^\/[^\/]+\/jobs\/(\d+)\/?$/.exec(parsed.path);
+    if (match) return `greenhouse:${match[1]}`;
   }
   if (hostIs(url, 'gigaprace.cz')) {
     const match = /^\/nabidka-prace\/([a-z0-9]+)(?:\/.*)?$/i.exec(parsed.path);

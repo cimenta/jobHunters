@@ -2,6 +2,16 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.2] - 2026-10-30
+
+- New reader for **Greenhouse** job boards (job-boards.greenhouse.io, job-boards.eu.greenhouse.io and boards.greenhouse.io, links like `.../<company>/jobs/<number>`). It takes the title, the company, the place of work (an ad that says Remote is marked remote, one that says hybrid is marked hybrid), the date it was published, the application deadline, the pay range when the ad gives one (as a yearly amount) and the whole text of the ad with its headings and lists. The type of contract is not given by Greenhouse, so it stays empty. The tracking parameters `utm_*` and `gh_src` are removed from the link, and every link to one ad gets the same key, so adding the same ad twice is recognised.
+- No Setup is needed for this update.
+
+## [0.25.1] - 2026-10-30
+
+- The popup of an e-mail has a red **Rejected** button next to the entry types. One click fills the form as a rejection (type Message, incoming, summary "Rejection from the company") and ticks **Set the status Rejected** when the status rules allow it; Save then creates the entry and rejects the application, archiving its job as the Rejection button of the Communication tab does. Clicking it again, or choosing another type, undoes it.
+- No Setup is needed for this update.
+
 ## [0.25.0] - 2026-10-29
 
 - **E-mails become communication entries.** The button **Parse e-mails** next to the filter buttons of the list of e-mails reads every new e-mail (opening a new e-mail parses it too) and suggests what it is: a Confirmation, a Meeting, a note After a meeting, a Message (a rejection, an offer or an ordinary reply) or Homework, with a confidence (high only for a clear signature), and which application, or which job without an application, it belongs to (the same conversation, the same sender as a saved e-mail, the link of the ad, the company domain, the company name and the job title; a portal such as a job board or an applicant system never counts as the company). Czech, Slovak and English wording is understood, including the rejections that StartupJobs relays and the invitations of Google Calendar, Microsoft Teams and booking pages.

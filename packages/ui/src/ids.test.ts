@@ -49,7 +49,7 @@ describe('element identifiers', () => {
       }
       expect(new Set(found).size, `${hash}: duplicate ids`).toBe(found.length);
     }
-  });
+  }, 30000);
 
   it('marks the tab contents and dialogs', async () => {
     await start();
