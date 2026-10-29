@@ -11,6 +11,7 @@ export * from './fajn';
 export * from './gigaprace';
 export * from './jooble';
 export * from './greenhouse';
+export * from './dream-jobs';
 export * from './spravnykrok';
 export * from './nelisa';
 export * from './manpower';

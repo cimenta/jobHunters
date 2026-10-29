@@ -2,7 +2,7 @@
   import Card from '../components/Card.svelte';
   import Screenshot from '../components/Screenshot.svelte';
   import Tabs from '../components/Tabs.svelte';
-  import { MAX_INTERVIEW_PREP } from '@jobhunters/core';
+  import { MAX_INTERVIEW_PREP, PORTAL_SITES } from '@jobhunters/core';
   import { tr, ui } from '../lib/i18n.svelte';
   import { paths } from '../lib/route';
   import dashboardShot from '../assets/help/dashboard.jpg';
@@ -104,6 +104,13 @@
       <li>{tr('ui.help.jobs.i30')}</li>
       <li>{tr('ui.help.jobs.i31')}</li>
       <li>{tr('ui.help.jobs.i32')}</li>
+    </ul>
+    <h3>{tr('ui.help.jobs.sites.title')}</h3>
+    <p>{tr('ui.help.jobs.sites.intro')}</p>
+    <ul data-ui="help.sites">
+      {#each PORTAL_SITES as site (site.id)}
+        <li><a data-ui="help.site.{site.id}" href={site.url} target="_blank" rel="noopener noreferrer">{site.name}</a></li>
+      {/each}
     </ul>
     <div class="pair">
     <Screenshot ui="help.shot.job-detail" src={job_detailShot} caption={tr('ui.help.shot.job-detail')} />

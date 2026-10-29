@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.4] - 2026-10-30
+
+- New reader for **dream.jobs** (links like `dream.jobs/jobs?activeOpportunityId=<number>`; the list page with an ad opened). It takes the title, the company, the places of work, the work mode (remote, hybrid or on-site), the type of contract, the monthly pay range, the date the ad was created, the whole text with its headings and lists, and the recruiter as the contact person. The ad is the one named in the link, even when the page has loaded several. In the stored link only `activeOpportunityId` is kept (the `similarVacancyId` of the list beside it is dropped), and every link to one ad gets the same key, so adding the same ad twice is recognised.
+- Help, tab **Jobs**, has a new list **Websites with their own reader** with a clickable link to each of them (it is kept in step with the readers by a test).
+- No Setup is needed for this update.
+
 ## [0.25.3] - 2026-10-30
 
 - E-mail parsing finds the company in the phrase **"applying to COMPANY"**, in the subject or the text ("Thanks for applying to Acme", "Your application to Acme Corp"; company forms such as s.r.o., Inc. or B.V. are kept), so a confirmation like this is matched to the job or application of that company. A role after the words ("applying to the Data Analyst role") is not taken for a company. An e-mail that was parsed earlier and is not saved yet picks up the new reading when its popup is opened, so **Parse again** is not needed.

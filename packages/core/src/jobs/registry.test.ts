@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { emptyParsedJob, type JobParser } from './parsed-job';
-import { parseJobPage, parseManualText } from './registry';
+import { PORTAL_PARSERS, PORTAL_SITES, parseJobPage, parseManualText } from './registry';
 
 const fixture = (name: string) => readFileSync(new URL(`../../fixtures/${name}`, import.meta.url), 'utf8');
 
@@ -160,5 +160,12 @@ describe('parseManualText', () => {
   });
   it('never exceeds the cell limit', () => {
     expect(parseManualText('x'.repeat(100_000)).description.length).toBeLessThanOrEqual(49000);
+  });
+});
+
+describe('PORTAL_SITES', () => {
+  it('lists every portal parser once, with a web address', () => {
+    expect(PORTAL_SITES.map((site) => site.id).sort()).toEqual(PORTAL_PARSERS.map((parser) => parser.id).sort());
+    for (const site of PORTAL_SITES) expect(site.url).toMatch(/^https:\/\//);
   });
 });

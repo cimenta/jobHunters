@@ -59,7 +59,9 @@ export function normalizeJobUrl(raw: string): string {
   const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   const parsed = parseUrl(withScheme);
   if (!parsed) throw new ValidationError('url_invalid', `Not a valid web address: ${trimmed}`, { url: trimmed.slice(0, 200) });
-  const kept = parsed.query.filter((pair) => !isTrackingParam(pair.split('=')[0]!));
+  // dream.jobs names the open ad in activeOpportunityId; the other parameters only choose what the list beside it shows.
+  const own = hostIs(withScheme, 'dream.jobs') && parsed.query.some((pair) => pair.startsWith('activeOpportunityId='));
+  const kept = parsed.query.filter((pair) => (own ? pair.startsWith('activeOpportunityId=') : !isTrackingParam(pair.split('=')[0]!)));
   return `${parsed.protocol}://${parsed.host}${parsed.path}${kept.length > 0 ? `?${kept.join('&')}` : ''}${anchorOf(parsed) === '' ? '' : `#${anchorOf(parsed)}`}`;
 }
 
@@ -69,6 +71,17 @@ function queryValue(query: string[], name: string): string | undefined {
     if (key === name) return value;
   }
   return undefined;
+}
+
+/** The ad that is open on the list page is named in the address: `/jobs?activeOpportunityId=<id>`. */
+export function dreamJobsId(url: string): string {
+  const parsed = parseUrl(url);
+  if (parsed === undefined || !hostIs(url, 'dream.jobs') || !/^\/jobs\/?$/i.test(parsed.path)) return '';
+  for (const pair of parsed.query) {
+    const [key, value] = pair.split('=');
+    if (key === 'activeOpportunityId' && /^\d+$/.test(value ?? '')) return value!;
+  }
+  return '';
 }
 
 /** Same ad, same key: used to find duplicates whatever link the user pasted. */
@@ -118,6 +131,10 @@ export function jobUrlKey(url: string): string {
   if (hostIs(url, 'greenhouse.io')) {
     const match = /^\/[^\/]+\/jobs\/(\d+)\/?$/.exec(parsed.path);
     if (match) return `greenhouse:${match[1]}`;
+  }
+  if (hostIs(url, 'dream.jobs')) {
+    const id = dreamJobsId(url);
+    if (id !== '') return `dream.jobs:${id}`;
   }
   if (hostIs(url, 'gigaprace.cz')) {
     const match = /^\/nabidka-prace\/([a-z0-9]+)(?:\/.*)?$/i.exec(parsed.path);

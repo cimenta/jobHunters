@@ -1,4 +1,5 @@
 import { CESNET_PARSER } from './cesnet';
+import { DREAM_JOBS_PARSER } from './dream-jobs';
 import { FAJN_PARSER } from './fajn';
 import { FLEK_PARSER } from './flek';
 import { GENERIC_PARSER } from './generic';
@@ -14,7 +15,24 @@ import { emptyParsedJob, finishParsedJob, mergeParsed, type JobParser, type Pars
 import { SPRAVNYKROK_PARSER } from './spravnykrok';
 import { STARTUPJOBS_PARSER } from './startupjobs';
 
-export const PORTAL_PARSERS: readonly JobParser[] = [JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER];
+export const PORTAL_PARSERS: readonly JobParser[] = [JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER, DREAM_JOBS_PARSER];
+
+/** The websites that have a reader of their own, one per portal parser (by its id), for the list in Help. */
+export const PORTAL_SITES: readonly { id: string; name: string; url: string }[] = [
+  { id: 'jobs-cz', name: 'Jobs.cz', url: 'https://www.jobs.cz/' },
+  { id: 'linkedin', name: 'LinkedIn', url: 'https://www.linkedin.com/jobs/' },
+  { id: 'startupjobs', name: 'StartupJobs', url: 'https://www.startupjobs.cz/' },
+  { id: 'fajn', name: 'Fajn Brigády, Inwork', url: 'https://www.fajn-brigady.cz/' },
+  { id: 'gigaprace', name: 'Gigaprace', url: 'https://www.gigaprace.cz/' },
+  { id: 'jooble', name: 'Jooble', url: 'https://cz.jooble.org/' },
+  { id: 'spravnykrok', name: 'Správný krok', url: 'https://www.spravnykrok.cz/' },
+  { id: 'nelisa', name: 'Nelisa', url: 'https://nelisa.com/' },
+  { id: 'manpower', name: 'Manpower', url: 'https://www.manpower.cz/' },
+  { id: 'flek', name: 'Flek', url: 'https://www.flek.cz/' },
+  { id: 'cesnet', name: 'CESNET', url: 'https://www.cesnet.cz/kariera/' },
+  { id: 'greenhouse', name: 'Greenhouse', url: 'https://www.greenhouse.com/' },
+  { id: 'dream-jobs', name: 'dream.jobs', url: 'https://dream.jobs/' },
+];
 
 export interface ParseOptions {
   parsers?: readonly JobParser[];

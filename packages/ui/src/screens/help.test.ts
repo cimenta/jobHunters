@@ -1,4 +1,4 @@
-import { CATALOGS } from '@jobhunters/core';
+import { CATALOGS, PORTAL_SITES } from '@jobhunters/core';
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { expect, it, vi } from 'vitest';
 import { useDevBackend } from '../test/transport';
@@ -28,6 +28,18 @@ it('links every part to its screen', async () => {
     hrefs.push(document.querySelector('[data-ui^="help.open."]')!.getAttribute('href'));
   }
   expect(hrefs).toEqual(['#/', '#/jobs', '#/applications', '#/companies', '#/emails', '#/tasks', '#/settings']);
+});
+
+it('lists the websites with their own reader as links that open in a new tab', async () => {
+  render(Help);
+  await fireEvent.click(screen.getByRole('tab', { name: 'Jobs' }));
+  const links = Array.from(document.querySelectorAll('[data-ui^="help.site."]'));
+  expect(links.length).toBe(PORTAL_SITES.length);
+  expect(screen.getByRole('link', { name: 'dream.jobs' })).toHaveAttribute('href', 'https://dream.jobs/');
+  for (const link of links) {
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link.getAttribute('rel')).toContain('noopener');
+  }
 });
 
 it('has every help text in both languages', () => {
