@@ -113,6 +113,33 @@ describe('Dialog', () => {
   });
 });
 
+describe('Dialog backdrop', () => {
+  const backdropOf = () => screen.getByRole('dialog').parentElement!;
+
+  it('closes on a click that starts and ends on the dark area, not on one that started inside the panel', async () => {
+    const onclose = vi.fn();
+    render(Dialog, { open: true, title: 'Edit', onclose, children: text('Body') });
+    await fireEvent.click(backdropOf());
+    expect(onclose).not.toHaveBeenCalled();
+    await fireEvent.pointerDown(screen.getByText('Body'));
+    await fireEvent.click(backdropOf());
+    expect(onclose).not.toHaveBeenCalled();
+    await fireEvent.pointerDown(backdropOf());
+    await fireEvent.click(backdropOf());
+    expect(onclose).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays open on a backdrop click when backdropCloses is off, and still closes with Escape', async () => {
+    const onclose = vi.fn();
+    render(Dialog, { open: true, title: 'Edit', onclose, backdropCloses: false, children: text('Body') });
+    await fireEvent.pointerDown(backdropOf());
+    await fireEvent.click(backdropOf());
+    expect(onclose).not.toHaveBeenCalled();
+    await fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(onclose).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Tabs', () => {
   it('switches the active tab by click and by arrow keys', async () => {
     render(TabsProbe);

@@ -22,10 +22,14 @@
     ui?: string;
     /** Wider panel (up to 960px) on large screens. */
     wide?: boolean;
+    /** A click on the dark area around the panel closes it (default); forms that are filled by hand turn it off. */
+    backdropCloses?: boolean;
   }
-  let { open, title, onclose, children, footer, headerExtra, ui, wide = false }: Props = $props();
+  let { open, title, onclose, children, footer, headerExtra, ui, wide = false, backdropCloses = true }: Props = $props();
 
   let panel = $state<HTMLElement>();
+  // A press that started inside the panel (selecting text in a field and letting go outside it) or a click that only gives the window focus back must not close it.
+  let pressedOnBackdrop = false;
 
   $effect(() => {
     if (!open || !panel) return;
@@ -70,7 +74,7 @@
 
 {#if open}
   <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-  <div class="backdrop" onclick={(event) => event.target === event.currentTarget && onclose()}>
+  <div class="backdrop" onpointerdown={(event) => (pressedOnBackdrop = event.target === event.currentTarget)} onclick={(event) => { if (backdropCloses && pressedOnBackdrop && event.target === event.currentTarget) onclose(); pressedOnBackdrop = false; }}>
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="panel" class:wide role="dialog" aria-modal="true" aria-label={title} data-ui={ui} tabindex="-1" bind:this={panel} {onkeydown}>
       <header>

@@ -14,6 +14,6 @@
   <JobDetail id={router.current.id ?? ''} />
 </Dialog>
 
-<Dialog open={router.current.name === 'job-new'} wide ui="add-job-dialog" title={tr('ui.addJob.title')} onclose={() => navigate(paths.jobs)}>
+<Dialog open={router.current.name === 'job-new'} wide backdropCloses={false} ui="add-job-dialog" title={tr('ui.addJob.title')} onclose={() => navigate(paths.jobs)}>
   <AddJob />
 </Dialog>

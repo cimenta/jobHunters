@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.7] - 2026-10-30
+
+- The **Add job** window no longer closes by itself while you fill it in by hand. A click on the dark area around it (for example the click that gives the page focus back after you copied something from the ad in another tab) used to close it and lose what you had typed; now only the **Close** button and **Esc** close it. In every other window a click on the dark area closes it only when the press also started there, so selecting text in a field and letting go outside the window no longer closes it.
+- No Setup is needed for this update.
+
 ## [0.25.6] - 2026-10-30
 
 - An e-mail that fits two applications of the same company equally well (for example a StartupJobs message "from signageOS" when you have a ghosted application and a current one) now pre-fills the **open** application instead of the old rejected, withdrawn or ghosted one; among equals the more recently active one comes first. The e-mail is still not saved without asking when the two are equally strong.
