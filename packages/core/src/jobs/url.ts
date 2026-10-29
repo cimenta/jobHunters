@@ -61,7 +61,8 @@ export function normalizeJobUrl(raw: string): string {
   if (!parsed) throw new ValidationError('url_invalid', `Not a valid web address: ${trimmed}`, { url: trimmed.slice(0, 200) });
   // dream.jobs names the open ad in activeOpportunityId; the other parameters only choose what the list beside it shows.
   const own = hostIs(withScheme, 'dream.jobs') && parsed.query.some((pair) => pair.startsWith('activeOpportunityId='));
-  const kept = parsed.query.filter((pair) => (own ? pair.startsWith('activeOpportunityId=') : !isTrackingParam(pair.split('=')[0]!)));
+  const career = careerPageKey(withScheme) !== '';
+  const kept = parsed.query.filter((pair) => (own ? pair.startsWith('activeOpportunityId=') : career ? pair.startsWith('id=') : !isTrackingParam(pair.split('=')[0]!)));
   return `${parsed.protocol}://${parsed.host}${parsed.path}${kept.length > 0 ? `?${kept.join('&')}` : ''}${anchorOf(parsed) === '' ? '' : `#${anchorOf(parsed)}`}`;
 }
 
@@ -71,6 +72,17 @@ function queryValue(query: string[], name: string): string | undefined {
     if (key === name) return value;
   }
   return undefined;
+}
+
+/**
+ * An ad on the career pages that Alma Career runs for a company (kaufland.jobs.cz/detail-pozice?id=<number>): the key is
+ * "<host>:<number>", empty for any other address. Every other parameter (r, impressionId, rps) only says where the link came from.
+ */
+export function careerPageKey(url: string): string {
+  const parsed = parseUrl(url);
+  if (parsed === undefined || !/^(?!www\.)[a-z0-9-]+\.jobs\.cz$/.test(parsed.host) || !/^\/detail-pozice\/?$/i.test(parsed.path)) return '';
+  const id = parsed.query.find((pair) => /^id=\d+$/.test(pair));
+  return id === undefined ? '' : `${parsed.host}:${id.slice(3)}`;
 }
 
 /** The ad that is open on the list page is named in the address: `/jobs?activeOpportunityId=<id>`. */
@@ -89,6 +101,8 @@ export function jobUrlKey(url: string): string {
   const parsed = parseUrl(url);
   if (!parsed) return url.trim().toLowerCase();
 
+  const career = careerPageKey(url);
+  if (career !== '') return career;
   if (hostIs(url, 'jobs.cz')) {
     const match = /^\/(?:rpd\/(\d+)|fp\/[^\/]+\/(\d+))\/?$/.exec(parsed.path);
     if (match) return `jobs.cz:${match[1] ?? match[2]}`;
@@ -131,6 +145,10 @@ export function jobUrlKey(url: string): string {
   if (hostIs(url, 'greenhouse.io')) {
     const match = /^\/[^\/]+\/jobs\/(\d+)\/?$/.exec(parsed.path);
     if (match) return `greenhouse:${match[1]}`;
+  }
+  if (hostIs(url, 'primakariera.cz')) {
+    const match = /^\/prace\/[^\/]+_id(\d+)\/?$/i.exec(parsed.path);
+    if (match) return `primakariera.cz:${match[1]}`;
   }
   if (hostIs(url, 'dream.jobs')) {
     const id = dreamJobsId(url);

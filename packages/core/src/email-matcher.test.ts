@@ -132,6 +132,16 @@ describe('matchEmail', () => {
     expect(both.best?.method).toBe('thread');
   });
 
+  it('puts the open application of a company before a ghosted one when both are equally strong', () => {
+    const applications = [
+      row({ id: 'a1', job_id: 'j2', status: 'ghosted', last_activity_at: '2026-09-01T10:00:00Z' }),
+      row({ id: 'a2', job_id: 'j3', status: 'waiting', last_activity_at: '2026-10-01T10:00:00Z' }),
+    ];
+    const result = matchEmail(base({ email: email({ thread_id: '', from_email: 'x@unknown.example' }), companyHints: ['Globex'], applications }));
+    expect(result.candidates.map((c) => c.applicationId)).toEqual(['a2', 'a1']);
+    expect(result.best).toMatchObject({ applicationId: 'a2', jobId: 'j3' });
+  });
+
   it('ignores the mail itself and mails that are not tied to anything', () => {
     const self = email({ id: 'e1', application_id: 'a1' });
     const untied = email({ id: 'e5', thread_id: 't1' });

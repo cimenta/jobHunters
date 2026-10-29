@@ -158,7 +158,16 @@ export function matchEmail(input: MatchInput): MatchResult {
   const titleOnly = jobs.filter((job) => titleMatches(job) && !matchedCompanies.has(job.company_id));
   if (titleOnly.length === 1) addJob(titleOnly[0]!.id, 'title', SCORE.title);
 
-  const candidates = [...found.values()].sort((a, b) => b.score - a.score).slice(0, MAX_CANDIDATES);
+  // Equally strong targets: an open application before a rejected, withdrawn or ghosted one (or a job without one), then the more recent.
+  const rank = (candidate: MatchCandidate): number => {
+    const application = applicationById.get(candidate.applicationId);
+    return application !== undefined && !INACTIVE_APPLICATION_STATUSES.includes(application.status) ? 1 : 0;
+  };
+  const activity = (candidate: MatchCandidate): number => {
+    const application = applicationById.get(candidate.applicationId);
+    return application === undefined ? 0 : time(application.last_activity_at || application.created_at);
+  };
+  const candidates = [...found.values()].sort((a, b) => b.score - a.score || rank(b) - rank(a) || activity(b) - activity(a)).slice(0, MAX_CANDIDATES);
   const best = candidates[0];
   const second = candidates[1];
   const unique = best !== undefined && best.score >= UNIQUE_MIN && (second === undefined || second.score <= best.score - UNIQUE_GAP);

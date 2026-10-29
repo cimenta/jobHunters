@@ -1,3 +1,4 @@
+import { CAREER_PAGE_PARSER } from './career-page';
 import { CESNET_PARSER } from './cesnet';
 import { DREAM_JOBS_PARSER } from './dream-jobs';
 import { FAJN_PARSER } from './fajn';
@@ -10,16 +11,18 @@ import { JOBS_CZ_PARSER } from './jobs-cz';
 import { JOOBLE_PARSER } from './jooble';
 import { LINKEDIN_PARSER } from './linkedin';
 import { MANPOWER_PARSER } from './manpower';
+import { PRIMA_KARIERA_PARSER } from './prima-kariera';
 import { NELISA_PARSER } from './nelisa';
 import { emptyParsedJob, finishParsedJob, mergeParsed, type JobParser, type ParsedJob } from './parsed-job';
 import { SPRAVNYKROK_PARSER } from './spravnykrok';
 import { STARTUPJOBS_PARSER } from './startupjobs';
 
-export const PORTAL_PARSERS: readonly JobParser[] = [JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER, DREAM_JOBS_PARSER];
+export const PORTAL_PARSERS: readonly JobParser[] = [CAREER_PAGE_PARSER, JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER, DREAM_JOBS_PARSER, PRIMA_KARIERA_PARSER];
 
 /** The websites that have a reader of their own, one per portal parser (by its id), for the list in Help. */
 export const PORTAL_SITES: readonly { id: string; name: string; url: string }[] = [
   { id: 'jobs-cz', name: 'Jobs.cz', url: 'https://www.jobs.cz/' },
+  { id: 'career-page', name: 'Company career pages on jobs.cz (e.g. Kaufland)', url: 'https://kaufland.jobs.cz/' },
   { id: 'linkedin', name: 'LinkedIn', url: 'https://www.linkedin.com/jobs/' },
   { id: 'startupjobs', name: 'StartupJobs', url: 'https://www.startupjobs.cz/' },
   { id: 'fajn', name: 'Fajn Brigády, Inwork', url: 'https://www.fajn-brigady.cz/' },
@@ -32,6 +35,7 @@ export const PORTAL_SITES: readonly { id: string; name: string; url: string }[] 
   { id: 'cesnet', name: 'CESNET', url: 'https://www.cesnet.cz/kariera/' },
   { id: 'greenhouse', name: 'Greenhouse', url: 'https://www.greenhouse.com/' },
   { id: 'dream-jobs', name: 'dream.jobs', url: 'https://dream.jobs/' },
+  { id: 'prima-kariera', name: 'Prima kariéra', url: 'https://www.primakariera.cz/' },
 ];
 
 export interface ParseOptions {

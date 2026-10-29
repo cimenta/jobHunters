@@ -2,6 +2,17 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.6] - 2026-10-30
+
+- An e-mail that fits two applications of the same company equally well (for example a StartupJobs message "from signageOS" when you have a ghosted application and a current one) now pre-fills the **open** application instead of the old rejected, withdrawn or ghosted one; among equals the more recently active one comes first. The e-mail is still not saved without asking when the two are equally strong.
+- No Setup is needed for this update.
+
+## [0.25.5] - 2026-10-30
+
+- New reader for **Prima kariéra** (primakariera.cz, links like `.../prace/<title>_id<number>`). Title, company, pay, dates and contract still come from the structured data of the page; the reader adds all the places of the ad (not just "Brno-město, CZ"), the text with its sections and headings (Informace o pozici, Náplň práce, Požadavky, ...) instead of one run of lines, without the legal notice under "Doplňující informace", the work mode when a label of the ad says hybrid or remote, and the recruiter with the position and contacts as the contact person. Every link to one ad gets the same key (the number after `_id`), so adding it twice is recognised. The site is also in the Help list of websites with their own reader.
+- New reader for the **career pages of companies on jobs.cz subdomains** (such as `kaufland.jobs.cz/detail-pozice?id=<number>`; they are run by Alma Career and are no longer read by the Jobs.cz reader). These pages draw the ad with a script, so a link added by address gives the title, the company and the first lines of the text only. For the whole ad (place, type of work and contract, hourly or monthly pay, the text with its headings, the contact) open the ad in the browser, copy the page code from the elements pane (**Copy outerHTML**) and paste it into Add job. The stored link keeps only `id` (`r`, `impressionId` and `rps` are dropped), and every link to one ad gets the same key.
+- No Setup is needed for this update.
+
 ## [0.25.4] - 2026-10-30
 
 - New reader for **dream.jobs** (links like `dream.jobs/jobs?activeOpportunityId=<number>`; the list page with an ad opened). It takes the title, the company, the places of work, the work mode (remote, hybrid or on-site), the type of contract, the monthly pay range, the date the ad was created, the whole text with its headings and lists, and the recruiter as the contact person. The ad is the one named in the link, even when the page has loaded several. In the stored link only `activeOpportunityId` is kept (the `similarVacancyId` of the list beside it is dropped), and every link to one ad gets the same key, so adding the same ad twice is recognised.
