@@ -1,6 +1,7 @@
 import { CAREER_PAGE_PARSER } from './career-page';
 import { CESNET_PARSER } from './cesnet';
 import { DREAM_JOBS_PARSER } from './dream-jobs';
+import { EASY_PRACE_PARSER } from './easy-prace';
 import { FAJN_PARSER } from './fajn';
 import { FLEK_PARSER } from './flek';
 import { GENERIC_PARSER } from './generic';
@@ -17,7 +18,7 @@ import { emptyParsedJob, finishParsedJob, mergeParsed, type JobParser, type Pars
 import { SPRAVNYKROK_PARSER } from './spravnykrok';
 import { STARTUPJOBS_PARSER } from './startupjobs';
 
-export const PORTAL_PARSERS: readonly JobParser[] = [CAREER_PAGE_PARSER, JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER, DREAM_JOBS_PARSER, PRIMA_KARIERA_PARSER];
+export const PORTAL_PARSERS: readonly JobParser[] = [CAREER_PAGE_PARSER, JOBS_CZ_PARSER, LINKEDIN_PARSER, STARTUPJOBS_PARSER, FAJN_PARSER, GIGAPRACE_PARSER, JOOBLE_PARSER, SPRAVNYKROK_PARSER, NELISA_PARSER, MANPOWER_PARSER, FLEK_PARSER, CESNET_PARSER, GREENHOUSE_PARSER, DREAM_JOBS_PARSER, PRIMA_KARIERA_PARSER, EASY_PRACE_PARSER];
 
 /** The websites that have a reader of their own, one per portal parser (by its id), for the list in Help. */
 export const PORTAL_SITES: readonly { id: string; name: string; url: string }[] = [
@@ -35,6 +36,7 @@ export const PORTAL_SITES: readonly { id: string; name: string; url: string }[] 
   { id: 'cesnet', name: 'CESNET', url: 'https://www.cesnet.cz/kariera/' },
   { id: 'greenhouse', name: 'Greenhouse', url: 'https://www.greenhouse.com/' },
   { id: 'dream-jobs', name: 'dream.jobs', url: 'https://dream.jobs/' },
+  { id: 'easy-prace', name: 'Easy-práce.cz', url: 'https://www.easy-prace.cz/' },
   { id: 'prima-kariera', name: 'Prima kariéra', url: 'https://www.primakariera.cz/' },
 ];
 

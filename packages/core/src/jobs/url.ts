@@ -85,6 +85,13 @@ export function careerPageKey(url: string): string {
   return id === undefined ? '' : `${parsed.host}:${id.slice(3)}`;
 }
 
+/** An ad of Easy-práce.cz: `/nabidka/<words-of-the-title>/<number>`; the number, empty for any other address. */
+export function easyPraceId(url: string): string {
+  const parsed = parseUrl(url);
+  if (parsed === undefined || !hostIs(url, 'easy-prace.cz')) return '';
+  return /^\/nabidka\/[^\/]+\/(\d+)\/?$/i.exec(parsed.path)?.[1] ?? '';
+}
+
 /** The ad that is open on the list page is named in the address: `/jobs?activeOpportunityId=<id>`. */
 export function dreamJobsId(url: string): string {
   const parsed = parseUrl(url);
@@ -149,6 +156,10 @@ export function jobUrlKey(url: string): string {
   if (hostIs(url, 'primakariera.cz')) {
     const match = /^\/prace\/[^\/]+_id(\d+)\/?$/i.exec(parsed.path);
     if (match) return `primakariera.cz:${match[1]}`;
+  }
+  if (hostIs(url, 'easy-prace.cz')) {
+    const id = easyPraceId(url);
+    if (id !== '') return `easy-prace.cz:${id}`;
   }
   if (hostIs(url, 'dream.jobs')) {
     const id = dreamJobsId(url);

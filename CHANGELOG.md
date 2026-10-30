@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.8] - 2026-10-30
+
+- New reader for **Easy-práce.cz** (links like `.../nabidka/<title>/<number>`). The pages have no structured data, so the reader takes the visible ad: title, company, all the places, type of work (full time, part time, temporary), the pay range, the text with its headings (Popis pracovní nabídky, Požadujeme, Nabízíme, ...) and the contact person. Every link to one ad gets the same key (the number), and tracking parameters such as `utm_source` are dropped. The site is also in the Help list of websites.
+- No Setup is needed for this update.
+
 ## [0.25.7] - 2026-10-30
 
 - The **Add job** window no longer closes by itself while you fill it in by hand. A click on the dark area around it (for example the click that gives the page focus back after you copied something from the ad in another tab) used to close it and lose what you had typed; now only the **Close** button and **Esc** close it. In every other window a click on the dark area closes it only when the press also started there, so selecting text in a field and letting go outside the window no longer closes it.
