@@ -26,6 +26,8 @@ export interface ApplicationServiceDeps {
 export interface SetStatusOptions {
   /** Required when moving to `waiting` (the reminder date) or `homework` (the deadline): YYYY-MM-DD, a real date, not before today. */
   remindAt?: string;
+  /** When the change happened, as an ISO date-time (the time of the e-mail it comes from); the history shows it instead of the time of saving. */
+  at?: string;
 }
 
 export class ApplicationService {
@@ -81,7 +83,8 @@ export class ApplicationService {
     if (to === 'sent' && !application.applied_at) patch.applied_at = timestamp;
     const updated = applications.update(applicationId, patch);
 
-    history.append({ application_id: applicationId, from, to, at: timestamp });
+    const happenedAt = options.at !== undefined && !Number.isNaN(Date.parse(options.at)) ? options.at : timestamp;
+    history.append({ application_id: applicationId, from, to, at: happenedAt });
     if (to === 'rejected' || to === 'withdrawn') this.archiveJob(updated.job_id);
     return updated;
   }

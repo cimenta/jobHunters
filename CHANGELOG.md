@@ -2,6 +2,11 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.9] - 2026-10-31
+
+- Saving an e-mail to an application with a new status (for example Sent or Rejected) now dates the status change in the application history and timeline with the time the e-mail was received, not with the moment you pressed Save. The entry itself already had the time of the e-mail.
+- No Setup is needed for this update.
+
 ## [0.25.8] - 2026-10-30
 
 - New reader for **Easy-práce.cz** (links like `.../nabidka/<title>/<number>`). The pages have no structured data, so the reader takes the visible ad: title, company, all the places, type of work (full time, part time, temporary), the pay range, the text with its headings (Popis pracovní nabídky, Požadujeme, Nabízíme, ...) and the contact person. Every link to one ad gets the same key (the number), and tracking parameters such as `utm_source` are dropped. The site is also in the Help list of websites.

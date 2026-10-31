@@ -226,7 +226,7 @@ export class EmailService {
       details: composeDetails(email, input.notes ?? '', input.includeText !== false),
       datetime: input.at !== undefined && input.at !== '' ? input.at : email.received_at,
     });
-    if (status !== undefined && application) applicationService.setStatus(application.id, status, input.statusDate === undefined ? {} : { remindAt: input.statusDate });
+    if (status !== undefined && application) applicationService.setStatus(application.id, status, { ...(input.statusDate === undefined ? {} : { remindAt: input.statusDate }), at: email.received_at });
 
     const stored = readStoredSuggestion(email.signals);
     const suggestedTarget = email.application_id !== '' || email.job_id !== '' ? { application: email.application_id, job: email.job_id } : undefined;

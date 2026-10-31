@@ -29,15 +29,16 @@ function setup(options: { emails?: Email[]; applicationStatus?: string; autoSave
   const communications = new InMemoryRepository<Communication>();
   const newId = sequentialIds('m');
   const communicationService = new CommunicationService({ communications, applications, jobs, newId, now: () => NOW });
+  const history = new InMemoryAppendLog<StatusHistoryEntry>();
   const applicationService = new ApplicationService({
-    applications, reminders: new InMemoryRepository<Reminder>(), history: new InMemoryAppendLog<StatusHistoryEntry>(), newId: sequentialIds('r'), now: () => NOW, locale: () => 'en', jobs,
+    applications, reminders: new InMemoryRepository<Reminder>(), history, newId: sequentialIds('r'), now: () => NOW, locale: () => 'en', jobs,
   });
   let auto = options.autoSave ?? false;
   const service = new EmailService({
     emails, applications, jobs, companies, communicationService, applicationService,
     rules: () => compileEmailRules(effectiveEmailRules(undefined)), autoSave: () => auto, transitions: () => DEFAULT_TRANSITIONS,
   });
-  return { service, emails, applications, communications, jobs, setAuto: (value: boolean) => (auto = value) };
+  return { service, emails, applications, communications, jobs, history, setAuto: (value: boolean) => (auto = value) };
 }
 
 describe('suggestStatus', () => {
@@ -105,6 +106,13 @@ describe('EmailService.confirm', () => {
     expect(applications.get('a1')!.status).toBe('sent');
     expect(emails.get('e1')).toMatchObject({ state: 'confirmed', communication_id: entry.id, application_id: 'a1', job_id: 'j1' });
     expect(communications.list()).toHaveLength(1);
+  });
+
+  it('dates the status change in the history with the time of the mail, not with the time of saving', () => {
+    const { service, history } = setup();
+    service.parseAll();
+    service.confirm('e1', { applicationId: 'a1', kind: 'confirmation', direction: 'incoming', channel: 'email', status: 'sent' });
+    expect(history.list()).toEqual([{ application_id: 'a1', from: 'draft', to: 'sent', at: '2026-10-28T10:00:00.000Z' }]);
   });
 
   it('leaves the text out when asked, and does not parse or save twice', () => {

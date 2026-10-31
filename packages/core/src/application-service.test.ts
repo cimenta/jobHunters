@@ -75,6 +75,14 @@ describe('setStatus basics', () => {
     expect(history.list()).toEqual([{ application_id: 'a1', from: 'draft', to: 'sent', at: NOW }]);
   });
 
+  it('records the time of the event in the history when one is given, else the time of the change', () => {
+    const { service, history } = setup({ status: 'draft' });
+    service.setStatus('a1', 'sent', { at: '2026-10-01T08:30:00.000Z' });
+    expect(history.list()).toEqual([{ application_id: 'a1', from: 'draft', to: 'sent', at: '2026-10-01T08:30:00.000Z' }]);
+    service.setStatus('a1', 'interview', { at: 'not a date' });
+    expect(history.list()[1]).toMatchObject({ to: 'interview', at: NOW });
+  });
+
   it('does not overwrite an existing applied_at', () => {
     const { service } = setup({ status: 'waiting', applied_at: '2026-09-01T00:00:00.000Z' }, [
       makeReminder({ id: 'w', source: 'waiting' }),
