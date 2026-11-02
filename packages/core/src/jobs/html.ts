@@ -127,6 +127,12 @@ export function elementsInnerHtml(html: string, openTag: RegExp): string[] {
  * it starts with a doctype or an <html> tag, or it is a longer markup that ends the body. A piece of a page copied from the
  * browser tools ("Copy outerHTML") also counts: it starts with a block tag and holds many closing tags.
  */
+/** The page of a bot check (Cloudflare "Just a moment...") instead of the ad. */
+export function looksLikeChallengePage(html: string): boolean {
+  const head = html.slice(0, 6000);
+  return /<title>\s*Just a moment\.\.\.\s*<\/title>/i.test(head) || /Enable JavaScript and cookies to continue/i.test(head) || /cf-chl-|challenge-platform/i.test(head);
+}
+
 export function looksLikeHtml(text: string): boolean {
   if (/^\s*(?:<!--[\s\S]*?-->\s*)*(?:<!doctype\s+html|<html[\s>])/i.test(text.slice(0, 3000))) return true;
   if (text.length > 200 && /<\/(?:body|html)>/i.test(text) && /<(?:div|span|p|h1|head|script)\b/i.test(text)) return true;

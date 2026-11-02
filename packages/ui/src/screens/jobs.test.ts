@@ -249,6 +249,24 @@ describe('AddJob', () => {
   }
   const aiBox = () => document.querySelector('[data-ui="add-job.ai-job"]') as HTMLInputElement | null;
 
+  it('offers Load via Jina after a refused download and reads the page it returns', async () => {
+    useDevBackend({ seed: false });
+    await loadApp();
+    render(AddJob);
+    await fireEvent.input(screen.getByLabelText('Link to the job ad'), { target: { value: 'https://blocked.example/job/1' } });
+    await fireEvent.click(screen.getByRole('button', { name: 'Read the ad' }));
+    await screen.findByText(/could not be downloaded \(HTTP 429\)/);
+    await fireEvent.click(screen.getByRole('button', { name: 'Load via Jina' }));
+    await waitFor(() => expect((document.querySelector('[data-ui="add-job.title"]') as HTMLInputElement).value).toBe('Demo Engineer'));
+  });
+
+  it('says so when Jina cannot load the page either', async () => {
+    await failedDownload('');
+    await fireEvent.click(screen.getByRole('button', { name: 'Load via Jina' }));
+    await screen.findByText(/Jina could not load the page either \(HTTP 404\)/);
+    expect(document.querySelector('[data-ui="add-job.text"]')).not.toBeNull();
+  });
+
   it('always shows the AI job checkbox, and with it ticked creates the AI job without downloading the ad', async () => {
     useDevBackend({ seed: false });
     await api.updateSettings({ candidate_experience: 'Ten years of Kotlin' });

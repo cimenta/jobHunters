@@ -5,8 +5,18 @@ export type FakePage = Omit<FetchResult, 'finalUrl'> & { finalUrl?: string };
 
 export class FakePageFetcher implements PageFetcher {
   readonly calls: string[] = [];
+  readonly readerCalls: string[] = [];
 
-  constructor(private readonly pages: Readonly<Record<string, FakePage>> = {}) {}
+  constructor(
+    private readonly pages: Readonly<Record<string, FakePage>> = {},
+    readonly readerPages: Record<string, FakePage> = {},
+  ) {}
+
+  fetchViaReader(url: string): FetchResult {
+    this.readerCalls.push(url);
+    const page = Object.prototype.hasOwnProperty.call(this.readerPages, url) ? this.readerPages[url]! : { status: 404, html: '' };
+    return { ...page, finalUrl: page.finalUrl ?? url };
+  }
 
   fetch(url: string): FetchResult {
     this.calls.push(url);

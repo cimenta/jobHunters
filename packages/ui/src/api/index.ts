@@ -58,6 +58,7 @@ export const api = {
   importJob: (url: string) => call<ImportResult>('importJob', { url }),
   importAiJob: (url: string, notes = '') => call<ImportResult>('importAiJob', { url, notes }),
   deleteJob: (id: string, trashFolder: boolean) => call<JobRemoveResult>('deleteJob', { id, trashFolder }),
+  fetchJobViaReader: (url: string) => call<{ status: number; html: string }>('fetchJobViaReader', { url }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 
   search: (query: string, options: { types?: SearchType[]; limit?: number } = {}) => call<SearchResult>('search', { query, ...options }),

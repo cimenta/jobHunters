@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.10] - 2026-11-02
+
+- When a page cannot be downloaded (for example HTTP 403 from a portal that refuses requests from Google servers), the Add job window now offers **Load via Jina**. It asks the third-party service r.jina.ai to download the page and returns its HTML, which is then read by the reader of the portal, as if you had pasted the source code. The address of the ad is sent to that service only when you press the button, and the window says so; a portal may refuse the service as well (a bot-check page such as Cloudflare's "Just a moment..." is recognised and reported as a failure), and then you paste the text or the source code as before.
+- The direct download now sends the headers of a desktop browser (`Accept`, `Upgrade-Insecure-Requests`, `Sec-Fetch-*`), which some portals require.
+- No Setup is needed for this update.
+
 ## [0.25.9] - 2026-10-31
 
 - Saving an e-mail to an application with a new status (for example Sent or Rejected) now dates the status change in the application history and timeline with the time the e-mail was received, not with the moment you pressed Save. The entry itself already had the time of the e-mail.

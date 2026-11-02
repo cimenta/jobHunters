@@ -4,7 +4,7 @@ import type { AppWarning } from '../row-codec';
 import { MAX_CONTACT_PERSON, MAX_GIG_SHIFT } from '../catalog';
 import { NotFoundError, ValidationError } from '../errors';
 import type { Company, Job } from '../types';
-import { foldDiacritics, looksLikeHtml, truncateForCell } from './html';
+import { foldDiacritics, looksLikeChallengePage, looksLikeHtml, truncateForCell } from './html';
 import type { FetchResult, PageFetcher } from './fetcher';
 import { emptyParsedJob, finishParsedJob, mergeParsed, type ParsedJob } from './parsed-job';
 import { parseJobPage, parseManualText } from './registry';
@@ -98,6 +98,20 @@ export class JobService {
     const acquired = this.acquire(url, input);
     const html = acquired.fetched && acquired.content?.kind === 'html' ? acquired.content.body : '';
     return { url, fetched: acquired.fetched, fetchStatus: acquired.fetchStatus, parserId: acquired.parserId, parsed: acquired.parsed, html, duplicateOf: '' };
+  }
+
+  /** The page of an ad through the reader service; the user asks for it by a button, so the address is sent out only then. */
+  fetchViaReader(inputUrl: string): { status: number; html: string } {
+    const { fetcher } = this.deps;
+    if (!fetcher.fetchViaReader) return { status: 0, html: '' };
+    try {
+      const page = fetcher.fetchViaReader(normalizeJobUrl(inputUrl));
+      if (page.status === 200 && looksLikeChallengePage(page.html)) return { status: 403, html: '' };
+      return { status: page.status, html: page.status === 200 ? page.html : '' };
+    } catch (error) {
+      this.report('fetch', error);
+      return { status: 0, html: '' };
+    }
   }
 
   save(input: JobInput): SaveResult {

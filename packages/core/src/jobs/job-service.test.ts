@@ -287,6 +287,24 @@ describe('preview', () => {
     expect(fetcher.calls).toEqual([URL1]);
   });
 
+  it('loads the page through the reader service only when asked, and returns nothing for a failed answer', () => {
+    const fetcher = new FakePageFetcher({}, { [URL1]: ok(), 'https://example.com/jobs/2': { status: 403, html: 'denied' } });
+    const drive = new FakeDrive();
+    const root = drive.ensureFolder(null, 'JobHunters');
+    const service = new JobService({
+      jobs: new InMemoryRepository<Job>(), companies: new InMemoryRepository<Company>(), fetcher, drive,
+      rootFolder: () => root, newId: sequentialIds('x'), now: () => NOW, onError: () => undefined,
+    });
+    const challenge = '<html><head><title>Just a moment...</title></head><body>Enable JavaScript and cookies to continue</body></html>';
+    fetcher.readerPages['https://example.com/jobs/3'] = { status: 200, html: challenge };
+    expect(service.fetchViaReader('https://example.com/jobs/3')).toEqual({ status: 403, html: '' });
+    fetcher.readerCalls.length = 0;
+    expect(fetcher.readerCalls).toEqual([]);
+    expect(service.fetchViaReader(URL1)).toEqual({ status: 200, html: AD });
+    expect(service.fetchViaReader('https://example.com/jobs/2')).toEqual({ status: 403, html: '' });
+    expect(fetcher.calls).toEqual([]);
+  });
+
   it('reports a failed download so the UI can ask for pasted text', () => {
     const { service } = setup({ [URL1]: { status: 403, html: '' } });
     expect(service.preview({ url: URL1 })).toMatchObject({ fetched: false, fetchStatus: 403, parserId: 'none' });

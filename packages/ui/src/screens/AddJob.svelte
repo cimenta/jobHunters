@@ -24,6 +24,9 @@
   let pasting = $state(false);
   let pasted = $state('');
   let usedText = $state(false);
+  /** Status of the last try to load the ad through the Jina reader; 0 before any try. */
+  let readerStatus = $state(0);
+  let readerLoading = $state(false);
   /** The ad could not be downloaded: let the AI read it, fill in the job and evaluate the match in one task. */
   let aiJob = $state(false);
   /** Extra instructions for the AI of "Create AI job to import". */
@@ -59,6 +62,24 @@
       notifyError(error);
     } finally {
       loading = false;
+    }
+  }
+
+  async function loadViaReader(): Promise<void> {
+    readerLoading = true;
+    readerStatus = 0;
+    try {
+      const result = await api.fetchJobViaReader(url);
+      if (result.status === 200 && result.html.trim() !== '') {
+        pasted = result.html;
+        await read(result.html);
+      } else {
+        readerStatus = result.status === 200 ? -1 : result.status;
+      }
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      readerLoading = false;
     }
   }
 
@@ -168,6 +189,15 @@
       <Card ui="add-job.paste">
         {#if preview && !preview.fetched}
           <p class="muted">{tr('ui.addJob.notFetched', { status: preview.fetchStatus })}</p>
+        {/if}
+        {#if preview && !preview.fetched}
+          <div class="stack">
+            <div><Button ui="add-job.load-jina" loading={readerLoading} disabled={aiJob} onclick={loadViaReader}>{tr('ui.addJob.loadJina')}</Button></div>
+            <small class="muted" data-ui="add-job.jina-hint">{tr('ui.addJob.jinaHint')}</small>
+            {#if readerStatus !== 0}
+              <small class="warn" data-ui="add-job.jina-failed">{tr('ui.addJob.jinaFailed', { status: readerStatus < 0 ? '–' : String(readerStatus) })}</small>
+            {/if}
+          </div>
         {/if}
         <Field label={tr('ui.addJob.pasteLabel')} for="job-text" hint={tr('ui.addJob.pasteHint')}>
           <textarea data-ui="add-job.text" id="job-text" class="input" rows="8" disabled={aiJob} bind:value={pasted}></textarea>

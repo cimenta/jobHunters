@@ -154,7 +154,7 @@ description and the AI evaluation.
 </p>
 
 Paste a link and check what the app found. Above "Save job" you can already ask the AI to evaluate the match or to
-create the resume and the cover letter. When a page cannot be downloaded, or the app finds only a title, you paste
+create the resume and the cover letter. When a page cannot be downloaded, you can press "Load via Jina" (the address of the ad is then sent to the service r.jina.ai, which downloads the page for you). When that fails too, or the app finds only a title, you paste
 its text, or tick "Create AI job to import" (always shown under the link) and let the AI read the ad and evaluate the
 match in one task. You can add extra instructions for the AI there.
 

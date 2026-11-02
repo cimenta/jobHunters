@@ -9,4 +9,6 @@ export interface FetchResult {
 
 export interface PageFetcher {
   fetch(url: string): FetchResult;
+  /** Downloads the page through a third-party reader service (Jina), for pages that refuse a direct request. */
+  fetchViaReader?(url: string): FetchResult;
 }

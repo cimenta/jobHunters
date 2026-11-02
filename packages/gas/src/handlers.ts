@@ -128,6 +128,8 @@ export function createHandlers(c: Container): Record<string, Handler> {
 
     previewJob: (args) => c.jobService.preview(parseJobInput(args, 'previewJob')),
 
+    fetchJobViaReader: (args) => c.jobService.fetchViaReader(requireString(asRecord(args, 'fetchJobViaReader'), 'url', 'fetchJobViaReader')),
+
     saveJob: (args) => {
       const input = parseJobInput(args, 'saveJob');
       return c.lock.run(() => c.jobService.save(input));

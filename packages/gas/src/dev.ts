@@ -30,6 +30,12 @@ class BlockingFetcher extends FakePageFetcher {
     }
     return super.fetch(url);
   }
+
+  /** The reader gets through where the direct request is refused, so the Jina button can be tried in the dev server. */
+  override fetchViaReader(url: string): FetchResult {
+    this.readerCalls.push(url);
+    return url.includes('blocked.example') ? { status: 200, html: DEMO_PAGE, finalUrl: url } : { status: 404, html: '', finalUrl: url };
+  }
 }
 
 const TEMPLATE_TEXT = 'Dear {{company}}, I am {{name}}, applying for {{position}} on {{date}}. {{body}}';
