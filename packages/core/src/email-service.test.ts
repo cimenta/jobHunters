@@ -36,7 +36,7 @@ function setup(options: { emails?: Email[]; applicationStatus?: string; autoSave
   let auto = options.autoSave ?? false;
   const service = new EmailService({
     emails, applications, jobs, companies, communicationService, applicationService,
-    rules: () => compileEmailRules(effectiveEmailRules(undefined)), autoSave: () => auto, transitions: () => DEFAULT_TRANSITIONS,
+    rules: () => compileEmailRules(effectiveEmailRules(undefined)), autoSave: () => auto, transitions: () => DEFAULT_TRANSITIONS, timeZoneOffset: () => 60,
   });
   return { service, emails, applications, communications, jobs, history, setAuto: (value: boolean) => (auto = value) };
 }
@@ -69,6 +69,50 @@ describe('composeDetails', () => {
 
   it('stays under the cell limit for a huge body', () => {
     expect(composeDetails(mail({ body: 'x'.repeat(100000) }), 'n', true).length).toBeLessThanOrEqual(49000);
+  });
+});
+
+describe('EmailService forwarded mail', () => {
+  it('stores the original sender, date, subject and text of a forwarded mail before parsing', () => {
+    const body = '---------- Forwarded message ---------\nFrom: Jana Novakova <jana@acme.example>\nDate: Mon, Nov 2, 2026 at 3:05 PM\nSubject: Your application has been received\n\nWe have successfully received your application for the Backend Developer role at Acme s.r.o.';
+    const { service, emails } = setup({ emails: [mail({ from_email: 'me.other@example.invalid', from_name: 'Me', subject: 'Fwd: Your application has been received', body })] });
+    service.parseAll();
+    expect(emails.get('e1')).toMatchObject({
+      from_email: 'jana@acme.example', from_name: 'Jana Novakova', received_at: '2026-11-02T14:05:00.000Z', subject: 'Your application has been received',
+      type: 'confirmation', application_id: 'a1', state: 'suggested',
+    });
+    expect(emails.get('e1')!.body.startsWith('We have successfully received')).toBe(true);
+  });
+});
+
+describe('EmailService forwarded mark', () => {
+  it('remembers the forwarding even when the repository updates a row in place and returns the same object', () => {
+    const body = '---------- Forwarded message ---------\nFrom: Jana Novakova <jana@acme.example>\nSubject: Hello\n\ntext';
+    const { service, emails } = setup({ emails: [mail({ subject: 'Fwd: Hello', body })] });
+    const update = emails.update.bind(emails);
+    emails.update = (id, patch) => {
+      const row = emails.get(id)!;
+      update(id, patch);
+      return Object.assign(row, patch);
+    };
+    service.parseAll();
+    expect(service.detail('e1').suggestion?.fwd).toBe(true);
+  });
+
+  it('keeps the mark through Restore and a second parse, although the text no longer shows the forwarding', () => {
+    const body = '---------- Forwarded message ---------\nFrom: Jana Novakova <jana@acme.example>\nSubject: Hello\n\ntext';
+    const { service } = setup({ emails: [mail({ subject: 'Fwd: Hello', body })] });
+    service.parseAll();
+    service.restore('e1');
+    expect(service.parseOne('e1').suggestion?.fwd).toBe(true);
+    service.ignore('e1');
+    expect(service.detail('e1').suggestion?.fwd).toBe(true);
+  });
+
+  it('does not mark an ordinary mail', () => {
+    const { service } = setup();
+    service.parseAll();
+    expect(service.detail('e1').suggestion?.fwd).toBe(false);
   });
 });
 

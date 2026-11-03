@@ -83,6 +83,7 @@
       <h1 data-ui="email-detail.subject">{email.subject === '' ? tr('ui.emails.noSubject') : email.subject}</h1>
       <div class="row wrap">
         <span class="state {mark.tone}" class:custom={mark.color !== ''} style:--mark-color={mark.color || undefined} data-ui="email-detail.state" data-tone={mark.tone} data-mark={mark.key}><Icon name={mark.icon} size={16} />{mark.label}</span>
+        {#if detail.data.suggestion?.fwd}<Badge ui="email-detail.forwarded" text={tr('ui.emails.forwarded')} color="var(--warning-soft)" textColor="var(--warning)" title={tr('ui.emails.forwardedTip')} />{/if}
         {#if email.is_bulk}<Badge ui="email-detail.bulk" text={tr('ui.emails.bulk')} color="var(--surface-2)" textColor="var(--text)" title={tr('ui.emails.bulkTip')} />{/if}
         {#if email.state !== 'confirmed' && email.state !== 'ignored'}
           <Button ui="email-detail.add-entry" loading={parsing} onclick={openSuggestion}><Icon name="plus" size={18} />{tr('ui.emails.addEntry')}</Button>

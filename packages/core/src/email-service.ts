@@ -3,6 +3,7 @@ import type { CommunicationService } from './applications/communication-service'
 import { applicationRows } from './catalog';
 import { COMMUNICATION_KINDS, type CommunicationKind } from './communication-kinds';
 import type { EmailMarkKey } from './email-marks';
+import { unwrapForwarded, type OffsetAt } from './email-forward';
 import { parseEmail, type EmailParse, type EmailStatusHint } from './email-parser';
 import { matchEmail, type MatchCandidate, type MatchResult } from './email-matcher';
 import type { CompiledEmailRules } from './email-rules';
@@ -24,6 +25,8 @@ export interface StoredSuggestion {
   titles: string[];
   companies: string[];
   summary: string;
+  /** The mail was a copy the user forwarded from another address; its sender and date are the original's. */
+  fwd: boolean;
 }
 
 export interface EmailSuggestion extends StoredSuggestion {
@@ -74,6 +77,8 @@ export interface EmailServiceDeps {
   rules: () => CompiledEmailRules;
   autoSave: () => boolean;
   transitions: () => StatusTransitions;
+  /** Minutes east of UTC the script's time zone has at an instant; the date of a forwarded mail is written without a zone and is read in it. */
+  timeZoneOffset?: OffsetAt;
 }
 
 function invalidState(id: string, state: string): never {
@@ -126,9 +131,19 @@ export function readStoredSuggestion(raw: string): StoredSuggestion | undefined 
       titles: Array.isArray(value.titles) ? value.titles.filter((item): item is string => typeof item === 'string') : [],
       companies: Array.isArray(value.companies) ? value.companies.filter((item): item is string => typeof item === 'string') : [],
       summary: typeof value.summary === 'string' ? value.summary : '',
+      fwd: value.fwd === true,
     };
   } catch {
     return undefined;
+  }
+}
+
+/** Whether the cell `signals` says the mail was a forwarded copy; true also for the bare `{"fwd":true}` that Restore leaves. */
+function wasForwarded(raw: string): boolean {
+  try {
+    return (JSON.parse(raw) as { fwd?: unknown } | null)?.fwd === true;
+  } catch {
+    return false;
   }
 }
 
@@ -143,7 +158,7 @@ export function emailMarkKey(row: { state: string; type: string; signals: string
   return kind;
 }
 
-function toStored(parse: EmailParse): StoredSuggestion {
+function toStored(parse: EmailParse, fwd = false): StoredSuggestion {
   return {
     rule: parse.signals.join(','),
     kind: parse.kind ?? '',
@@ -153,6 +168,7 @@ function toStored(parse: EmailParse): StoredSuggestion {
     titles: parse.titleHints.slice(0, 4),
     companies: parse.companyHints.slice(0, 4),
     summary: parse.summary,
+    fwd,
   };
 }
 
@@ -252,7 +268,8 @@ export class EmailService {
   restore(id: string): Email {
     const email = this.require(id);
     if (email.state === 'confirmed') invalidState(id, email.state);
-    return this.deps.emails.update(id, { state: '', type: '', type_confidence: '', signals: '', application_id: '', job_id: '', match_method: '' });
+    // The forwarding cannot be found again in the stored text (it holds the original now), so the note outlives Restore and Parse again.
+    return this.deps.emails.update(id, { state: '', type: '', type_confidence: '', signals: wasForwarded(email.signals) ? JSON.stringify({ fwd: true }) : '', application_id: '', job_id: '', match_method: '' });
   }
 
   // ---------------------------------------------------------------------------------------------------------------
@@ -294,10 +311,17 @@ export class EmailService {
     });
   }
 
+  /** A mail the user forwarded from another address of theirs takes the sender, date, subject and text of the original, and the row keeps them. */
+  private unwrapForwarded(email: Email): { email: Email; forwarded: boolean } {
+    const original = unwrapForwarded(email, this.deps.timeZoneOffset);
+    return original === undefined ? { email, forwarded: false } : { email: this.deps.emails.update(email.id, original), forwarded: true };
+  }
+
   /** Parses one new mail and stores the result; returns what became of it. */
-  private parseRow(email: Email): 'saved' | 'ignored' | 'suggested' | 'unmatched' {
+  private parseRow(received: Email): 'saved' | 'ignored' | 'suggested' | 'unmatched' {
+    const { email, forwarded } = this.unwrapForwarded(received);
     const parse = this.parse(email);
-    const stored = toStored(parse);
+    const stored = toStored(parse, forwarded || wasForwarded(received.signals));
     const match = this.match(email, stored);
     const best = match.best;
     this.deps.emails.update(email.id, {

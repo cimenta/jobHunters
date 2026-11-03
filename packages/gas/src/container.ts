@@ -66,6 +66,8 @@ export interface ContainerDeps {
   rootFolder: () => FolderRef;
   /** Time zone of the script; the GUI shows every time in it. */
   timeZone?: () => string;
+  /** Minutes east of UTC the script's time zone has at an instant (milliseconds since the epoch); a time without a zone is read with it. */
+  timeZoneOffset?: (instant: number) => number;
   /** Milliseconds, for time budgets. */
   clock?: () => number;
   /** Where the scheduler remembers when each task last ran. */
@@ -171,6 +173,7 @@ export function buildContainer(deps: ContainerDeps) {
     rules: () => compileEmailRules(effectiveEmailRules(settings.get().settings.email_rules)),
     autoSave: () => settings.get().settings.email_auto_save,
     transitions: () => settings.get().settings.status_transitions,
+    timeZoneOffset: deps.timeZoneOffset,
   });
   const reminderService = new ReminderService({ reminders, applications, newId: deps.newId, now: deps.now });
   const catalogService = new CatalogService({ jobs, applications, companies, jobStatuses: () => settings.get().settings.job_status_styles });

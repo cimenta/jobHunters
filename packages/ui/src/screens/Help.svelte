@@ -178,6 +178,7 @@
       <li>{tr('ui.help.emails.i4')}</li>
       <li>{tr('ui.help.emails.i5')}</li>
       <li>{tr('ui.help.emails.i6')}</li>
+      <li>{tr('ui.help.emails.i7')}</li>
     </ul>
     <p><a data-ui="help.open.emails" href={paths.emails}>{tr('ui.help.open', { name: tr('ui.help.emails.title') })}</a></p>
   </Card>

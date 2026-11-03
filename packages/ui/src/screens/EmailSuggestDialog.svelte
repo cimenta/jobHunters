@@ -3,6 +3,7 @@
   import { COMMUNICATION_KINDS, DEFAULT_TRANSITIONS, DIRECTIONS_BY_KIND, suggestStatus, type CommunicationKind } from '@jobhunters/core';
   import { api } from '../api';
   import type { EmailDetail } from '../api/types';
+  import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
   import Dialog from '../components/Dialog.svelte';
   import Field from '../components/Field.svelte';
@@ -135,6 +136,7 @@
 <Dialog open={true} title={tr('ui.emails.suggestTitle')} {onclose} ui="email-suggest">
   {#snippet headerExtra()}
     <Button ui="email-suggest.toggle" onclick={() => (preview = !preview)}><Icon name={preview ? 'wand' : 'mail'} size={18} />{preview ? tr('ui.emails.showSuggestion') : tr('ui.emails.showEmail')}</Button>
+    {#if suggestion?.fwd}<Badge ui="email-suggest.forwarded" text={tr('ui.emails.forwarded')} color="var(--warning-soft)" textColor="var(--warning)" title={tr('ui.emails.forwardedTip')} />{/if}
   {/snippet}
   {#if preview}
     <div class="stack" data-ui="email-suggest.preview">

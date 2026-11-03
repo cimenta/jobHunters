@@ -68,6 +68,10 @@ function getContainer(): Container {
       now: () => new Date().toISOString(),
       clock: () => Date.now(),
       timeZone: () => Session.getScriptTimeZone(),
+      timeZoneOffset: (instant) => {
+        const zone = /^([+-])(\d{2})(\d{2})$/.exec(Utilities.formatDate(new Date(instant), Session.getScriptTimeZone(), 'Z'));
+        return zone ? (zone[1] === '-' ? -1 : 1) * (Number(zone[2]) * 60 + Number(zone[3])) : 0;
+      },
       schedulerState: new GasPropertyStore(PropertiesService.getScriptProperties()),
       appVersion: APP_VERSION,
       runSetup: runSetupForApp,
