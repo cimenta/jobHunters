@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { loadApp } from '../state/app.svelte';
 import { useDevBackend } from '../test/transport';
 import EmailDetail from './EmailDetail.svelte';
 import EmailsList from './EmailsList.svelte';
@@ -37,6 +38,7 @@ describe('EmailsList', () => {
 
   it('filters with buttons: all, incoming, outgoing, unprocessed and bulk', async () => {
     useDevBackend();
+    await loadApp();
     render(EmailsList);
     await screen.findByText('Jana Novakova');
     const on = (id: string) => ui(`emails.filter.${id}`)!.getAttribute('aria-pressed') === 'true';
@@ -66,6 +68,7 @@ describe('EmailsList', () => {
     backend.container.emails.update('mail-1', { state: 'confirmed' });
     backend.container.emails.update('mail-2', { state: 'ignored' });
     backend.container.emails.update('mail-5', { state: 'suggested' });
+    await loadApp();
     render(EmailsList);
     await screen.findByText('Jana Novakova');
     await fireEvent.click(ui('emails.filter.unprocessed')!);

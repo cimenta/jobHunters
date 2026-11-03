@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.25.12] - 2026-11-03
+
+- The **Forwarded** mark is now also on the card of an e-mail in the E-mails list (beside the paper clip and the bulk mark), not only in the window that suggests an entry and on the e-mail page.
+- The E-mails screen remembers which filter button is on (All, Incoming, Outgoing, Unprocessed, Bulk) and shows it again the next time; it is stored in the app with the other remembered choices (`ui_state`), not in the browser.
+- No Setup is needed for this update.
+
 ## [0.25.11] - 2026-11-03
 
 - An e-mail you forwarded to yourself from another address (subject starting Fwd:, FW: and the like, with the copied header "Original e-mail", "Forwarded message" or "Original Message" at the top) is now read as the original: parsing stores the original sender, recipients, date, subject and text in the e-mail row instead of those of the forwarding. The date of the copied header has no time zone, so it is read in the time zone of the script. A mail that only quotes a forwarded block, without the Fwd: subject, is left as it is.

@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { api } from '../api';
 import { describe, expect, it } from 'vitest';
 import { loadApp } from '../state/app.svelte';
 import { useDevBackend } from '../test/transport';
 import EmailDetail from './EmailDetail.svelte';
+import EmailsList from './EmailsList.svelte';
 
 const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
 
@@ -28,5 +30,31 @@ describe('E-mail popup: forwarded mark', () => {
     render(EmailDetail, { id: 'mail-5' });
     await screen.findByRole('dialog', { name: 'Add this e-mail to the communication' });
     expect(ui('email-suggest.forwarded')).toBeNull();
+  });
+});
+
+describe('E-mails screen: forwarded mark and remembered filter', () => {
+  it('marks a forwarded mail on its card and no other', async () => {
+    const backend = useDevBackend();
+    backend.container.emails.update('mail-1', { signals: JSON.stringify({ fwd: true }) });
+    await loadApp();
+    render(EmailsList);
+    await screen.findByText('Jana Novakova');
+    expect(ui('email.mail-1.forwarded')).toHaveTextContent('Forwarded');
+    expect(ui('email.mail-2.forwarded')).toBeNull();
+  });
+
+  it('remembers the filter in the stored interface state and shows it again', async () => {
+    useDevBackend();
+    await loadApp();
+    const first = render(EmailsList);
+    await screen.findByText('Jana Novakova');
+    await fireEvent.click(ui('emails.filter.outgoing')!);
+    await waitFor(async () => expect((await api.getSettings()).settings.ui_state.emails_filter).toBe('outgoing'));
+    first.unmount();
+    render(EmailsList);
+    await screen.findByText('To: Petr Svoboda');
+    expect(ui('emails.filter.outgoing')!.getAttribute('aria-pressed')).toBe('true');
+    expect(ui('emails.filter.all')!.getAttribute('aria-pressed')).toBe('false');
   });
 });

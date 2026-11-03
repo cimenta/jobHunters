@@ -3,7 +3,7 @@ import type { CommunicationService } from './applications/communication-service'
 import { applicationRows } from './catalog';
 import { COMMUNICATION_KINDS, type CommunicationKind } from './communication-kinds';
 import type { EmailMarkKey } from './email-marks';
-import { unwrapForwarded, type OffsetAt } from './email-forward';
+import { unwrapForwarded, wasForwarded, type OffsetAt } from './email-forward';
 import { parseEmail, type EmailParse, type EmailStatusHint } from './email-parser';
 import { matchEmail, type MatchCandidate, type MatchResult } from './email-matcher';
 import type { CompiledEmailRules } from './email-rules';
@@ -135,15 +135,6 @@ export function readStoredSuggestion(raw: string): StoredSuggestion | undefined 
     };
   } catch {
     return undefined;
-  }
-}
-
-/** Whether the cell `signals` says the mail was a forwarded copy; true also for the bare `{"fwd":true}` that Restore leaves. */
-function wasForwarded(raw: string): boolean {
-  try {
-    return (JSON.parse(raw) as { fwd?: unknown } | null)?.fwd === true;
-  } catch {
-    return false;
   }
 }
 

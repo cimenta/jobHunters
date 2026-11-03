@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { emailSearchText, foldDiacritics } from '@jobhunters/core';
+  import { emailSearchText, foldDiacritics, type EmailFilter } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import EmptyState from '../components/EmptyState.svelte';
@@ -15,12 +15,13 @@
   import { router } from '../lib/router.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
+  import { saveUiState, uiState } from '../state/ui-state';
 
   const emails = useResource(() => api.listEmails());
   let text = $state('');
-  type Filter = 'all' | 'incoming' | 'outgoing' | 'unprocessed' | 'bulk';
-  /** One of the filter buttons is always on; All shows every mail. */
-  let filter = $state<Filter>('all');
+  type Filter = EmailFilter;
+  /** One of the filter buttons is always on; All shows every mail. The choice is remembered. */
+  const filter = $derived<Filter>(uiState().emails_filter);
   const FILTERS: { id: Filter; label: () => string }[] = [
     { id: 'all', label: () => tr('ui.emails.dirAll') },
     { id: 'incoming', label: () => tr('ui.emails.dirIncoming') },
@@ -67,7 +68,7 @@
     <div class="row wrap filters">
       <span class="seg" role="group" data-ui="emails.filter" aria-label={tr('ui.emails.filters')}>
         {#each FILTERS as option (option.id)}
-          <button type="button" data-ui="emails.filter.{option.id}" aria-pressed={filter === option.id} onclick={() => (filter = option.id)}>{option.label()}</button>
+          <button type="button" data-ui="emails.filter.{option.id}" aria-pressed={filter === option.id} onclick={() => saveUiState({ emails_filter: option.id })}>{option.label()}</button>
         {/each}
       </span>
       <Button ui="emails.parse" onclick={parseAll}><Icon name="wand" size={18} />{tr('ui.emails.parse', { count: unparsed })}</Button>
@@ -87,9 +88,10 @@
                   <span class="muted small when">{formatDate(row.received_at)}</span>
                 </span>
                 <span class="subject">{row.subject === '' ? tr('ui.emails.noSubject') : row.subject}</span>
-                {#if row.attachment_list.length > 0 || row.is_bulk}
+                {#if row.attachment_list.length > 0 || row.is_bulk || row.forwarded}
                   <span class="marks muted small">
                     {#if row.attachment_list.length > 0}<span data-ui="email.{row.id}.attachments" title={tr('ui.emails.hasAttachments')}><Icon name="file" size={14} /> {row.attachment_list.length}</span>{/if}
+                    {#if row.forwarded}<span class="forwarded" data-ui="email.{row.id}.forwarded" title={tr('ui.emails.forwardedTip')}>{tr('ui.emails.forwarded')}</span>{/if}
                     {#if row.is_bulk}<span class="bulk" data-ui="email.{row.id}.bulk" title={tr('ui.emails.bulkTip')}>{tr('ui.emails.bulk')}</span>{/if}
                   </span>
                 {/if}
@@ -117,6 +119,7 @@
   .subject { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .marks { display: flex; gap: var(--space-2); align-items: center; }
   .bulk { background: var(--surface-2); border-radius: var(--radius); padding: 0 var(--space-2); }
+  .forwarded { color: var(--warning); background: var(--warning-soft); border-radius: var(--radius); padding: 0 var(--space-2); font-weight: 600; }
   .filters { align-items: center; }
   .seg { display: inline-flex; border: 1px solid var(--accent); border-radius: var(--radius-s); overflow: hidden; background: var(--surface); }
   .seg button { min-height: var(--tap); padding: 0 var(--space-3); font: inherit; font-size: var(--text-s); color: var(--text); background: var(--surface); border: 0; cursor: pointer; white-space: nowrap; }

@@ -151,3 +151,12 @@ export function unwrapForwarded(email: ForwardInput, offsetAt: OffsetAt = () => 
     direction: sender.email === (email.from_email ?? '').trim().toLowerCase() ? email.direction : 'incoming',
   };
 }
+
+/** Whether the cell `signals` says the mail was a forwarded copy; true also for the bare `{"fwd":true}` that Restore leaves. */
+export function wasForwarded(raw: string): boolean {
+  try {
+    return (JSON.parse(raw) as { fwd?: unknown } | null)?.fwd === true;
+  } catch {
+    return false;
+  }
+}

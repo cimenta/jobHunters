@@ -40,7 +40,12 @@ export interface UiState {
   dashboard_layout: DashboardLayout | null;
   /** The icon and the color of the marks of the e-mails in the list; a mark with no choice uses the default. */
   email_marks: EmailMarks;
+  /** The filter button of the E-mails screen that is on. */
+  emails_filter: EmailFilter;
 }
+
+export type EmailFilter = 'all' | 'incoming' | 'outgoing' | 'unprocessed' | 'bulk';
+export const EMAIL_FILTERS: readonly EmailFilter[] = ['all', 'incoming', 'outgoing', 'unprocessed', 'bulk'];
 
 export const CALENDAR_COLOR_KEYS = ['interview', 'waiting', 'late', 'homework'] as const;
 export type CalendarColorKey = (typeof CALENDAR_COLOR_KEYS)[number];
@@ -51,7 +56,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null, email_marks: {} };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null, email_marks: {}, emails_filter: 'all' };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -139,6 +144,10 @@ export function parseUiState(raw: string): UiState | undefined {
     const marks = parseEmailMarks(entry.email_marks);
     if (marks === undefined) return undefined;
     out.email_marks = marks;
+  }
+  if (entry.emails_filter !== undefined) {
+    if (typeof entry.emails_filter !== 'string' || !(EMAIL_FILTERS as readonly string[]).includes(entry.emails_filter)) return undefined;
+    out.emails_filter = entry.emails_filter as EmailFilter;
   }
   return out;
 }

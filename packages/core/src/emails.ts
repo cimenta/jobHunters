@@ -1,3 +1,4 @@
+import { wasForwarded } from './email-forward';
 import { foldDiacritics } from './jobs/html';
 import type { Email } from './types';
 
@@ -9,6 +10,8 @@ export type EmailRow = Omit<Email, 'body'> & {
   attachment_list: string[];
   /** The first characters of the body on one line. */
   excerpt: string;
+  /** The mail was a copy the user forwarded from another address (its sender and date are the original's). */
+  forwarded: boolean;
 };
 
 export const EMAIL_EXCERPT_LENGTH = 300;
@@ -29,6 +32,7 @@ export function emailRow(email: Email): EmailRow {
     counterpart: incoming ? email.from_name.trim() || email.from_email.trim() : firstAddressLabel(email.to),
     attachment_list: email.attachments.split('|').map((name) => name.trim()).filter((name) => name !== ''),
     excerpt: body.replace(/\s+/g, ' ').trim().slice(0, EMAIL_EXCERPT_LENGTH),
+    forwarded: wasForwarded(email.signals),
   };
 }
 
