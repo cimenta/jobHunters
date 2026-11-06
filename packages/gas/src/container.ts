@@ -219,6 +219,7 @@ export function buildContainer(deps: ContainerDeps) {
 
   return {
     appVersion: deps.appVersion,
+    fetcher: deps.fetcher,
     runSetup: deps.runSetup,
     setupStatus: deps.setupStatus,
     timeZone: deps.timeZone ?? (() => 'UTC'),

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { CustomLoadFailure } from '@jobhunters/core';
   import { api } from '../api';
   import type { JobPreview } from '../api/types';
   import Button from '../components/Button.svelte';
@@ -15,6 +16,7 @@
   import { app } from '../state/app.svelte';
   import { toast } from '../state/toast.svelte';
   import BatchAdd from './BatchAdd.svelte';
+  import CustomLoadFailureDialog from './CustomLoadFailureDialog.svelte';
 
   let mode = $state('one');
   let url = $state('');
@@ -27,6 +29,9 @@
   /** Status of the last try to load the ad through the Jina reader; 0 before any try. */
   let readerStatus = $state(0);
   let readerLoading = $state(false);
+  let customLoading = $state(false);
+  /** Why the last Custom load failed, with the request and the answer; shown in a window until it is closed. */
+  let customFailure = $state<CustomLoadFailure>();
   /** The ad could not be downloaded: let the AI read it, fill in the job and evaluate the match in one task. */
   let aiJob = $state(false);
   /** Extra instructions for the AI of "Create AI job to import". */
@@ -80,6 +85,20 @@
       notifyError(error);
     } finally {
       readerLoading = false;
+    }
+  }
+
+  /** Fills the text box with the answer of the parser set up in Settings, tab Parser; the user then presses Use pasted text. */
+  async function customLoad(): Promise<void> {
+    customLoading = true;
+    try {
+      const result = await api.customLoadJob(url);
+      if (result.failure) customFailure = result.failure;
+      else pasted = result.text;
+    } catch (error) {
+      notifyError(error);
+    } finally {
+      customLoading = false;
     }
   }
 
@@ -185,6 +204,8 @@
       </Card>
     {/if}
 
+    <CustomLoadFailureDialog failure={customFailure} onclose={() => (customFailure = undefined)} />
+
     {#if pasting}
       <Card ui="add-job.paste">
         {#if preview && !preview.fetched}
@@ -192,7 +213,10 @@
         {/if}
         {#if preview && !preview.fetched}
           <div class="stack">
-            <div><Button ui="add-job.load-jina" loading={readerLoading} disabled={aiJob} onclick={loadViaReader}>{tr('ui.addJob.loadJina')}</Button></div>
+            <div class="row wrap">
+              <Button ui="add-job.load-jina" loading={readerLoading} disabled={aiJob} onclick={loadViaReader}>{tr('ui.addJob.loadJina')}</Button>
+              <Button ui="add-job.custom-load" loading={customLoading} disabled={aiJob} onclick={customLoad}>{(app.settings?.parser_name ?? '') === '' ? tr('ui.addJob.customLoad') : tr('ui.addJob.loadWith', { name: app.settings!.parser_name })}</Button>
+            </div>
             <small class="muted" data-ui="add-job.jina-hint">{tr('ui.addJob.jinaHint')}</small>
             {#if readerStatus !== 0}
               <small class="warn" data-ui="add-job.jina-failed">{tr('ui.addJob.jinaFailed', { status: readerStatus < 0 ? '–' : String(readerStatus) })}</small>

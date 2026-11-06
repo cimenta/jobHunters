@@ -40,6 +40,14 @@ describe('normalizeJobUrl', () => {
   it('removes the entry parameter of the Fajn Brigády and Inwork links that come from Jooble', () => {
     expect(normalizeJobUrl('https://www.inwork.cz/prace/jihomoravsky-kraj/brno/brno/6565355-operator-ka-vyroby/?vstup=jooble&utm_source=jooble&utm_medium=cpc#segmetation=STANDARD')).toBe('https://www.inwork.cz/prace/jihomoravsky-kraj/brno/brno/6565355-operator-ka-vyroby/');
   });
+  it('keeps the position id in the fragment of a whalebone.io career link, so two ads are two jobs', () => {
+    const first = 'https://www.whalebone.io/career#positionid:497731';
+    const second = 'https://www.whalebone.io/career#positionid:494068';
+    expect(normalizeJobUrl(first)).toBe(first);
+    expect(jobUrlKey(first)).not.toBe(jobUrlKey(second));
+    expect(jobUrlKey(first)).toBe(jobUrlKey('https://whalebone.io/career/#positionid:497731'));
+    expect(normalizeJobUrl('https://www.whalebone.io/career#team')).toBe('https://www.whalebone.io/career');
+  });
   it('adds https:// when the scheme is missing and lower-cases the host', () => {
     expect(normalizeJobUrl(' Jobs.cz/rpd/1 ')).toBe('https://jobs.cz/rpd/1');
   });

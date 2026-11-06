@@ -560,6 +560,38 @@ describe('deleteApplication api', () => {
   });
 });
 
+describe('custom load api', () => {
+  const AD = 'https://jobs.example/ad/1';
+  const CALL = 'https://parser.example.com/load?url=https%3A%2F%2Fjobs.example%2Fad%2F1&token=key-1';
+
+  it('customLoadJob sends the request of Settings and returns the answer of the parser', () => {
+    const { api, container } = setup({ [CALL]: { status: 200, html: '<html>Engineer</html>' } });
+    api('updateSettings', { parser_apikey: 'key-1' });
+    expect(api('customLoadJob', { url: AD })).toEqual({ ok: true, data: { text: '<html>Engineer</html>' } });
+    expect(api('customLoadJob', {})).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(container.settings.get().settings.parser_apikey).toBe('key-1');
+  });
+
+  it('customLoadJob returns the request and the answer of a failed call, and throws for a request that cannot be built', () => {
+    const { api } = setup();
+    api('updateSettings', { parser_apikey: 'key-1' });
+    expect(api('customLoadJob', { url: AD })).toMatchObject({
+      ok: true,
+      data: {
+        text: '',
+        failure: {
+          code: 'parser_call_failed',
+          params: { status: 404 },
+          request: { method: 'GET', url: 'https://parser.example.com/load?url=https%3A%2F%2Fjobs.example%2Fad%2F1&token=•••' },
+          response: { status: 404, body: '' },
+        },
+      },
+    });
+    api('updateSettings', { parser_params: 'oops' });
+    expect(api('customLoadJob', { url: AD })).toMatchObject({ ok: false, error: { code: 'parser_params_invalid' } });
+  });
+});
+
 describe('job import api', () => {
   const BLOCKED = 'https://blocked.example/jobs/9';
   const pages = (): Record<string, FakePage> => ({ [CLEAN_URL]: { status: 200, html: AD }, [BLOCKED]: { status: 429, html: '' } });

@@ -35,6 +35,16 @@ export class GasPageFetcher implements PageFetcher {
     }
   }
 
+  /** A plain GET request with the given headers; redirects are followed by Apps Script. */
+  fetchApi(url: string, headers: Record<string, string>): FetchResult {
+    try {
+      const response = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers });
+      return { status: response.getResponseCode(), finalUrl: url, html: response.getContentText('UTF-8') };
+    } catch (error) {
+      return { status: 0, finalUrl: url, html: '', error: error instanceof Error ? error.message : String(error) };
+    }
+  }
+
   fetch(url: string): FetchResult {
     // The part after # stays in the stored address (it names an ad on a page with several), but is not sent to the server.
     let current = url.replace(/#.*$/, '');

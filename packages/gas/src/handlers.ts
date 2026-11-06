@@ -1,4 +1,4 @@
-import { AppError, EDITABLE_JOB_FIELDS, isHistoryKey, NotFoundError, type HistoryKey, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
+import { AppError, customLoad, EDITABLE_JOB_FIELDS, isHistoryKey, NotFoundError, type HistoryKey, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, SUPPORTED_LOCALES, ValidationError, type ApplicationStatus, type JobOverrides } from '@jobhunters/core';
 import type { Handler } from './api';
 import { asRecord, invalidArguments, optionalBoolean, optionalString, requireString, stringRecord } from './args';
 import type { Container } from './container';
@@ -129,6 +129,8 @@ export function createHandlers(c: Container): Record<string, Handler> {
     previewJob: (args) => c.jobService.preview(parseJobInput(args, 'previewJob')),
 
     fetchJobViaReader: (args) => c.jobService.fetchViaReader(requireString(asRecord(args, 'fetchJobViaReader'), 'url', 'fetchJobViaReader')),
+
+    customLoadJob: (args) => customLoad(requireString(asRecord(args, 'customLoadJob'), 'url', 'customLoadJob'), c.settings.get().settings, c.fetcher),
 
     saveJob: (args) => {
       const input = parseJobInput(args, 'saveJob');

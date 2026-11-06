@@ -11,5 +11,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['src/**/*.test.ts'],
     setupFiles: ['./src/setup.ts'],
+    // The first test of a file also compiles its components; under a full parallel run that can pass the default 5 s.
+    testTimeout: 15000,
   },
 });

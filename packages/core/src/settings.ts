@@ -11,6 +11,7 @@ import { DEFAULT_MENU_NUMBERS, parseMenuNumbers, stringifyMenuNumbers, type Menu
 import { parseStatusTransitions, type StatusTransitions } from './status';
 import { parseEmailRules, type EmailRulesOverride } from './email-rules';
 import { parseUiState, type UiState } from './ui-state';
+import { DEFAULT_PARSER_PARAMS } from './parser-call';
 import { parseStatusStyles, type StatusStyles } from './status-style';
 import { hasOwn } from './util';
 
@@ -41,6 +42,9 @@ export const SETTING_KEYS = [
   'ui_state',
   'email_rules',
   'email_auto_save',
+  'parser_name',
+  'parser_params',
+  'parser_apikey',
   'history_max_versions',
   'ai_prompt_resume_tailor',
   'ai_prompt_cover_letter',
@@ -104,6 +108,12 @@ export interface Settings {
   email_rules: EmailRulesOverride;
   /** Whether parsing saves confident e-mail suggestions as communication entries by itself. */
   email_auto_save: boolean;
+  /** Name of the parser; the button of Add job reads "Load with <name>". Empty: the button reads "Custom load". */
+  parser_name: string;
+  /** The request the Custom load button of Add job sends to the parser: method, url and headers as free text; %%url%%, %%urlencoded%% and %%apikey%% are filled in (see parser-call.ts). */
+  parser_params: string;
+  /** The key the parser call needs; filled into %%apikey%%. */
+  parser_apikey: string;
   /** Most unpinned versions kept per tracked text; at the limit saves are refused. */
   history_max_versions: number;
   /** The whole text of an AI task of that kind, with {{placeholders}} (see prompt.ts). */
@@ -148,6 +158,9 @@ export const SETTINGS_DEFAULTS: Readonly<Record<SettingKey, string>> = {
   ui_state: '{}',
   email_rules: '{}',
   email_auto_save: 'false',
+  parser_name: '',
+  parser_params: DEFAULT_PARSER_PARAMS,
+  parser_apikey: '',
   history_max_versions: '50',
   ai_prompt_resume_tailor: defaultPrompt('resume_tailor'),
   ai_prompt_cover_letter: defaultPrompt('cover_letter'),
@@ -219,6 +232,9 @@ const PARSERS: { [K in SettingKey]: (raw: string) => Settings[K] | undefined } =
   ui_state: (raw) => parseUiState(raw),
   email_rules: (raw) => parseEmailRules(raw),
   email_auto_save: (raw) => (['true', 'false'].includes(raw.trim().toLowerCase()) ? raw.trim().toLowerCase() === 'true' : undefined),
+  parser_name: (raw) => (raw.trim().length <= 40 ? raw.trim() : undefined),
+  parser_params: (raw) => raw,
+  parser_apikey: (raw) => raw.trim(),
   history_max_versions: (raw) => {
     const text = raw.trim();
     if (!/^\d{1,4}$/.test(text)) return undefined;

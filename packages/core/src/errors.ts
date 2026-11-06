@@ -62,6 +62,9 @@ export const ERROR_CODES = [
   'history_entry_not_found',
   'history_entry_locked',
   'history_comment_too_long',
+  'parser_params_invalid',
+  'parser_call_failed',
+  'parser_empty',
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];

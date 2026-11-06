@@ -23,6 +23,14 @@ const DEMO_PAGE =
  * so UI tests can exercise the "queued for AI import" path; everything else comes from the page map.
  */
 class BlockingFetcher extends FakePageFetcher {
+  /** The demo parser answers the default request of Settings, tab Parser. */
+  override fetchApi(url: string, headers: Record<string, string>): FetchResult {
+    if (!url.startsWith('https://parser.example.com/load')) return super.fetchApi(url, headers);
+    this.apiCalls.push({ url, headers });
+    const ad = new URLSearchParams(url.split('?')[1] ?? '').get('url') ?? '';
+    return { status: 200, html: `<html><body>Parsed by the demo parser: ${ad}</body></html>`, finalUrl: url };
+  }
+
   override fetch(url: string): FetchResult {
     if (url.includes('blocked.example')) {
       this.calls.push(url);

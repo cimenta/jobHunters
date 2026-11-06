@@ -196,7 +196,7 @@ your answer and what failed, together with the result.
 </p>
 
 Tabs for the general options, the documents, your experience, the AI prompts, the availability check, your profile, the
-templates and the statuses. A red exclamation mark by Settings means something needs you (for example "run setup" after
+templates, the statuses, the e-mails and the parser (the request and key of your own parser for the Custom load button in Add job). A red exclamation mark by Settings means something needs you (for example "run setup" after
 an update, or "the built-in prompts changed").
 
 ## Working with the AI assistant

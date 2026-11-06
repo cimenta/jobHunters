@@ -2,6 +2,17 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.26.0] - 2026-11-06
+
+- New **Custom load** button in Add job, beside **Load via Jina** (shown when the page could not be downloaded). Its label is "Load with <name>" when Settings gives a name, otherwise "Custom load". It sends the request described in Settings to your own parser (a GET request) and puts the answer, HTML or text, into the text box. A request that cannot be read is reported; when the call was sent and the parser did not answer properly (an HTTP error, an empty answer or no answer), a window shows the reason, the request and the response (the API key is hidden) with a Copy button.
+- New **Parser** tab in Settings with three fields: **Name** (the name on the button), **Request** and **API key** (a password field, kept in the Settings sheet of your own spreadsheet). The request is an object with `method` (only `get`), `url` and `headers`, for example `{'method': 'get', 'url': 'https://parser.example.com/load?url=%%urlencoded%%&token=%%apikey%%', 'headers': {}}`; `%%url%%` is the address of the ad, `%%urlencoded%%` the same encoded for a query string and `%%apikey%%` the key. The text is only read, never run as code. Saving explains what is wrong with a request that cannot be read.
+- No Setup is needed for this update.
+
+## [0.25.13] - 2026-11-03
+
+- Two ads on a whalebone.io career page (`/career#positionid:<number>`) are no longer taken for one job: the position id after the `#` is now kept in the saved address and used to find duplicates, so adding a second position no longer reports that the job is already saved.
+- No Setup is needed for this update.
+
 ## [0.25.12] - 2026-11-03
 
 - The **Forwarded** mark is now also on the card of an e-mail in the E-mails list (beside the paper clip and the bulk mark), not only in the window that suggests an entry and on the e-mail page.

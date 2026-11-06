@@ -50,7 +50,10 @@ const ANCHOR_HOSTS = ['cesnet.cz'];
 /** The anchor that tells the ads of such a page apart; the fragment of every other address is dropped as noise. */
 function anchorOf(parsed: ParsedUrl): string {
   const listed = ANCHOR_HOSTS.some((domain) => parsed.host === domain || parsed.host.endsWith(`.${domain}`));
-  return listed && /^[a-z0-9][a-z0-9_.-]*$/i.test(parsed.fragment) ? parsed.fragment : '';
+  if (listed && /^[a-z0-9][a-z0-9_.-]*$/i.test(parsed.fragment)) return parsed.fragment;
+  // whalebone.io/career#positionid:<number> opens one ad of the list on the career page.
+  const whalebone = parsed.host === 'whalebone.io' || parsed.host.endsWith('.whalebone.io');
+  return whalebone && /^positionid:\d+$/i.test(parsed.fragment) ? parsed.fragment : '';
 }
 
 /** The address that is stored: tracking parameters removed, and the fragment too unless the site is one that needs its anchor. */

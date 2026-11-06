@@ -1,4 +1,4 @@
-import type { ConfirmInput as ConfirmEmailInput, AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRemoveResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
+import type { ConfirmInput as ConfirmEmailInput, CustomLoadResult, AiTask, AiTaskRow, HistoryEntry, HistoryList, ImportResult, JobRemoveResult, JobStatusStyles, MenuCounts, RemoveResult, Settings } from '@jobhunters/core';
 import { call } from './client';
 import type {
   AppInfo, Application, ApplicationDetail, ApplicationRow, ApplicationDocument, AppWarning, Communication, Company, CompanyDetail, CompanyRow,
@@ -59,6 +59,7 @@ export const api = {
   importAiJob: (url: string, notes = '') => call<ImportResult>('importAiJob', { url, notes }),
   deleteJob: (id: string, trashFolder: boolean) => call<JobRemoveResult>('deleteJob', { id, trashFolder }),
   fetchJobViaReader: (url: string) => call<{ status: number; html: string }>('fetchJobViaReader', { url }),
+  customLoadJob: (url: string) => call<CustomLoadResult>('customLoadJob', { url }),
   saveJob: (input: { url: string; text?: string; html?: string; overrides?: JobOverrides }) => call<SaveResult>('saveJob', input),
 
   search: (query: string, options: { types?: SearchType[]; limit?: number } = {}) => call<SearchResult>('search', { query, ...options }),

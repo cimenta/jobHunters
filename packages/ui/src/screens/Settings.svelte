@@ -1,6 +1,6 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { CALENDAR_COLOR_KEYS, EXPERIENCE_MAX, MENU_ITEMS, MENU_METRICS, OFFLINE_RULES, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, stringifyMenuNumbers, type CalendarColorKey, type MenuItem, type PromptType } from '@jobhunters/core';
+  import { AppError, CALENDAR_COLOR_KEYS, EXPERIENCE_MAX, MENU_ITEMS, MENU_METRICS, OFFLINE_RULES, parseParserRequest, parseRefreshSeconds, PROFILE_KEYS, PROMPT_MAX, PROMPT_PLACEHOLDERS, PROMPT_TYPES, PROMPTS_VERSION, SETTINGS_DEFAULTS, STATUS_TEXT_MAX, stringifyMenuNumbers, type CalendarColorKey, type MenuItem, type PromptType } from '@jobhunters/core';
   import { api } from '../api';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
@@ -65,6 +65,10 @@
   let applicationStatusesTab = $state('statuses.applications.labels');
   let promptTab = $state('prompts.resume_tailor');
   let experience = $state('');
+  let parserName = $state('');
+  let parserParams = $state('');
+  let parserApikey = $state('');
+  let parserParamsError = $state('');
   let historyRevision = $state(0);
   let historyMax = $state('50');
   let historyMaxError = $state('');
@@ -100,6 +104,10 @@
       resultNotices = settings.result_notices;
       emailAutoSave = settings.email_auto_save;
       experience = settings.candidate_experience;
+      parserName = settings.parser_name;
+      parserParams = settings.parser_params;
+      parserApikey = settings.parser_apikey;
+      parserParamsError = '';
       historyMax = String(settings.history_max_versions);
       historyMaxError = '';
       checkEnabled = settings.availability_check_enabled;
@@ -205,6 +213,20 @@
             ? 'ui.settings.savedMenuRefreshNormalOff'
             : 'ui.settings.savedMenuRefresh';
     toast.success(tr(key, { normal, busy }));
+  }
+
+  async function saveParser(): Promise<void> {
+    try {
+      parseParserRequest(parserParams, { url: 'https://ad.example.com/1', apikey: parserApikey });
+      parserParamsError = '';
+    } catch (error) {
+      if (!(error instanceof AppError)) throw error;
+      parserParamsError = tr('error.parser_params_invalid', error.params);
+      return;
+    }
+    await api.updateSettings({ parser_name: parserName.trim(), parser_params: parserParams, parser_apikey: parserApikey.trim() });
+    await reloadSettings();
+    toast.success(tr('ui.settings.parser.saved'));
   }
 
   async function saveExperience(): Promise<void> {
@@ -339,6 +361,7 @@
       { id: 'templates', label: tr('ui.settings.tab.templates') },
       { id: 'statuses', label: tr('ui.settings.tab.statuses') },
       { id: 'emails', label: tr('ui.settings.tab.emails') },
+      { id: 'parser', label: tr('ui.settings.tab.parser') },
       { id: 'about', label: tr('ui.settings.tab.about') },
     ]}
     bind:active={tab}
@@ -730,6 +753,25 @@
     <EmailRulesEditor />
   </Card>
 
+  {:else if tab === 'parser'}
+  <Card ui="settings.parser">
+    <div class="head">
+      <h2>{tr('ui.settings.parser.title')}</h2>
+      <HelpTip ui="settings.help.parser" label={tr('ui.settings.parser.title')} text={tr('ui.settings.tip.parser')} />
+    </div>
+    <p class="muted small">{tr('ui.settings.parser.hint')}</p>
+    <Field label={tr('ui.settings.parser.name')} for="set-parser-name" hint={tr('ui.settings.parser.nameHint')}>
+      <input data-ui="settings.parser.name" id="set-parser-name" class="input" maxlength="40" bind:value={parserName} />
+    </Field>
+    <Field label={tr('ui.settings.parser.params')} for="set-parser-params" hint={parserParamsError === '' ? tr('ui.settings.parser.paramsHint') : parserParamsError} warn={parserParamsError !== ''}>
+      <textarea data-ui="settings.parser.params" id="set-parser-params" class="input mono" rows="6" spellcheck="false" bind:value={parserParams}></textarea>
+    </Field>
+    <Field label={tr('ui.settings.parser.apikey')} for="set-parser-apikey" hint={tr('ui.settings.parser.apikeyHint')}>
+      <input data-ui="settings.parser.apikey" id="set-parser-apikey" class="input" type="password" autocomplete="off" bind:value={parserApikey} />
+    </Field>
+    <div><Button variant="primary" ui="settings.parser.save" onclick={saveParser}>{tr('ui.save')}</Button></div>
+  </Card>
+
   {:else}
   <Card ui="settings.about">
     <h2>{tr('ui.settings.about')}</h2>
@@ -758,6 +800,7 @@
   .attention p { margin: 0; }
   .attention strong { color: var(--danger); }
   .head { display: flex; align-items: center; gap: var(--space-2); }
+  .mono { font-family: ui-monospace, Consolas, monospace; font-size: var(--text-s); }
   .row { display: flex; flex-wrap: wrap; gap: var(--space-2); }
   .menu-pick { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
   .menu-pick-item { flex: 0 0 100%; font-weight: 600; }
