@@ -84,6 +84,14 @@ describe('Kanban board of ads', () => {
     expect([...column('next').querySelectorAll('article a.title')].map((a) => a.textContent)).toEqual(['Data Analyst (part time)', 'Android Developer']);
   });
 
+  it('takes a card dropped anywhere on the column, not only on a card', async () => {
+    await board();
+    await fireEvent.dragStart(cardOf('Android Developer'));
+    await fireEvent.drop(column('in_progress'));
+    await waitFor(async () => expect(await statusOf('Android Developer')).toBe('in_progress'));
+    await waitFor(() => expect(within(column('in_progress')).getByText('Android Developer')).toBeInTheDocument());
+  });
+
   it('lets the user choose the columns and remembers the choice apart from the list', async () => {
     await board();
     await fireEvent.click(within(screen.getByRole('group', { name: 'Status' })).getByLabelText('Archived'));
@@ -131,6 +139,25 @@ describe('Kanban board of ads', () => {
         expect(within(column('next')).getByText('Android Developer')).toBeInTheDocument();
         expect(column('next').querySelector('[data-ui="jobs.board.col.next.receiving"]')).toBeNull();
       } finally {
+        spy.mockRestore();
+      }
+    });
+
+    it('shows a floating note of the move while the moved card is out of sight, and none while it can be seen', async () => {
+      await board();
+      const { release, spy } = slow();
+      // jsdom has no layout: every box is empty, which counts as out of sight.
+      const view = vi.spyOn(Element.prototype, 'getBoundingClientRect');
+      try {
+        await fireEvent.change(cardOf('Android Developer').querySelector('select')!, { target: { value: 'next' } });
+        const pill = await screen.findByText(/^Moving "Android Developer": New → Next, place 1…/);
+        expect(pill.closest('button')?.getAttribute('data-ui')).toBe('moving.pill');
+        view.mockReturnValue({ top: 10, bottom: 60, left: 10, right: 200, width: 190, height: 50, x: 10, y: 10, toJSON: () => ({}) } as DOMRect);
+        await waitFor(() => expect(document.querySelector('[data-ui="moving.pill"]')).toBeNull());
+        release();
+        await waitFor(() => expect(column('next').querySelector('[role="status"]')).toBeNull());
+      } finally {
+        view.mockRestore();
         spy.mockRestore();
       }
     });

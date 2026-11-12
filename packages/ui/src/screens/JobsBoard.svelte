@@ -3,6 +3,7 @@
   import { jobStatusOf, sortJobBoard, type JobRow } from '@jobhunters/core';
   import { api } from '../api';
   import Badge from '../components/Badge.svelte';
+  import MovingPill from '../components/MovingPill.svelte';
   import MovingTag from '../components/MovingTag.svelte';
   import { formatSalary } from '../lib/format';
   import { tr } from '../lib/i18n.svelte';
@@ -42,6 +43,14 @@
     }),
   );
   const target = $derived(new Set(Object.values(moves.all).filter((move) => !move.done).map((move) => move.to)));
+
+  function pillText(id: string): string {
+    const move = moves.all[id]!;
+    const card = rows.find((row) => row.id === id);
+    const n = Math.min(move.index, Math.max(0, rows.filter((row) => row.id !== id && jobStatusOf(jobStyles(), row.status) === move.to).length)) + 1;
+    const title = card?.title ?? '';
+    return move.from === move.to ? tr('ui.moving.pillReorder', { label: title, status: textOf(move.to), n }) : tr('ui.moving.pill', { label: title, from: textOf(move.from), to: textOf(move.to), n });
+  }
 
   function movingText(card: JobRow, column: string, cards: JobRow[]): string {
     const move = moves.all[card.id]!;
@@ -92,7 +101,7 @@
   }
 </script>
 
-<div class="board" data-ui="jobs.board" role="group" aria-label={tr('ui.jobsBoard.label')}>
+<div class="board" data-board data-ui="jobs.board" role="group" aria-label={tr('ui.jobsBoard.label')}>
   {#each columns as column (column.status)}
     <section
       class="column"
@@ -121,6 +130,7 @@
           aria-busy={card.id in moves.all}
           draggable={movable(card)}
           data-ui="jobs.board.card.{card.id}"
+          data-move={card.id}
           ondragstart={(event) => {
             dragging = card;
             event.dataTransfer?.setData('text/plain', card.id);
@@ -163,10 +173,12 @@
     </section>
   {/each}
 </div>
+<MovingPill moves={moves.all} describe={(id) => pillText(id)} />
 {#if columns.length === 0}<p class="muted" data-ui="jobs.board.no-columns">{tr('ui.jobsBoard.noColumns')}</p>{/if}
 
 <style>
-  .board { display: flex; gap: var(--space-3); overflow-x: auto; align-items: flex-start; padding-bottom: var(--space-2); }
+  /* Every column is as tall as the board, which is at least most of the screen: a card can be dropped anywhere in a column, also far below its last card. */
+  .board { display: flex; gap: var(--space-3); overflow-x: auto; align-items: stretch; min-height: 70vh; padding-bottom: var(--space-2); }
   .column { flex: 0 0 260px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); min-height: 120px; background: var(--surface-2); border: 2px solid transparent; border-radius: var(--radius-m); }
   .column.allowed { border-color: var(--accent); }
   .column.over.allowed { background: var(--accent-soft); }

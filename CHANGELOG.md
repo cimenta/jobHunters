@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.27.1] - 2026-11-12
+
+- On both Kanban boards (ads and applications) a card can now be dropped anywhere in a column, also far below its last card: every column is as tall as the board (at least most of the screen), so you no longer have to scroll back up to the highlighted frame to find the place to drop.
+- When the card that is being moved is out of sight (the board is scrolled away from it), a note floats at the bottom of the window with a spinner and where the card goes (for example "Moving "Title": New → Next, place 2…"); click it to scroll to the card. It shows only while the card cannot be seen.
+- No Setup is needed for this update.
+
 ## [0.27.0] - 2026-11-12
 
 - New **Kanban board of ads**: press the **Kanban** button on the Jobs screen (before Clear filters) to see the ads as columns by status, like the applications. The columns shown are picked in the **Status** list (New, Next, In progress and Done to begin with) and the choice is remembered. Drag a card to another column to change the status of the ad, or up and down to set its place; the order of the cards in each column is remembered too. A card shows the title, the company, the pay and the contact person; the **Gigs only / Without gigs** switch applies to the board as well.

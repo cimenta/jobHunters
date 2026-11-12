@@ -8,6 +8,7 @@
   import Dialog from '../components/Dialog.svelte';
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
+  import MovingPill from '../components/MovingPill.svelte';
   import MovingTag from '../components/MovingTag.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, todayLocal } from '../lib/format';
@@ -64,6 +65,14 @@
     }),
   );
   const target = $derived(new Set(Object.values(moves.all).filter((move) => !move.done).map((move) => move.to)));
+
+  function pillText(id: string): string {
+    const move = moves.all[id]!;
+    const card = rows.find((row) => row.id === id);
+    const n = Math.min(move.index, rows.filter((row) => row.id !== id && row.status === move.to).length) + 1;
+    const label = card?.label ?? '';
+    return move.from === move.to ? tr('ui.moving.pillReorder', { label, status: statusStyle(move.to).text, n }) : tr('ui.moving.pill', { label, from: statusStyle(move.from).text, to: statusStyle(move.to).text, n });
+  }
 
   function movingText(card: ApplicationRow, column: string, cards: ApplicationRow[]): string {
     const move = moves.all[card.id]!;
@@ -185,7 +194,7 @@
   }
 </script>
 
-<div class="board" data-ui="kanban" role="group" aria-label={tr('ui.kanban.board')}>
+<div class="board" data-board data-ui="kanban" role="group" aria-label={tr('ui.kanban.board')}>
   {#each shown as column (column.status)}
     <section
       class="column"
@@ -235,6 +244,7 @@
           aria-busy={card.id in moves.all}
           draggable={!(card.id in moves.all)}
           data-ui="kanban.card.{card.id}"
+          data-move={card.id}
           ondragstart={(event) => {
             dragging = card;
             event.dataTransfer?.setData('text/plain', card.id);
@@ -286,6 +296,7 @@
     </section>
   {/each}
 </div>
+<MovingPill moves={moves.all} describe={(id) => pillText(id)} />
 {#if shown.length === 0}<p class="muted" data-ui="kanban.all-hidden">{tr('ui.kanban.allHidden')}</p>{/if}
 
 <Dialog open={pending !== undefined} title={tr(pending?.to === 'homework' ? 'ui.kanban.homeworkTitle' : 'ui.kanban.waitingTitle')} onclose={() => (pending = undefined)} ui="kanban.waiting">
@@ -320,7 +331,8 @@
 
 <style>
   .reject { display: inline-flex; color: var(--danger); }
-  .board { display: flex; gap: var(--space-3); overflow-x: auto; align-items: flex-start; padding-bottom: var(--space-2); }
+  /* Every column is as tall as the board, which is at least most of the screen: a card can be dropped anywhere in a column, also far below its last card. */
+  .board { display: flex; gap: var(--space-3); overflow-x: auto; align-items: stretch; min-height: 70vh; padding-bottom: var(--space-2); }
   .column { flex: 0 0 260px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-2); min-height: 120px; background: var(--surface-2); border: 2px solid transparent; border-radius: var(--radius-m); }
   .column.allowed { border-color: var(--accent); }
   .column.blocked { opacity: 0.45; }
