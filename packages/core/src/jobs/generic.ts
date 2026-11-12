@@ -68,6 +68,8 @@ function applyJsonLd(job: ParsedJob, posting: Json): void {
 
   job.posted_at = dateOnly(posting.datePosted);
   job.valid_until = dateOnly(posting.validThrough);
+  // Some portals write 9999-12-31 for an ad that does not expire.
+  if (job.valid_until >= '9000') job.valid_until = '';
 
   const rawDescription = text(posting.description);
   // Some sites entity-escape the whole HTML string.

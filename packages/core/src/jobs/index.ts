@@ -15,6 +15,7 @@ export * from './greenhouse';
 export * from './dream-jobs';
 export * from './prima-kariera';
 export * from './easy-prace';
+export * from './dobraprace';
 export * from './spravnykrok';
 export * from './nelisa';
 export * from './manpower';

@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.26.1] - 2026-11-12
+
+- New reader for **DobráPráce.cz** ads: title, company, places, hourly pay, type of work (a brigáda or DPP/DPČ counts as a gig), contact person and the whole text with its headings (Pracovní náplň, Požadujeme, Nabízíme). The key of an ad is its number, so links that differ only in the words of the title are one job.
+- An expiry date far in the future (9999-12-31, which some portals write for an ad that does not expire) is no longer taken as the end of an ad.
+- No Setup is needed for this update.
+
 ## [0.26.0] - 2026-11-06
 
 - New **Custom load** button in Add job, beside **Load via Jina** (shown when the page could not be downloaded). Its label is "Load with <name>" when Settings gives a name, otherwise "Custom load". It sends the request described in Settings to your own parser (a GET request) and puts the answer, HTML or text, into the text box. A request that cannot be read is reported; when the call was sent and the parser did not answer properly (an HTTP error, an empty answer or no answer), a window shows the reason, the request and the response (the API key is hidden) with a Copy button.

@@ -122,6 +122,25 @@ export function elementsInnerHtml(html: string, openTag: RegExp): string[] {
   return results;
 }
 
+/** The HTML without the elements (with everything inside them) whose opening tag matches `openTag`, see elementsInnerHtml. */
+export function withoutElements(html: string, openTag: RegExp): string {
+  const opening = /<([a-zA-Z][\w-]*)\b[^>]*>/g;
+  let out = '';
+  let copied = 0;
+  let match: RegExpExecArray | null;
+  while ((match = opening.exec(html)) !== null) {
+    const tag = match[0];
+    const name = match[1]!.toLowerCase();
+    if (match.index < copied || VOID_ELEMENTS.has(name) || tag.endsWith('/>') || !openTag.test(tag)) continue;
+    const end = findClosing(html, name, match.index + tag.length);
+    if (end < 0) continue;
+    const close = html.indexOf('>', end);
+    out += html.slice(copied, match.index);
+    copied = close < 0 ? html.length : close + 1;
+  }
+  return out + html.slice(copied);
+}
+
 /**
  * Whether pasted text is the source code of a web page (View page source, select all, copy) and not the text of an ad:
  * it starts with a doctype or an <html> tag, or it is a longer markup that ends the body. A piece of a page copied from the
