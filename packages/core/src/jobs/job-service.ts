@@ -184,7 +184,7 @@ export class JobService {
       parser_id: '', parsed_at: '', contact_id: '', found_at: this.deps.now(), is_gig: false, location: '', salary_min: null, salary_max: null,
       salary_currency: '', salary_period: '', employment_type: '', remote: '', is_remote: false, is_hybrid: false, posted_at: '', valid_until: '', description: '', language: '',
       availability: 'unknown', availability_reason: '', offline_strikes: 0, last_checked_at: '', flags: '', folder_url: '', notes: '',
-      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '', match_note: '', gig_priority: false, is_contract: false,
+      status: 'awaiting', match_percent: null, ai_salary: '', contact_person: '', no_reason: '', gig_shift: '', match_note: '', gig_priority: false, is_contract: false, board_position: null,
     });
   }
 
@@ -246,6 +246,7 @@ export class JobService {
       match_note: '',
       gig_priority: fields.is_gig && fields.gig_priority === true,
       is_contract: fields.is_contract === true,
+      board_position: null,
     };
     jobs.insert(job);
     return { status: 'created', job, company, warnings, missing: acquired.parsed.missing };

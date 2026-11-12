@@ -83,6 +83,7 @@ export const api = {
   createTestJob: () => call<TestJobResult>('createTestJob'),
   createTestJobWithApplication: () => call<TestApplicationResult>('createTestJobWithApplication'),
   createApplication: (input: { jobId: string; language?: string; fromApplicationId?: string; salary?: string }) => call<CreateApplicationResult>('createApplication', input),
+  moveJob: (id: string, to: string, index: number) => call<Job>('moveJob', { id, to, index }),
   moveApplication: (id: string, to: string, index: number, remindAt?: string) => call<ApplicationRow>('moveApplication', remindAt === undefined ? { id, to, index } : { id, to, index, remindAt }),
   setApplicationStatus: (id: string, to: string, remindAt?: string) => call<unknown>('setApplicationStatus', remindAt === undefined ? { id, to } : { id, to, remindAt }),
 

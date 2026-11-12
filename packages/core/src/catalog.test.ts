@@ -170,6 +170,62 @@ describe('CatalogService', () => {
     return { service: new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: companyRepo }), jobRepo, companyRepo };
   };
 
+  describe('Kanban board of ads', () => {
+    const board = () => {
+      const jobRepo = new InMemoryRepository<Job>([
+        makeJob({ id: 'a', status: 'new', found_at: '2026-01-01' }),
+        makeJob({ id: 'b', status: 'new', found_at: '2026-01-02' }),
+        makeJob({ id: 'c', status: 'next', found_at: '2026-01-03' }),
+        makeJob({ id: 'w', status: 'awaiting' }),
+      ]);
+      const service = new CatalogService({ jobs: jobRepo, applications: new InMemoryRepository<Application>(), companies: new InMemoryRepository<Company>() });
+      return { service, jobRepo };
+    };
+    const order = (jobRepo: InMemoryRepository<Job>, status: string) => jobRepo.list().filter((job) => job.status === status).sort((x, y) => (x.board_position ?? 0) - (y.board_position ?? 0)).map((job) => job.id);
+
+    it('moves an ad to another column at the place given and numbers the column', () => {
+      const { service, jobRepo } = board();
+      expect(service.moveJob('a', 'next', 0)).toMatchObject({ status: 'next', board_position: 1 });
+      expect(order(jobRepo, 'next')).toEqual(['a', 'c']);
+      expect(jobRepo.get('c')!.board_position).toBe(2);
+      service.moveJob('b', 'next', 1);
+      expect(order(jobRepo, 'next')).toEqual(['a', 'b', 'c']);
+    });
+
+    it('reorders inside a column and remembers the order', () => {
+      const { service, jobRepo } = board();
+      service.moveJob('a', 'new', 1);
+      expect(order(jobRepo, 'new')).toEqual(['b', 'a']);
+      service.moveJob('a', 'new', 0);
+      expect(order(jobRepo, 'new')).toEqual(['a', 'b']);
+      expect(jobRepo.get('a')!.status).toBe('new');
+    });
+
+    it('puts a place beyond the end last and counts an empty status as new', () => {
+      const { service, jobRepo } = board();
+      jobRepo.update('b', { status: '' });
+      service.moveJob('c', 'new', 99);
+      expect(jobRepo.get('c')).toMatchObject({ status: 'new', board_position: 3 });
+    });
+
+    it('refuses an unknown status, a missing ad and an ad that waits for the AI', () => {
+      const { service } = board();
+      expect(errorOf(() => service.moveJob('a', 'nope', 0))).toMatchObject({ code: 'job_status_invalid' });
+      expect(errorOf(() => service.moveJob('a', 'awaiting', 0))).toMatchObject({ code: 'job_status_invalid' });
+      expect(errorOf(() => service.moveJob('ghost', 'next', 0))).toMatchObject({ code: 'job_not_found' });
+      expect(errorOf(() => service.moveJob('w', 'next', 0))).toMatchObject({ code: 'job_status_invalid' });
+    });
+
+    it('an ad whose status is changed by hand leaves the order and comes first in the new column', () => {
+      const { service, jobRepo } = board();
+      service.moveJob('c', 'next', 0);
+      service.updateJob('a', { status: 'next' });
+      expect(jobRepo.get('a')!.board_position).toBeNull();
+      service.updateJob('c', { notes: 'x' });
+      expect(jobRepo.get('c')!.board_position).toBe(1);
+    });
+  });
+
   it('updates the editable fields of a job only', () => {
     const { service, jobRepo } = setup();
     expect(service.updateJob('j1', { notes: 'Call on Monday', is_gig: true })).toMatchObject({ notes: 'Call on Monday', is_gig: true, title: 'Android Developer' });

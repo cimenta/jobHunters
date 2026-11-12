@@ -1,7 +1,10 @@
 import { parseDashboardLayout, type DashboardLayout } from './dashboard-layout';
 import { parseEmailMarks, type EmailMarks } from './email-marks';
 import { LIST_SORT_KEYS, sortKeysFor, type ListSortKey, type SortChoice } from './application-sort';
+import { DEFAULT_JOB_BOARD_STATUSES } from './job-status';
 import { isApplicationStatus } from './status';
+
+const JOB_STATUS_CODE = /^[a-z0-9_]{1,40}$/;
 
 export type JobSort = 'newest' | 'oldest' | 'match_desc' | 'match_asc' | 'priority_desc';
 export const JOB_SORTS: readonly JobSort[] = ['newest', 'oldest', 'match_desc', 'match_asc', 'priority_desc'];
@@ -26,6 +29,10 @@ export interface UiState {
   jobs_gig: JobGigFilter;
   /** The gig switch of the Dashboard card Applications by status; same values as jobs_gig. */
   dashboard_gig: JobGigFilter;
+  /** Whether the Jobs screen is shown as a Kanban board. */
+  jobs_kanban: boolean;
+  /** Statuses of ads selected (= columns shown) in the Kanban board of ads. */
+  jobs_status_board: string[];
   /** Order of the Jobs screen. */
   jobs_sort: JobSort;
   /** Order of the cards of each Kanban column; a status without an entry is ordered by hand. */
@@ -56,7 +63,7 @@ const HEX_COLOR = /^#[0-9a-f]{6}$/i;
 export type JobGigFilter = '' | 'only' | 'except';
 const JOB_GIG_FILTERS: readonly string[] = ['', 'only', 'except'];
 
-export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null, email_marks: {}, emails_filter: 'all' };
+export const DEFAULT_UI_STATE: Readonly<UiState> = { applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_kanban: false, jobs_status_board: [...DEFAULT_JOB_BOARD_STATUSES], dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: NO_CALENDAR_COLORS, dashboard_layout: null, email_marks: {}, emails_filter: 'all' };
 
 function statuses(value: unknown): string[] | undefined {
   if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
@@ -91,8 +98,8 @@ export function parseUiState(raw: string): UiState | undefined {
   }
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return undefined;
   const entry = value as Record<string, unknown>;
-  const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { ...NO_CALENDAR_COLORS }, email_marks: {} };
-  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no', 'kanban_reject_icon'] as const) {
+  const out: UiState = { ...DEFAULT_UI_STATE, applications_status_list: [], applications_status_board: [], jobs_status_board: [...DEFAULT_JOB_BOARD_STATUSES], applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, calendar_colors: { ...NO_CALENDAR_COLORS }, email_marks: {} };
+  for (const key of ['applications_kanban', 'applications_hide_empty', 'jobs_hide_applied', 'jobs_hide_no', 'jobs_kanban', 'kanban_reject_icon'] as const) {
     if (entry[key] === undefined) continue;
     if (typeof entry[key] !== 'boolean') return undefined;
     out[key] = entry[key];
@@ -102,6 +109,11 @@ export function parseUiState(raw: string): UiState | undefined {
     const parsed = statuses(entry[key]);
     if (parsed === undefined) return undefined;
     out[key] = parsed;
+  }
+  if (entry.jobs_status_board !== undefined) {
+    const value = entry.jobs_status_board;
+    if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return undefined;
+    out.jobs_status_board = [...new Set((value as string[]).filter((code) => JOB_STATUS_CODE.test(code)))];
   }
   if (entry.jobs_gig !== undefined) {
     if (typeof entry.jobs_gig !== 'string' || !JOB_GIG_FILTERS.includes(entry.jobs_gig)) return undefined;

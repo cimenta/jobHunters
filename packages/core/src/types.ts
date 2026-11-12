@@ -57,6 +57,8 @@ export interface Job {
   is_contract: boolean;
   /** The evaluation of the match (strengths, gaps, verdict), written by the AI together with match_percent by whichever task evaluated it. */
   match_note: string;
+  /** Position among the cards of its status in the Kanban board of ads; null = not placed yet (shown first). */
+  board_position: number | null;
 }
 
 export interface Application {

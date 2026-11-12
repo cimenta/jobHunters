@@ -81,6 +81,7 @@ do the writing and the reading for you.
 
 - **Statuses** (draft, sent, waiting, interview, offer, rejected, ghosted, withdrawn) with your own names and colours,
   and a table of **which changes are allowed**. Moving to "Waiting" asks for a reminder date.
+- A **Kanban board of ads** (New, Next, In progress, Done and any other status) with drag and drop and a remembered order of the cards, mainly for working through gigs.
 - A **Kanban board** with drag and drop, or a list with filters; both can be sorted by match score, date created, salary, date sent and days waiting.
 - **Communication log** (messages, meetings, homework and confirmations over e-mail, phone, video call, LinkedIn, in person or a
   portal), **reminders** with a Dashboard of what is

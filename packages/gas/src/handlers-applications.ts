@@ -233,6 +233,15 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       return c.lock.run(() => c.catalogService.updateJob(id, { notes, is_gig: isGig, is_remote: isRemote, is_hybrid: isHybrid, is_contract: isContract, contact_person: contactPerson, no_reason: noReason, gig_shift: gigShift, gig_priority: gigPriority, salary_min: salaryMin, salary_max: salaryMax, salary_currency: salaryCurrency, salary_period: salaryPeriod, location, url, status }));
     },
 
+    moveJob: (args) => {
+      const input = asRecord(args, 'moveJob');
+      const id = requireString(input, 'id', 'moveJob');
+      const to = requireString(input, 'to', 'moveJob');
+      const index = input.index;
+      if (typeof index !== 'number') return invalidArguments('moveJob');
+      return c.lock.run(() => c.catalogService.moveJob(id, to, index));
+    },
+
     saveJobStatuses: (args) => {
       const input = asRecord(args, 'saveJobStatuses');
       return c.lock.run(() => c.jobStatusService.save(input.styles));

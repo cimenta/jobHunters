@@ -1,4 +1,5 @@
 import { reminderBuckets } from './applications/reminder-service';
+import { sortJobBoard } from './board';
 import { NotFoundError, ValidationError } from './errors';
 import { DEFAULT_JOB_STATUS_STYLES, jobStatusOf, type JobStatusStyles } from './job-status';
 import { CELL_LIMIT } from './jobs/html';
@@ -238,9 +239,34 @@ export class CatalogService {
       if (patch.status === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, patch.status)) {
         throw new ValidationError('job_status_invalid', `Unknown job status ${patch.status}`, { status: patch.status });
       }
+      // An ad that changes its status leaves the order of its old column and is shown first in the new one.
+      if (patch.status !== jobStatusOf(known, this.deps.jobs.get(id)!.status)) change.board_position = null;
       change.status = patch.status;
     }
     return this.deps.jobs.update(id, change);
+  }
+
+  /**
+   * Moves an ad of the Kanban board: sets its status when the column differs and stores its place in the column.
+   * index is the place among the other ads of the column; the rest of the column is renumbered.
+   */
+  moveJob(id: string, to: string, index: number): Job {
+    const { jobs } = this.deps;
+    if (!jobs.get(id)) throw new NotFoundError('job_not_found', `Job ${id} not found`, { id });
+    const known = this.deps.jobStatuses?.() ?? DEFAULT_JOB_STATUS_STYLES;
+    if (to === 'awaiting' || !Object.prototype.hasOwnProperty.call(known, to)) {
+      throw new ValidationError('job_status_invalid', `Unknown job status ${to}`, { status: to });
+    }
+    const current = jobs.get(id)!;
+    if (current.status === 'awaiting') throw new ValidationError('job_status_invalid', 'An ad awaiting the AI cannot be moved', { status: current.status });
+    const moved = jobStatusOf(known, current.status) === to ? current : jobs.update(id, { status: to, board_position: null });
+    const others = sortJobBoard(jobs.list().filter((job) => job.id !== id && jobStatusOf(known, job.status) === to));
+    const place = Math.max(0, Math.min(Number.isInteger(index) ? index : others.length, others.length));
+    const column = [...others.slice(0, place), moved, ...others.slice(place)];
+    column.forEach((card, position) => {
+      if (card.board_position !== position + 1) jobs.update(card.id, { board_position: position + 1 });
+    });
+    return jobs.get(id)!;
   }
 
   /**

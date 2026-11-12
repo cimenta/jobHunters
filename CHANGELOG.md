@@ -2,6 +2,13 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.27.0] - 2026-11-12
+
+- New **Kanban board of ads**: press the **Kanban** button on the Jobs screen (before Clear filters) to see the ads as columns by status, like the applications. The columns shown are picked in the **Status** list (New, Next, In progress and Done to begin with) and the choice is remembered. Drag a card to another column to change the status of the ad, or up and down to set its place; the order of the cards in each column is remembered too. A card shows the title, the company, the pay and the contact person; the **Gigs only / Without gigs** switch applies to the board as well.
+- Dropping a card on either Kanban board (ads and applications) now shows at once what is going on: the card appears in its new place, highlighted, with a spinner and a note such as "Moving: New → Next, place 2…", the target column says a card is moving there, and the card cannot be moved again until the save is done. When the save fails, the card goes back and a message says so.
+- Three new ad statuses for working through ads: **Next**, **In progress** and **Done**. They are built in, can be renamed and recoloured in Settings > Statuses, appear in the list of ads and its filter, and their availability is not checked by default.
+- **Run Setup after the update** (Settings > General > Run setup): the sheet Jobs gets a new column `board_position` for the order of the cards. Until then the Jobs screen cannot be read; the red "!" by Settings tells you so.
+
 ## [0.26.1] - 2026-11-12
 
 - New reader for **DobráPráce.cz** ads: title, company, places, hourly pay, type of work (a brigáda or DPP/DPČ counts as a gig), contact person and the whole text with its headings (Pracovní náplň, Požadujeme, Nabízíme). The key of an ad is its number, so links that differ only in the words of the title are one job.

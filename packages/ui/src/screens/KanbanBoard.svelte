@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { untrack } from 'svelte';
   import { canTransition, isApplicationStatus, isDatedStatus, sortApplications, sortBoard, sortKeysFor, type ApplicationSortKey, type ApplicationStatus, type SortChoice, type StatusTransitions } from '@jobhunters/core';
   import { api } from '../api';
   import type { ApplicationRow } from '../api/types';
@@ -7,9 +8,11 @@
   import Dialog from '../components/Dialog.svelte';
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
+  import MovingTag from '../components/MovingTag.svelte';
   import StatusBadge from '../components/StatusBadge.svelte';
   import { formatDate, todayLocal } from '../lib/format';
   import { channelLabel } from '../lib/labels';
+  import { createMoves } from '../lib/moves.svelte';
   import { tr } from '../lib/i18n.svelte';
   import { sortLabel } from '../lib/labels';
   import { notifyError } from '../lib/notify';
@@ -41,13 +44,32 @@
   const now = Date.now();
   const choiceOf = (status: string): SortChoice => sorts[status] ?? { by: 'manual', up: false };
 
+  /** Cards that were dropped and are being saved: shown in their new place at once, with a note that the save is running. */
+  const moves = createMoves();
+  // A reload of the rows brings the saved moves in.
+  $effect(() => {
+    void rows;
+    untrack(() => moves.settle());
+  });
   const columns = $derived(
     statuses.map((status) => {
       const choice = choiceOf(status);
-      const own = rows.filter((row) => row.status === status);
-      return { status, choice, cards: choice.by === 'manual' ? sortBoard(own) : sortApplications(own, choice.by, choice.up) };
+      const own = rows.filter((row) => !(row.id in moves.all) && row.status === status);
+      const cards = choice.by === 'manual' ? sortBoard(own) : sortApplications(own, choice.by, choice.up);
+      for (const [id, move] of Object.entries(moves.all)) {
+        const card = rows.find((row) => row.id === id);
+        if (card !== undefined && move.to === status) cards.splice(choice.by === 'manual' ? Math.min(move.index, cards.length) : 0, 0, card);
+      }
+      return { status, choice, cards };
     }),
   );
+  const target = $derived(new Set(Object.values(moves.all).filter((move) => !move.done).map((move) => move.to)));
+
+  function movingText(card: ApplicationRow, column: string, cards: ApplicationRow[]): string {
+    const move = moves.all[card.id]!;
+    const n = cards.findIndex((other) => other.id === card.id) + 1;
+    return move.from === move.to ? tr('ui.moving.reorder', { status: statusStyle(column).text, n }) : tr('ui.moving.fromTo', { from: statusStyle(move.from).text, to: statusStyle(move.to).text, n });
+  }
   const shown = $derived(hideEmpty ? columns.filter((column) => column.cards.length > 0) : columns);
 
   /** Whether a card may be put into the column: the same column (a reorder) or a move the rules allow. */
@@ -102,16 +124,20 @@
 
   const targets = (card: ApplicationRow): ApplicationStatus[] => (isApplicationStatus(card.status) ? statuses.filter((to) => to !== card.status && allows(card, to)) : []);
 
-  async function run(card: ApplicationRow, to: ApplicationStatus, action: () => Promise<unknown>, remindOn = ''): Promise<void> {
+  async function run(card: ApplicationRow, to: ApplicationStatus, index: number, action: () => Promise<unknown>, remindOn = ''): Promise<void> {
     const reorder = card.status === to;
+    moves.start(card.id, { from: card.status, to, index });
     try {
       await action();
+      moves.finish(card.id);
       const label = card.label;
       if (reorder) toast.success(tr('ui.kanban.reordered', { label, status: statusStyle(to).text }));
       else toast.success(tr(remindOn === '' ? 'ui.kanban.moved' : 'ui.kanban.movedRemind', { label, from: statusStyle(card.status).text, to: statusStyle(to).text, date: formatDate(remindOn) }));
       onmoved();
     } catch (error) {
+      moves.fail(card.id);
       notifyError(error);
+      toast.warning(tr('ui.moving.failed', { label: card.label, status: statusStyle(card.status).text }));
     }
   }
 
@@ -127,14 +153,14 @@
       pending = { card, index, to };
       return;
     }
-    await run(card, to, () => api.moveApplication(card.id, to, index));
+    await run(card, to, index, () => api.moveApplication(card.id, to, index));
   }
 
   async function confirmWaiting(): Promise<void> {
     const current = pending;
     if (!current) return;
     pending = undefined;
-    await run(current.card, current.to, () => api.moveApplication(current.card.id, current.to, current.index, remindAt), remindAt);
+    await run(current.card, current.to, current.index, () => api.moveApplication(current.card.id, current.to, current.index, remindAt), remindAt);
   }
 
   /** Place among the other cards of the column: before the card dropped on, or after it in its lower half. */
@@ -166,6 +192,7 @@
       class:allowed={dragging !== undefined && allows(dragging, column.status)}
       class:blocked={dragging !== undefined && !allows(dragging, column.status)}
       class:over={over === column.status}
+      class:receiving={target.has(column.status)}
       data-ui="kanban.{column.status}"
       aria-label={statusStyle(column.status).text}
       ondragover={(event) => {
@@ -177,6 +204,7 @@
       <header class="head">
         <StatusBadge status={column.status} />
         <span class="muted small">{column.cards.length}</span>
+        {#if target.has(column.status)}<span class="receiving-text small" data-ui="kanban.{column.status}.receiving">{tr('ui.moving.into')}</span>{/if}
         <span class="sortbar">
           <select
             data-ui="kanban.{column.status}.sort"
@@ -203,7 +231,9 @@
         <article
           class="card"
           class:dragging={dragging?.id === card.id}
-          draggable="true"
+          class:moving={card.id in moves.all}
+          aria-busy={card.id in moves.all}
+          draggable={!(card.id in moves.all)}
           data-ui="kanban.card.{card.id}"
           ondragstart={(event) => {
             dragging = card;
@@ -222,7 +252,9 @@
           <span class="muted small">{[card.job_title, card.company_name].filter((part) => part !== '').join(' · ')}</span>
           <ApplicationFacts row={card} by={column.choice.by} ui="kanban.card.{card.id}" {now} />
           {#if card.last_activity_at !== ''}<span class="muted small">{formatDate(card.last_activity_at)}</span>{/if}
-          {#if targets(card).length > 0 || quick(card).length > 0 || canReject(card)}
+          {#if card.id in moves.all}
+            <MovingTag text={movingText(card, column.status, column.cards)} ui="kanban.card.{card.id}.moving" />
+          {:else if targets(card).length > 0 || quick(card).length > 0 || canReject(card)}
             <div class="moves">
             {#if targets(card).length > 0}
             <select data-ui="kanban.card.{card.id}.move"
@@ -300,6 +332,9 @@
   .dir:disabled { opacity: 0.45; cursor: default; }
   .card { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); cursor: grab; }
   .card.dragging { opacity: 0.4; }
+  .card.moving { border-color: var(--accent); background: var(--accent-soft); cursor: progress; }
+  .column.receiving { border-color: var(--accent); }
+  .receiving-text { color: var(--accent); font-weight: 600; }
   .title { font-weight: 600; }
   .moves { display: flex; align-items: center; gap: var(--space-1); margin-top: var(--space-1); }
   .moves :global(.btn) { flex: none; min-width: var(--tap); padding: 0; }

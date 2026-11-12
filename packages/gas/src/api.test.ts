@@ -430,6 +430,15 @@ describe('overview api', () => {
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 
+  it('moves an ad on the Kanban board of ads and checks the arguments', () => {
+    const { api, jobId } = seeded();
+    expect(api('moveJob', { id: jobId, to: 'next', index: 0 })).toMatchObject({ ok: true, data: { id: jobId, status: 'next', board_position: 1 } });
+    expect(api('moveJob', { id: jobId, to: 'done', index: 0 })).toMatchObject({ ok: true, data: { status: 'done', board_position: 1 } });
+    expect(api('moveJob', { id: jobId, to: 'nope', index: 0 })).toMatchObject({ ok: false, error: { code: 'job_status_invalid' } });
+    expect(api('moveJob', { id: jobId, to: 'next', index: 'first' })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('moveJob', { id: 'ghost', to: 'next', index: 0 })).toMatchObject({ ok: false, error: { code: 'job_not_found' } });
+  });
+
   it('shows the status and id of the newest match task on the job row', () => {
     const { api, jobId } = seeded();
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ match_task_status: '', match_task_id: '' }] });

@@ -109,11 +109,11 @@ describe('ApplicationService.move', () => {
 
 describe('ui state setting', () => {
   it('defaults, parses and drops unknown statuses', () => {
-    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '', homework: '' }, dashboard_layout: null, email_marks: {}, emails_filter: 'all' });
+    expect(parseUiState('{}')).toEqual({ applications_kanban: false, applications_hide_empty: false, applications_status_list: [], applications_status_board: [], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_kanban: false, jobs_status_board: ['new', 'next', 'in_progress', 'done'], dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '', homework: '' }, dashboard_layout: null, email_marks: {}, emails_filter: 'all' });
     expect(parseUiState('{"applications_hide_empty":true}')?.applications_hide_empty).toBe(true);
     expect(parseUiState('{"applications_hide_empty":"yes"}')).toBeUndefined();
     expect(parseUiState('{"applications_kanban":true,"applications_status_board":["sent","nope","sent"]}'))
-      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '', homework: '' }, dashboard_layout: null, email_marks: {}, emails_filter: 'all' });
+      .toEqual({ applications_kanban: true, applications_hide_empty: false, applications_status_list: [], applications_status_board: ['sent'], jobs_hide_applied: false, jobs_hide_no: false, jobs_gig: '', jobs_kanban: false, jobs_status_board: ['new', 'next', 'in_progress', 'done'], dashboard_gig: '', jobs_sort: 'newest', applications_board_sort: {}, applications_list_sort: { by: 'default', up: false }, kanban_reject_icon: false, calendar_colors: { interview: '', waiting: '', late: '', homework: '' }, dashboard_layout: null, email_marks: {}, emails_filter: 'all' });
   });
 
   it('parses the sort choices of the board and the list, dropping what does not fit', () => {
@@ -166,6 +166,13 @@ describe('ui state setting', () => {
     expect(parseUiState('{"applications_kanban":true,"applications_hide_empty":true,"applications_status_list":[],"applications_status_board":[]}'))
       .toMatchObject({ jobs_hide_applied: false, jobs_sort: 'newest' });
     expect(JOB_SORTS).toEqual(['newest', 'oldest', 'match_desc', 'match_asc', 'priority_desc']);
+  });
+
+  it('remembers the Kanban switch and the columns of the board of ads, and drops what is not a status code', () => {
+    expect(parseUiState('{}')).toMatchObject({ jobs_kanban: false, jobs_status_board: ['new', 'next', 'in_progress', 'done'] });
+    expect(parseUiState('{"jobs_kanban":true,"jobs_status_board":["next","my_col","Bad Code","next"]}')).toMatchObject({ jobs_kanban: true, jobs_status_board: ['next', 'my_col'] });
+    expect(parseUiState('{"jobs_kanban":"yes"}')).toBeUndefined();
+    expect(parseUiState('{"jobs_status_board":"new"}')).toBeUndefined();
   });
 
   it('refuses a wrong shape', () => {

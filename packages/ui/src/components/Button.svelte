@@ -8,6 +8,8 @@
     disabled?: boolean;
     loading?: boolean;
     full?: boolean;
+    /** A toggle button: true = on (filled), false = off; leave unset for an ordinary button. */
+    pressed?: boolean;
     label?: string;
     /** Identifier shown by the identifier labels (data-ui). */
     ui?: string;
@@ -18,7 +20,7 @@
     onclick?: (event: MouseEvent) => unknown;
     children?: Snippet;
   }
-  let { variant = 'secondary', type = 'button', disabled = false, loading = false, full = false, label, ui, href, target, rel, onclick, children }: Props = $props();
+  let { variant = 'secondary', type = 'button', disabled = false, loading = false, full = false, pressed, label, ui, href, target, rel, onclick, children }: Props = $props();
 
   let busy = $state(false);
 
@@ -41,7 +43,7 @@
 {#if href !== undefined}
   <a class="btn {variant}" class:full {href} {target} {rel} aria-label={label} title={label} data-ui={ui}>{@render children?.()}</a>
 {:else}
-  <button class="btn {variant}" class:full {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} title={label} data-ui={ui} onclick={handle}>
+  <button class="btn {variant}" class:full class:on={pressed === true} aria-pressed={pressed} {type} disabled={disabled || busy || loading} aria-busy={busy || loading} aria-label={label} title={label} data-ui={ui} onclick={handle}>
     {#if busy || loading}<span class="spinner" aria-hidden="true"></span>{/if}
     {@render children?.()}
   </button>
@@ -74,6 +76,7 @@
   /* Solid red: something is missing and a click fixes it (the ad has no link). */
   .alert { color: #fff; background: var(--danger); border-color: var(--danger); }
   .alert:hover:not(:disabled) { filter: brightness(0.92); border-color: var(--danger); }
+  .on, .on:hover:not(:disabled) { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
   .full { width: 100%; }
   .spinner {
     width: 16px;

@@ -104,6 +104,7 @@
       <li>{tr('ui.help.jobs.i30')}</li>
       <li>{tr('ui.help.jobs.i31')}</li>
       <li>{tr('ui.help.jobs.i32')}</li>
+      <li>{tr('ui.help.jobs.i33')}</li>
     </ul>
     <h3>{tr('ui.help.jobs.sites.title')}</h3>
     <p>{tr('ui.help.jobs.sites.intro')}</p>

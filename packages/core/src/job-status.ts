@@ -1,7 +1,7 @@
 import { isLocale, t, type Locale } from './i18n';
 import { readableTextColor, STATUS_TEXT_MAX, UNKNOWN_STATUS_COLOR } from './status-style';
 
-export const BUILTIN_JOB_STATUSES = ['new', 'applied', 'archived', 'no', 'awaiting'] as const;
+export const BUILTIN_JOB_STATUSES = ['new', 'applied', 'archived', 'no', 'awaiting', 'next', 'in_progress', 'done'] as const;
 
 export interface JobStatusStyle {
   /** Display name per language; the catalog text is used for a built-in status where none is given. */
@@ -19,7 +19,14 @@ export const DEFAULT_JOB_STATUS_STYLES: Readonly<JobStatusStyles> = {
   archived: { color: '#64748b', check: false },
   no: { color: '#6b7280', check: false },
   awaiting: { color: '#d97706', check: false },
+  // The columns of the Kanban board of ads besides New.
+  next: { color: '#0891b2', check: false },
+  in_progress: { color: '#ea580c', check: false },
+  done: { color: '#16a34a', check: false },
 };
+
+/** The columns the Kanban board of ads shows until the user chooses others. */
+export const DEFAULT_JOB_BOARD_STATUSES: readonly string[] = ['new', 'next', 'in_progress', 'done'];
 
 const COLOR = /^#[0-9a-fA-F]{6}$/;
 const CODE = /^[a-z0-9_]{1,40}$/;

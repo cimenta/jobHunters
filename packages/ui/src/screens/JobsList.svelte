@@ -8,6 +8,7 @@
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Field from '../components/Field.svelte';
   import Icon from '../components/Icon.svelte';
+  import MultiSelect from '../components/MultiSelect.svelte';
   import Skeleton from '../components/Skeleton.svelte';
   import WithdrawDialog from '../components/WithdrawDialog.svelte';
   import { describeWarning } from '../lib/errors';
@@ -42,6 +43,14 @@
   /** The sorts offered: the priority sort only while the gig switch shows gigs only. */
   const sortOptions = $derived(JOB_SORTS.filter((option) => gig === 'only' || !GIG_ONLY_SORTS.includes(option)));
   const sort = $derived<JobSort>(sortOptions.includes(uiState().jobs_sort) ? uiState().jobs_sort : 'newest');
+
+  const kanban = $derived(uiState().jobs_kanban);
+  /** The statuses the board can show: every status of an ad but the one set by the app while the AI fills the ad in. */
+  const boardOptions = $derived(jobStatusOptions().map((option) => ({ value: option.code, text: option.text })));
+  const boardSelected = $derived(uiState().jobs_status_board);
+  /** The columns shown, in the order of the statuses; nothing selected = every status. */
+  const boardColumns = $derived(boardOptions.map((option) => option.value).filter((code) => boardSelected.length === 0 || boardSelected.includes(code)));
+  const boardRows = $derived(filterJobs(jobs.data ?? [], { text, availability, gig, status: '' }));
 
   const rows = $derived(sortJobs(filterJobs(jobs.data ?? [], { text, availability, gig, status, hideApplied, hideNo }), sort));
   const filtered = $derived(text.trim() !== '' || availability !== '' || gig !== '' || status !== '' || hideApplied || hideNo);
@@ -155,12 +164,14 @@
   }
   import AddLinkDialog from './AddLinkDialog.svelte';
   import DeleteJobDialog from './DeleteJobDialog.svelte';
+  import JobsBoard from './JobsBoard.svelte';
 </script>
 
 <div class="stack" data-ui="jobs">
   <div class="page-title">
     <h1>{tr('ui.nav.jobs')}</h1>
     <div class="title-actions">
+      <Button variant="secondary" ui="jobs.kanban" pressed={kanban} onclick={() => saveUiState({ jobs_kanban: !kanban })}>{tr('ui.jobs.kanban')}</Button>
       {#if filtered}<Button variant="secondary" ui="jobs.clear-filters" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
       <Button variant="primary" ui="jobs.add" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
     </div>
@@ -175,7 +186,7 @@
       <Button ui="jobs.add-job" variant="primary" onclick={() => navigate(paths.newJob)}><Icon name="plus" size={18} />{tr('ui.jobs.add')}</Button>
     </EmptyState>
   {:else}
-    <div class="filters-wrap"><div class="filters" data-ui="jobs.filters">
+    <div class="filters-wrap"><div class="filters" class:board={kanban} data-ui="jobs.filters">
       <Field label={tr('ui.jobs.search')} for="job-search">
         <input id="job-search" data-ui="jobs.search" class="input" type="search" placeholder={tr('ui.jobs.searchPlaceholder')} bind:value={text} />
       </Field>
@@ -187,21 +198,31 @@
           <option value="unknown">{availabilityLabel('unknown')}</option>
         </select>
       </Field>
+      {#if kanban}
+        <MultiSelect ui="jobs.board.status" label={tr('ui.jobs.status')} allLabel={tr('ui.apps.allStatuses')} options={boardOptions} selected={boardSelected} onchange={(next) => saveUiState({ jobs_status_board: next })} />
+      {:else}
       <Field label={tr('ui.jobs.status')} for="job-status-filter">
         <select id="job-status-filter" data-ui="jobs.status" class="input" bind:value={status}>
           <option value="">{tr('ui.jobs.statusAll')}</option>
           {#each jobStatusOptions(true) as option (option.code)}<option value={option.code}>{option.text}</option>{/each}
         </select>
       </Field>
+      {/if}
+      {#if !kanban}
       <Field label={tr('ui.jobs.sort')} for="job-sort">
         <select id="job-sort" data-ui="jobs.sort" class="input" value={sort} onchange={(event) => saveUiState({ jobs_sort: event.currentTarget.value as JobSort })}>
           {#each sortOptions as option (option)}<option value={option}>{tr(`ui.jobs.sort.${option}`)}</option>{/each}
         </select>
       </Field>
+      {/if}
       <div class="checks" data-ui="jobs.checks">
+        {#if !kanban}
         <label class="check" title={tr('ui.jobs.hideApplied')}><input type="checkbox" data-ui="jobs.hide-applied" checked={hideApplied} onchange={(event) => saveUiState({ jobs_hide_applied: event.currentTarget.checked })} />{tr('ui.jobs.hideAppliedShort')}</label>
+        {/if}
         <div class="check-row">
+        {#if !kanban}
         <label class="check" title={tr('ui.jobs.hideStatus', { status: noText, archived: archivedText })}><input type="checkbox" data-ui="jobs.hide-no" checked={hideNo} onchange={(event) => saveUiState({ jobs_hide_no: event.currentTarget.checked })} />{tr('ui.jobs.hideStatusShort', { status: noText })}</label>
+        {/if}
         <span class="seg" role="group" data-ui="jobs.gig" title={tr('ui.jobs.gigHint')} aria-label={tr('ui.jobs.gigShort')}>
           <button type="button" data-ui="jobs.gig.only" aria-pressed={gig === 'only'} onclick={() => saveUiState({ jobs_gig: gig === 'only' ? '' : 'only' })}>{tr('ui.jobs.gigOnly')}</button>
           <button type="button" data-ui="jobs.gig.except" aria-pressed={gig === 'except'} onclick={() => saveUiState({ jobs_gig: gig === 'except' ? '' : 'except' })}>{tr('ui.jobs.gigExcept')}</button>
@@ -210,7 +231,9 @@
       </div>
     </div></div>
 
-    {#if rows.length === 0}
+    {#if kanban}
+      <JobsBoard rows={boardRows} statuses={boardColumns} onmoved={invalidate} />
+    {:else if rows.length === 0}
       <EmptyState ui="jobs.no-match" title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')}>
         {#if filtered}<Button ui="jobs.clear-empty" onclick={clear}>{tr('ui.jobs.clear')}</Button>{/if}
       </EmptyState>
@@ -332,6 +355,7 @@
   }
   @container (min-width: 900px) {
     .filters { grid-template-columns: minmax(120px, 1fr) 170px 130px 160px max-content; }
+    .filters.board { grid-template-columns: minmax(120px, 1fr) 170px minmax(160px, 220px) max-content; }
     .filters > .checks { min-width: max-content; }
   }
   .card-row { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-m); }

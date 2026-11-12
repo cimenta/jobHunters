@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/svelte';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { api } from '../api';
 import { loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
@@ -45,6 +45,28 @@ describe('Kanban', () => {
     expect(saved).toMatchObject({ applications_status_list: ['sent'], applications_status_board: ['waiting'] });
     await fireEvent.click(screen.getByLabelText('Kanban'));
     expect(await screen.findByText(/Android Developer – #1/)).toBeInTheDocument();
+  });
+
+  it('shows a moved card at once in its new column with a note while the save runs', async () => {
+    await board();
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    const real = api.moveApplication;
+    const spy = vi.spyOn(api, 'moveApplication').mockImplementation(async (...args) => {
+      await gate;
+      return real(...args);
+    });
+    try {
+      await fireEvent.click(cardOf(/Android Developer – #1/).querySelector('button[data-ui$=".ghosted"]')!);
+      const moving = await within(column('ghosted')).findByRole('status');
+      expect(moving.textContent).toMatch(/^Moving: Sent → Ghosted, place 1/);
+      expect(within(column('sent')).queryByText(/Android Developer – #1/)).toBeNull();
+      release();
+      await waitFor(() => expect(column('ghosted').querySelector('[role="status"]')).toBeNull());
+      expect(within(column('ghosted')).getByText(/Android Developer – #1/)).toBeInTheDocument();
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('has icons next to the Move to menu that put a card in Ghosted or Withdrawn with one click, only where the rules allow it', async () => {

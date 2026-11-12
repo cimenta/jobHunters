@@ -24,7 +24,7 @@ describe('JobStatusService', () => {
   it('saves a custom status and keeps the built-in ones', () => {
     const { service, settings } = setup();
     const saved = service.save({ ...parseJobStatusStyles('{}'), ...MAYBE });
-    expect(Object.keys(saved).sort()).toEqual(['applied', 'archived', 'awaiting', 'new', 'no', 's_maybe1']);
+    expect(Object.keys(saved).sort()).toEqual(['applied', 'archived', 'awaiting', 'done', 'in_progress', 'new', 'next', 'no', 's_maybe1']);
     expect(Object.keys(settings.get().settings.job_status_styles)).toContain('s_maybe1');
   });
 
@@ -41,7 +41,7 @@ describe('JobStatusService', () => {
     const free = setup();
     free.service.save({ ...MAYBE });
     free.service.save({});
-    expect(Object.keys(free.settings.get().settings.job_status_styles)).toEqual(['new', 'applied', 'archived', 'no', 'awaiting']);
+    expect(Object.keys(free.settings.get().settings.job_status_styles)).toEqual(['new', 'applied', 'archived', 'no', 'awaiting', 'next', 'in_progress', 'done']);
     expect(settings.get().settings.job_status_styles.s_maybe1).toBeDefined();
   });
 

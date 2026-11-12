@@ -1,4 +1,4 @@
-import type { Application } from './types';
+import type { Application, Job } from './types';
 
 /**
  * Order of cards in a Kanban column: cards without a stored position come first (new or just moved here),
@@ -13,4 +13,15 @@ export function compareBoard(a: Pick<Application, 'board_position' | 'last_activ
 
 export function sortBoard<T extends Pick<Application, 'board_position' | 'last_activity_at'>>(items: readonly T[]): T[] {
   return [...items].sort(compareBoard);
+}
+
+type JobCard = Pick<Job, 'board_position' | 'found_at'>;
+
+/** Order of the ads in a column of the Kanban board of ads: the same rule, with the date the ad was found as its activity. */
+export function compareJobBoard(a: JobCard, b: JobCard): number {
+  return compareBoard({ board_position: a.board_position, last_activity_at: a.found_at }, { board_position: b.board_position, last_activity_at: b.found_at });
+}
+
+export function sortJobBoard<T extends JobCard>(items: readonly T[]): T[] {
+  return [...items].sort(compareJobBoard);
 }
