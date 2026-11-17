@@ -430,6 +430,13 @@ describe('overview api', () => {
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 
+  it('refuses to move an e-mail that is not saved and checks the arguments of relinkEmail', () => {
+    const { api, jobId } = seeded();
+    expect(api('relinkEmail', { id: 'ghost', jobId })).toMatchObject({ ok: false, error: { code: 'email_not_found' } });
+    expect(api('relinkEmail', { id: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+    expect(api('relinkEmail', { id: 'x', jobId: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+  });
+
   it('moves an ad on the Kanban board of ads and checks the arguments', () => {
     const { api, jobId } = seeded();
     expect(api('moveJob', { id: jobId, to: 'next', index: 0 })).toMatchObject({ ok: true, data: { id: jobId, status: 'next', board_position: 1 } });

@@ -338,6 +338,12 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       );
     },
 
+    relinkEmail: (args) => {
+      const input = asRecord(args, 'relinkEmail');
+      const id = requireString(input, 'id', 'relinkEmail');
+      return c.lock.run(() => c.emailService.relink(id, { applicationId: optionalString(input, 'applicationId', 'relinkEmail'), jobId: optionalString(input, 'jobId', 'relinkEmail') }));
+    },
+
     ignoreEmail: (args) => {
       const id = requireString(asRecord(args, 'ignoreEmail'), 'id', 'ignoreEmail');
       return c.lock.run(() => c.emailService.ignore(id));

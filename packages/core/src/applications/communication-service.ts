@@ -107,6 +107,20 @@ export class CommunicationService {
     return updated;
   }
 
+  /** Puts an entry on another application or job; the entry itself stays as it is. */
+  move(id: string, target: { applicationId?: string; jobId?: string }): Communication {
+    const { communications, applications, jobs } = this.deps;
+    if (!communications.get(id)) throw new NotFoundError('communication_not_found', `Communication ${id} not found`, { id });
+    const applicationId = target.applicationId ?? '';
+    if (applicationId !== '') {
+      if (!applications.get(applicationId)) throw new NotFoundError('application_not_found', `Application ${applicationId} not found`, { id: applicationId });
+      return communications.update(id, { application_id: applicationId, job_id: '' });
+    }
+    const jobId = target.jobId ?? '';
+    if (jobId === '' || !jobs?.get(jobId)) throw new NotFoundError('job_not_found', `Job ${jobId} not found`, { id: jobId });
+    return communications.update(id, { application_id: '', job_id: jobId });
+  }
+
   remove(id: string): void {
     if (!this.deps.communications.get(id)) throw new NotFoundError('communication_not_found', `Communication ${id} not found`, { id });
     this.deps.communications.remove(id);

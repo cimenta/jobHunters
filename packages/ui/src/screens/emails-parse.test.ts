@@ -57,7 +57,7 @@ describe('E-mails parsed into communication entries', () => {
     expect(entry).toMatchObject({ kind: 'confirmation', direction: 'incoming' });
     expect(entry.details.startsWith('Call them on Monday\n\n--- E-mail ---')).toBe(true);
     expect(entry.details).toContain('successfully received your application');
-    await waitFor(() => expect(ui('email-detail.entry-link')).not.toBeNull());
+    await waitFor(() => expect(ui('email-detail.assignment.link')).not.toBeNull());
     expect(ui('email-detail.state')).toHaveAttribute('data-tone', 'saved');
   });
 
@@ -93,6 +93,44 @@ describe('E-mails parsed into communication entries', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect((await api.getEmail('mail-1')).state).toBe('suggested');
     expect(ui('email-detail.add-entry')).not.toBeNull();
+  });
+
+  it('shows what a saved mail belongs to and moves it, with its entry, to another application', async () => {
+    await open('mail-5');
+    await waitFor(() => expect(targetText()).toContain('Android Developer'));
+    await fireEvent.click(ui('email-suggest.save')!);
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add this e-mail to the communication' })).toBeNull());
+    await waitFor(() => expect(ui('email-detail.assignment.link')?.textContent).toContain('Android Developer'));
+    const saved = await api.getEmail('mail-5');
+    const before = saved.application_id;
+    await fireEvent.click(ui('email-detail.assignment.change')!);
+    await screen.findByRole('dialog', { name: 'What the e-mail belongs to' });
+    expect((ui('email-relink.save') as HTMLButtonElement).disabled).toBe(true);
+    await fireEvent.click(ui('email-relink.target.input')!);
+    await fireEvent.input(ui('email-relink.target.input')!, { target: { value: 'analyst' } });
+    const option = await waitFor(() => {
+      const found = document.querySelector('[data-ui^="email-relink.target.option."]') as HTMLElement | null;
+      expect(found).not.toBeNull();
+      return found!;
+    });
+    await fireEvent.click(option);
+    expect((ui('email-relink.save') as HTMLButtonElement).disabled).toBe(false);
+    await fireEvent.click(ui('email-relink.save')!);
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const moved = await api.getEmail('mail-5');
+    expect(moved.application_id).not.toBe(before);
+    expect(moved.match_method).toBe('manual');
+    expect((await api.getApplication(before)).communications.some((c) => c.id === moved.communication_id)).toBe(false);
+    expect((await api.getApplication(moved.application_id)).communications.some((c) => c.id === moved.communication_id)).toBe(true);
+    await waitFor(() => expect(ui('email-detail.assignment.link')?.textContent).toContain('Data Analyst'));
+    expect(toasts.some((t) => t.text.startsWith('The entry was moved to'))).toBe(true);
+  });
+
+  it('has no Change button on a mail that is not saved, only the suggestion', async () => {
+    await open('mail-5');
+    await waitFor(() => expect(ui('email-detail.assignment')).not.toBeNull());
+    expect(ui('email-detail.assignment.change')).toBeNull();
+    expect(ui('email-detail.assignment')?.textContent).toContain('Suggested');
   });
 
   it('ignores a mail and restores it', async () => {

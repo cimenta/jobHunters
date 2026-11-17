@@ -218,6 +218,53 @@ describe('EmailService.confirm', () => {
   });
 });
 
+describe('EmailService.relink', () => {
+  const saved = () => {
+    const ctx = setup();
+    ctx.applications.insert(makeApplication({ id: 'a2', job_id: 'j1', attempt: 2, label: 'Backend Developer #2' }));
+    ctx.service.parseAll();
+    const entry = ctx.service.confirm('e1', { applicationId: 'a1', kind: 'confirmation', direction: 'incoming', channel: 'email', status: 'sent' });
+    return { ...ctx, entry };
+  };
+
+  it('moves the entry of the mail and the mail to another application and records that it was chosen by hand', () => {
+    const { service, emails, communications, entry, applications } = saved();
+    const moved = service.relink('e1', { applicationId: 'a2' });
+    expect(moved).toMatchObject({ application_id: 'a2', job_id: 'j1', match_method: 'manual', state: 'confirmed' });
+    expect(communications.get(entry.id)).toMatchObject({ application_id: 'a2', job_id: '' });
+    expect(emails.get('e1')!.communication_id).toBe(entry.id);
+    // The status the first save set is not undone.
+    expect(applications.get('a1')!.status).toBe('sent');
+  });
+
+  it('moves it to a job alone and back to an application', () => {
+    const { service, communications, entry } = saved();
+    expect(service.relink('e1', { jobId: 'j1' })).toMatchObject({ application_id: '', job_id: 'j1' });
+    expect(communications.get(entry.id)).toMatchObject({ application_id: '', job_id: 'j1' });
+    expect(service.relink('e1', { applicationId: 'a1' })).toMatchObject({ application_id: 'a1' });
+    expect(communications.get(entry.id)).toMatchObject({ application_id: 'a1', job_id: '' });
+  });
+
+  it('changes nothing when the target is the same, and refuses a missing or unknown target and a mail that is not saved', () => {
+    const { service, emails, communications, entry } = saved();
+    const before = emails.get('e1');
+    expect(service.relink('e1', { applicationId: 'a1' })).toEqual(before);
+    expect(errorOf(() => service.relink('e1', {}))).toMatchObject({ code: 'email_target_missing' });
+    expect(errorOf(() => service.relink('e1', { applicationId: 'ghost' }))).toMatchObject({ code: 'application_not_found' });
+    expect(errorOf(() => service.relink('e1', { jobId: 'ghost' }))).toMatchObject({ code: 'job_not_found' });
+    expect(emails.get('e1')).toMatchObject({ application_id: 'a1' });
+    expect(communications.get(entry.id)).toMatchObject({ application_id: 'a1' });
+    const fresh = setup();
+    expect(errorOf(() => fresh.service.relink('e1', { applicationId: 'a1' }))).toMatchObject({ code: 'email_not_saved' });
+  });
+
+  it('moves the mail alone when its entry was deleted by hand', () => {
+    const { service, communications, entry } = saved();
+    communications.remove(entry.id);
+    expect(service.relink('e1', { applicationId: 'a2' })).toMatchObject({ application_id: 'a2' });
+  });
+});
+
 describe('EmailService.detail, parseOne, ignore, restore', () => {
   it('has no suggestion for a new mail; parseOne parses it; the suggestion lists the candidates', () => {
     const { service } = setup();

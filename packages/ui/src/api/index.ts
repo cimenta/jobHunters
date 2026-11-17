@@ -72,6 +72,7 @@ export const api = {
   confirmEmail: (input: ConfirmEmailInput & { id: string }) => call<Communication>('confirmEmail', input),
   ignoreEmail: (id: string) => call<Email>('ignoreEmail', { id }),
   restoreEmail: (id: string) => call<Email>('restoreEmail', { id }),
+  relinkEmail: (id: string, target: { applicationId: string } | { jobId: string }) => call<Email>('relinkEmail', { id, ...target }),
   listCompanies: () => call<CompanyRow[]>('listCompanies'),
   getCompany: (id: string) => call<CompanyDetail>('getCompany', { id }),
   updateCompany: (id: string, patch: { name?: string; website?: string; notes?: string }) => call<Company>('updateCompany', { id, ...patch }),

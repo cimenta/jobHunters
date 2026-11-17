@@ -17,6 +17,8 @@
   import { toast } from '../state/toast.svelte';
   import { saveUiState, uiState } from '../state/ui-state';
 
+  /** How long the mails that arrived since the last reading keep their frame. */
+  const FRESH_MS = 15000;
   const emails = useResource(() => api.listEmails());
   let text = $state('');
   type Filter = EmailFilter;
@@ -46,6 +48,24 @@
     invalidate();
   }
 
+  /** Reads the mails again from the sheet, where the mailbox script adds new ones; the new ones are framed for a while. */
+  let refreshing = $state(false);
+  let fresh = $state<string[]>([]);
+  async function refresh(): Promise<void> {
+    refreshing = true;
+    try {
+      const known = new Set((emails.data ?? []).map((row) => row.id));
+      await emails.run(api.listEmails());
+      if (emails.status === 'error') return;
+      const added = (emails.data ?? []).filter((row) => !known.has(row.id)).map((row) => row.id);
+      fresh = added;
+      toast.success(added.length === 0 ? tr('ui.emails.refreshedNone') : tr('ui.emails.refreshedNew', { count: added.length }));
+      if (added.length > 0) setTimeout(() => (fresh = fresh.filter((id) => !added.includes(id))), FRESH_MS);
+    } finally {
+      refreshing = false;
+    }
+  }
+
   const rows = $derived.by(() => {
     const needle = foldDiacritics(text.trim()).toLowerCase();
     return (emails.data ?? []).filter(
@@ -72,6 +92,7 @@
         {/each}
       </span>
       <Button ui="emails.parse" onclick={parseAll}><Icon name="wand" size={18} />{tr('ui.emails.parse', { count: unparsed })}</Button>
+      <Button ui="emails.refresh" loading={refreshing} onclick={refresh}><Icon name="refresh" size={18} />{refreshing ? tr('ui.emails.refreshing') : tr('ui.emails.refresh')}</Button>
     </div>
     {#if rows.length === 0}
       <EmptyState ui="emails.no-match" title={tr('ui.jobs.noMatchTitle')} text={tr('ui.jobs.noMatchText')} />
@@ -80,12 +101,12 @@
         {#each rows as row (row.id)}
           {@const mark = emailMark(row)}
           <li>
-            <a class="list-item" data-ui="email.{row.id}" href={paths.email(row.id)} aria-current={router.current.id === row.id ? 'true' : undefined}>
+            <a class="list-item" class:fresh={fresh.includes(row.id)} data-ui="email.{row.id}" href={paths.email(row.id)} aria-current={router.current.id === row.id ? 'true' : undefined}>
               <span class="mark {mark.tone}" class:custom={mark.color !== ''} style:--mark-color={mark.color || undefined} data-ui="email.{row.id}.mark" data-tone={mark.tone} data-mark={mark.key} data-icon={mark.icon} title={mark.label} role="img" aria-label={mark.label}><Icon name={mark.icon} size={16} /></span>
               <span class="grow body">
                 <span class="top">
                   <span class="name">{row.direction === 'outgoing' ? tr('ui.emails.to', { name: row.counterpart }) : row.counterpart}</span>
-                  <span class="muted small when">{formatDate(row.received_at)}</span>
+                  <span class="muted small when">{#if fresh.includes(row.id)}<span class="newmark" data-ui="email.{row.id}.new">{tr('ui.emails.newMark')}</span> {/if}{formatDate(row.received_at)}</span>
                 </span>
                 <span class="subject">{row.subject === '' ? tr('ui.emails.noSubject') : row.subject}</span>
                 {#if row.attachment_list.length > 0 || row.is_bulk || row.forwarded}
@@ -121,6 +142,8 @@
   .bulk { background: var(--surface-2); border-radius: var(--radius); padding: 0 var(--space-2); }
   .forwarded { color: var(--warning); background: var(--warning-soft); border-radius: var(--radius); padding: 0 var(--space-2); font-weight: 600; }
   .filters { align-items: center; }
+  .fresh { border-color: var(--accent); }
+  .newmark { color: var(--accent); font-weight: 600; }
   .seg { display: inline-flex; border: 1px solid var(--accent); border-radius: var(--radius-s); overflow: hidden; background: var(--surface); }
   .seg button { min-height: var(--tap); padding: 0 var(--space-3); font: inherit; font-size: var(--text-s); color: var(--text); background: var(--surface); border: 0; cursor: pointer; white-space: nowrap; }
   .seg button + button { border-left: 1px solid var(--accent); }

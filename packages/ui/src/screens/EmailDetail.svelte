@@ -14,6 +14,8 @@
   import { navigate } from '../lib/router.svelte';
   import { invalidate } from '../state/invalidate.svelte';
   import { toast } from '../state/toast.svelte';
+  import { statusStyle } from '../lib/status';
+  import EmailRelinkDialog from './EmailRelinkDialog.svelte';
   import EmailSuggestDialog from './EmailSuggestDialog.svelte';
 
   let { id }: { id: string } = $props();
@@ -21,6 +23,28 @@
   const detail = useResource(() => api.getEmailDetail(id), () => id);
   const names = $derived((detail.data?.email.attachments ?? '').split('|').map((name) => name.trim()).filter((name) => name !== ''));
   const sender = $derived(detail.data === undefined ? '' : detail.data.email.from_name.trim() === '' ? detail.data.email.from_email : `${detail.data.email.from_name.trim()} <${detail.data.email.from_email}>`);
+
+  const applications = useResource(() => api.listApplications());
+  const jobs = useResource(() => api.listJobs());
+  /** What the mail belongs to (a saved mail) or is suggested for (the best candidate), named for the line under the state. */
+  const assignment = $derived.by(() => {
+    const email = detail.data?.email;
+    if (email === undefined) return undefined;
+    const saved = email.state === 'confirmed';
+    const best = detail.data?.suggestion?.candidates[0];
+    const applicationId = saved ? email.application_id : (best?.applicationId ?? '');
+    const jobId = saved ? email.job_id : (best?.jobId ?? '');
+    if (applicationId !== '') {
+      const row = applications.data?.find((item) => item.id === applicationId);
+      return { saved, href: paths.application(applicationId), name: row?.label ?? tr('ui.emails.openApplication'), hint: row === undefined ? '' : `${row.company_name} · ${statusStyle(row.status).text}` };
+    }
+    if (jobId !== '') {
+      const row = jobs.data?.find((item) => item.id === jobId);
+      return { saved, href: paths.job(jobId), name: row?.title ?? tr('ui.emails.openJob'), hint: row?.company_name ?? '' };
+    }
+    return undefined;
+  });
+  let relinking = $state(false);
 
   let suggesting = $state(false);
   /** True while the mail is being read; a notice says that the window with the suggestion will open. */
@@ -94,14 +118,15 @@
         {#if email.state === 'ignored'}
           <Button ui="email-detail.restore" onclick={restore}><Icon name="undo" size={18} />{tr('ui.emails.restore')}</Button>
         {/if}
-        {#if email.state === 'confirmed'}
-          {#if email.application_id !== ''}
-            <a data-ui="email-detail.entry-link" href={paths.application(email.application_id)}>{tr('ui.emails.openApplication')}</a>
-          {:else if email.job_id !== ''}
-            <a data-ui="email-detail.entry-link" href={paths.job(email.job_id)}>{tr('ui.emails.openJob')}</a>
-          {/if}
-        {/if}
       </div>
+      {#if assignment !== undefined}
+        <div class="assign" class:suggested={!assignment.saved} data-ui="email-detail.assignment">
+          <span class="muted small">{assignment.saved ? tr('ui.emails.assigned') : tr('ui.emails.suggestedFor')}</span>
+          <a data-ui="email-detail.assignment.link" class="name" href={assignment.href}>{assignment.name}</a>
+          {#if assignment.hint !== ''}<span class="muted small" data-ui="email-detail.assignment.hint">{assignment.hint}</span>{/if}
+          {#if assignment.saved}<span class="grow"></span><Button ui="email-detail.assignment.change" onclick={() => (relinking = true)}>{tr('ui.emails.change')}</Button>{/if}
+        </div>
+      {/if}
       {#if parsing}
         <p class="parsing" role="status" data-ui="email-detail.parsing"><Icon name="wand" size={16} />{tr('ui.emails.parsing')}</p>
       {/if}
@@ -118,6 +143,9 @@
       {/if}
       <div class="text" data-ui="email-detail.body">{email.body === '' ? tr('ui.emails.noBody') : email.body}</div>
     </Card>
+    {#if relinking}
+      <EmailRelinkDialog detail={detail.data} from={assignment?.name ?? ''} onclose={() => (relinking = false)} />
+    {/if}
     {#if suggesting && detail.data.suggestion}
       <EmailSuggestDialog detail={detail.data} onclose={() => (suggesting = false)} />
     {/if}
@@ -127,6 +155,10 @@
 <style>
   .facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: var(--space-1) var(--space-3); margin: 0; }
   .facts dd { margin: 0; overflow-wrap: anywhere; }
+  .assign { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-m); }
+  .assign.suggested { background: transparent; border-style: dashed; }
+  .assign .name { font-weight: 600; }
+  .assign .grow { flex: 1; }
   .attachments { display: flex; flex-wrap: wrap; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
   .attachments li { background: var(--surface-2); border-radius: var(--radius); padding: var(--space-1) var(--space-2); font-size: var(--text-s); overflow-wrap: anywhere; }
   .text { white-space: pre-wrap; overflow-wrap: anywhere; border-top: 1px solid var(--border); padding-top: var(--space-3); }

@@ -45,6 +45,7 @@ export const ERROR_CODES = [
   'interview_prep_too_long',
   'email_not_found',
   'email_state_invalid',
+  'email_not_saved',
   'email_target_missing',
   'company_name_required',
   'company_website_invalid',

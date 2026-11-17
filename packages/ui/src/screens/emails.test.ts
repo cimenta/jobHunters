@@ -1,11 +1,43 @@
-import { fireEvent, render, screen } from '@testing-library/svelte';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
 import { loadApp } from '../state/app.svelte';
+import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
 import EmailDetail from './EmailDetail.svelte';
 import EmailsList from './EmailsList.svelte';
 
 const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+describe('EmailsList refresh', () => {
+  it('has a Refresh button after Parse e-mails that reads the list again and says nothing is new', async () => {
+    useDevBackend();
+    render(EmailsList);
+    await screen.findByText('Jana Novakova');
+    const parse = ui('emails.parse')!;
+    const refresh = ui('emails.refresh')!;
+    expect(parse.nextElementSibling).toBe(refresh);
+    expect(refresh).toHaveTextContent('Refresh');
+    await fireEvent.click(refresh);
+    await waitFor(() => expect(toasts.some((t) => t.text === 'E-mails refreshed: nothing new')).toBe(true));
+    expect(document.querySelector('[data-ui$=".new"]')).toBeNull();
+  });
+
+  it('says how many e-mails arrived meanwhile and frames them with a mark', async () => {
+    const backend = useDevBackend();
+    render(EmailsList);
+    await screen.findByText('Jana Novakova');
+    backend.container.emails.insert({
+      id: 'mail-new', thread_id: '', received_at: '2026-10-30T09:00:00.000Z', direction: 'incoming', from_email: 'someone@example.invalid', from_name: 'Karel Novy', to: 'eva@example.com', cc: '',
+      subject: 'Fresh arrival', body: 'Hello.', attachments: '', is_bulk: false, type: '', type_confidence: '', signals: '', application_id: '', job_id: '', match_method: '', state: '', communication_id: '',
+    });
+    await fireEvent.click(ui('emails.refresh')!);
+    await waitFor(() => expect(toasts.some((t) => t.text === 'E-mails refreshed: 1 new')).toBe(true));
+    expect(await screen.findByText('Fresh arrival')).toBeInTheDocument();
+    expect(ui('email.mail-new')).toHaveClass('fresh');
+    expect(ui('email.mail-new.new')).toHaveTextContent('new');
+    expect(ui('email.mail-1.new')).toBeNull();
+  });
+});
 
 describe('EmailsList', () => {
   it('lists the newest e-mail first, names the recipient of an outgoing one and marks attachments and bulk mail', async () => {

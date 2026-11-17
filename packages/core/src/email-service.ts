@@ -72,7 +72,7 @@ export interface EmailServiceDeps {
   applications: Repository<Application>;
   jobs: Repository<Job>;
   companies: Repository<Company>;
-  communicationService: Pick<CommunicationService, 'add'>;
+  communicationService: Pick<CommunicationService, 'add' | 'move'>;
   applicationService: Pick<ApplicationService, 'setStatus'>;
   rules: () => CompiledEmailRules;
   autoSave: () => boolean;
@@ -247,6 +247,33 @@ export class EmailService {
       signals: JSON.stringify({ ...(stored ?? toStored(this.parse(email))), kind: input.kind }),
     });
     return entry;
+  }
+
+  /**
+   * Saved by mistake on the wrong application or job: puts the entry the mail made, and the mail, on another one.
+   * A status the first save set on the old application is not undone.
+   */
+  relink(id: string, target: { applicationId?: string; jobId?: string }): Email {
+    const { communicationService, emails, applications } = this.deps;
+    const email = this.require(id);
+    if (email.state !== 'confirmed') throw new ValidationError('email_not_saved', `E-mail ${id} is not saved`, { id, state: email.state });
+    const applicationId = target.applicationId ?? '';
+    let jobId = target.jobId ?? '';
+    if (applicationId === '' && jobId === '') throw new ValidationError('email_target_missing', 'Choose an application or a job', { id });
+    const application = applicationId === '' ? undefined : applications.get(applicationId);
+    if (applicationId !== '' && !application) throw new NotFoundError('application_not_found', `Application ${applicationId} not found`, { id: applicationId });
+    if (application) jobId = application.job_id;
+    if (email.application_id === (application?.id ?? '') && email.job_id === jobId) return email;
+    // The entry goes first: when the target is refused, the mail stays where it is.
+    if (email.communication_id !== '') {
+      try {
+        communicationService.move(email.communication_id, application ? { applicationId: application.id } : { jobId });
+      } catch (error) {
+        // An entry the user deleted by hand is gone: the mail alone is moved.
+        if (!(error instanceof NotFoundError && error.code === 'communication_not_found')) throw error;
+      }
+    }
+    return emails.update(id, { application_id: application?.id ?? '', job_id: jobId, match_method: 'manual' });
   }
 
   ignore(id: string): Email {

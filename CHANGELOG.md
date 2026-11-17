@@ -2,6 +2,17 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.27.3] - 2026-11-17
+
+- New **Refresh** button next to **Parse e-mails** in the E-mails list. It reads the list of e-mails again from the sheet (the script that copies mail from the mailbox adds new ones meanwhile), shows a spinner while it works and says how many e-mails are new; the new ones keep a frame and a "new" mark for a while. It does not parse or save anything.
+- No Setup is needed for this update.
+
+## [0.27.2] - 2026-11-17
+
+- An e-mail that is open now shows what it belongs to. A saved e-mail has a line **Belongs to** with the application (or the job it was saved on), its company and status; the name opens it. The new button **Change…** opens a list (the same search as when an e-mail is saved: suggested matches first, then all applications and the jobs without an application) to pick another one, and **Move** puts the e-mail and the entry it made in the communication on the new application or job. A status that the first save set on the old application is not undone; the window says so.
+- An e-mail that is not saved yet shows the suggested application on the same line (without the button).
+- No Setup is needed for this update.
+
 ## [0.27.1] - 2026-11-12
 
 - On both Kanban boards (ads and applications) a card can now be dropped anywhere in a column, also far below its last card: every column is as tall as the board (at least most of the screen), so you no longer have to scroll back up to the highlighted frame to find the place to drop.
