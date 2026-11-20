@@ -112,7 +112,7 @@ export const ALLOWED_VALUES: Readonly<Record<string, readonly string[]>> = {
   'Emails.type_confidence': ['high', 'low'],
   'Emails.match_method': ['thread', 'contact', 'url', 'domain', 'company', 'title', 'manual'],
   // An empty state means new.
-  'Emails.state': ['new', 'suggested', 'confirmed', 'ignored'],
+  'Emails.state': ['new', 'suggested', 'confirmed', 'ignored', 'archived'],
   'Reminders.status': ['open', 'done', 'dismissed'],
   'Reminders.source': ['manual', 'waiting', 'homework'],
   'Tasks.type': ['cover_letter', 'resume_tailor', 'answer_question', 'rewrite', 'summarize_job', 'extract_job', 'match_job', 'import_job', 'import_match_job', 'other'],

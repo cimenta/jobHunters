@@ -141,6 +141,7 @@ export function readStoredSuggestion(raw: string): StoredSuggestion | undefined 
 /** Which mark a mail wears in the list: new, ignored, the kind it is or was saved as, or a rejection or an offer that is a plain message. */
 export function emailMarkKey(row: { state: string; type: string; signals: string }): EmailMarkKey {
   if (row.state === 'ignored') return 'ignored';
+  if (row.state === 'archived') return 'archived';
   if (row.state !== 'suggested' && row.state !== 'confirmed') return 'new';
   const stored = readStoredSuggestion(row.signals);
   if (row.state === 'suggested' && (row.type === 'noise' || stored?.kind === '')) return 'ignored';
@@ -205,7 +206,7 @@ export class EmailService {
   confirm(id: string, input: ConfirmInput): Communication {
     const { communicationService, applicationService, emails, applications, transitions } = this.deps;
     const email = this.require(id);
-    if (email.state === 'confirmed' || email.state === 'ignored') invalidState(id, email.state);
+    if (email.state === 'confirmed' || email.state === 'ignored' || email.state === 'archived') invalidState(id, email.state);
     const applicationId = input.applicationId ?? '';
     let jobId = input.jobId ?? '';
     if (applicationId === '' && jobId === '') throw new ValidationError('email_target_missing', 'Choose an application or a job', { id });
@@ -280,6 +281,29 @@ export class EmailService {
     const email = this.require(id);
     if (email.state === 'confirmed') invalidState(id, email.state);
     return this.deps.emails.update(id, { state: 'ignored' });
+  }
+
+  /**
+   * Puts a mail that is not saved aside: it leaves the queue of unprocessed mail and makes no entry. What the parsing found
+   * stays in the row, so Unarchive can put the mail back where it was.
+   */
+  archive(id: string): Email {
+    const email = this.require(id);
+    if (email.state === 'confirmed' || email.state === 'archived') invalidState(id, email.state);
+    return this.deps.emails.update(id, { state: 'archived' });
+  }
+
+  /** Back in the queue: suggested when the mail was parsed before, new when it was not. */
+  unarchive(id: string): Email {
+    const email = this.require(id);
+    if (email.state !== 'archived') throw new ValidationError('email_not_archived', `E-mail ${id} is not archived`, { id, state: email.state });
+    return this.deps.emails.update(id, { state: readStoredSuggestion(email.signals) !== undefined ? 'suggested' : '' });
+  }
+
+  /** Removes the mail from the sheet for good. The entry it made in the communication, if any, stays. */
+  remove(id: string): void {
+    this.require(id);
+    this.deps.emails.remove(id);
   }
 
   /** Puts an ignored or suggested mail back to new; a saved one stays saved. */

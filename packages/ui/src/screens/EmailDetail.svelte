@@ -3,6 +3,7 @@
   import Badge from '../components/Badge.svelte';
   import Button from '../components/Button.svelte';
   import Card from '../components/Card.svelte';
+  import ConfirmDialog from '../components/ConfirmDialog.svelte';
   import ErrorBlock from '../components/ErrorBlock.svelte';
   import Icon from '../components/Icon.svelte';
   import Skeleton from '../components/Skeleton.svelte';
@@ -83,6 +84,28 @@
     await parseThenOffer();
   }
 
+  let deleting = $state(false);
+
+  async function archive(): Promise<void> {
+    await api.archiveEmail(id);
+    toast.success(tr('ui.emails.archived'));
+    invalidate();
+  }
+
+  async function unarchive(): Promise<void> {
+    await api.unarchiveEmail(id);
+    toast.success(tr('ui.emails.unarchived'));
+    offered = '';
+    invalidate();
+  }
+
+  async function remove(): Promise<void> {
+    await api.deleteEmail(id);
+    toast.success(tr('ui.emails.deleted'));
+    invalidate();
+    navigate(paths.emails);
+  }
+
   async function restore(): Promise<void> {
     await api.restoreEmail(id);
     toast.success(tr('ui.emails.restored'));
@@ -109,12 +132,19 @@
         <span class="state {mark.tone}" class:custom={mark.color !== ''} style:--mark-color={mark.color || undefined} data-ui="email-detail.state" data-tone={mark.tone} data-mark={mark.key}><Icon name={mark.icon} size={16} />{mark.label}</span>
         {#if detail.data.suggestion?.fwd}<Badge ui="email-detail.forwarded" text={tr('ui.emails.forwarded')} color="var(--warning-soft)" textColor="var(--warning)" title={tr('ui.emails.forwardedTip')} />{/if}
         {#if email.is_bulk}<Badge ui="email-detail.bulk" text={tr('ui.emails.bulk')} color="var(--surface-2)" textColor="var(--text)" title={tr('ui.emails.bulkTip')} />{/if}
-        {#if email.state !== 'confirmed' && email.state !== 'ignored'}
+        {#if email.state !== 'confirmed' && email.state !== 'ignored' && email.state !== 'archived'}
           <Button ui="email-detail.add-entry" loading={parsing} onclick={openSuggestion}><Icon name="plus" size={18} />{tr('ui.emails.addEntry')}</Button>
         {/if}
         {#if email.state === 'suggested'}
           <Button ui="email-detail.reparse" loading={parsing} onclick={reparse}><Icon name="refresh" size={18} />{tr('ui.emails.reparse')}</Button>
         {/if}
+        {#if email.state === '' || email.state === 'suggested' || email.state === 'ignored'}
+          <Button ui="email-detail.archive" onclick={archive}><Icon name="archive" size={18} />{tr('ui.emails.archive')}</Button>
+        {/if}
+        {#if email.state === 'archived'}
+          <Button ui="email-detail.unarchive" onclick={unarchive}><Icon name="undo" size={18} />{tr('ui.emails.unarchive')}</Button>
+        {/if}
+        <Button variant="danger" ui="email-detail.delete" onclick={() => (deleting = true)}><Icon name="trash" size={18} />{tr('ui.emails.delete')}</Button>
         {#if email.state === 'ignored'}
           <Button ui="email-detail.restore" onclick={restore}><Icon name="undo" size={18} />{tr('ui.emails.restore')}</Button>
         {/if}
@@ -143,6 +173,7 @@
       {/if}
       <div class="text" data-ui="email-detail.body">{email.body === '' ? tr('ui.emails.noBody') : email.body}</div>
     </Card>
+    <ConfirmDialog open={deleting} ui="email-delete" text={tr('ui.emails.deleteTitle') + ' ' + (email.subject === '' ? tr('ui.emails.noSubject') : email.subject) + '. ' + tr('ui.emails.deleteWarn')} onconfirm={remove} onclose={() => (deleting = false)} />
     {#if relinking}
       <EmailRelinkDialog detail={detail.data} from={assignment?.name ?? ''} onclose={() => (relinking = false)} />
     {/if}

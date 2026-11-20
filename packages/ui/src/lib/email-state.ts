@@ -27,11 +27,13 @@ export function markName(key: EmailMarkKey): string {
 export function emailMark(row: { state: string; type: string; signals: string }): EmailMark {
   const key = emailMarkKey(row);
   const { icon, color } = resolveEmailMark(uiState().email_marks, key);
-  const tone: EmailTone = key === 'ignored' && row.state !== 'ignored' ? 'suggested' : key === 'ignored' ? 'ignored' : row.state === 'confirmed' ? 'saved' : row.state === 'suggested' ? 'suggested' : 'new';
+  const tone: EmailTone = row.state === 'archived' ? 'ignored' : key === 'ignored' && row.state !== 'ignored' ? 'suggested' : key === 'ignored' ? 'ignored' : row.state === 'confirmed' ? 'saved' : row.state === 'suggested' ? 'suggested' : 'new';
   const label =
-    row.state === 'ignored'
-      ? tr('ui.emails.state.ignored')
-      : tone === 'new'
+    row.state === 'archived'
+      ? tr('ui.emails.state.archived')
+      : row.state === 'ignored'
+        ? tr('ui.emails.state.ignored')
+        : tone === 'new'
         ? tr('ui.emails.state.new')
         : key === 'ignored'
           ? tr('ui.emails.state.noise')

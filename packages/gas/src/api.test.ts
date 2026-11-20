@@ -430,6 +430,14 @@ describe('overview api', () => {
     expect(api('listJobs')).toMatchObject({ ok: true, data: [{ company_name: 'Example Ltd', application_count: 1 }] });
   });
 
+  it('checks the arguments of archiveEmail, unarchiveEmail and deleteEmail', () => {
+    const { api } = seeded();
+    for (const method of ['archiveEmail', 'unarchiveEmail', 'deleteEmail']) {
+      expect(api(method, { id: 5 })).toMatchObject({ ok: false, error: { code: 'invalid_arguments' } });
+      expect(api(method, { id: 'ghost' })).toMatchObject({ ok: false, error: { code: 'email_not_found' } });
+    }
+  });
+
   it('refuses to move an e-mail that is not saved and checks the arguments of relinkEmail', () => {
     const { api, jobId } = seeded();
     expect(api('relinkEmail', { id: 'ghost', jobId })).toMatchObject({ ok: false, error: { code: 'email_not_found' } });

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
 import { describe, expect, it } from 'vitest';
+import { api } from '../api';
 import { loadApp } from '../state/app.svelte';
 import { toasts } from '../state/toast.svelte';
 import { useDevBackend } from '../test/transport';
@@ -7,6 +8,44 @@ import EmailDetail from './EmailDetail.svelte';
 import EmailsList from './EmailsList.svelte';
 
 const ui = (name: string) => document.querySelector(`[data-ui="${name}"]`) as HTMLElement | null;
+
+describe('E-mail detail: archive and delete', () => {
+  it('archives a mail so it leaves the unprocessed queue, shows it as archived and brings it back', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    backend.container.emails.update('mail-5', { state: '' });
+    render(EmailDetail, { id: 'mail-5' });
+    await waitFor(() => expect(ui('email-detail.archive')).not.toBeNull());
+    await fireEvent.click(ui('email-detail.archive')!);
+    await waitFor(async () => expect((await api.getEmail('mail-5')).state).toBe('archived'));
+    await waitFor(() => expect(ui('email-detail.state')).toHaveAttribute('data-mark', 'archived'));
+    expect(ui('email-detail.add-entry')).toBeNull();
+    expect(ui('email-detail.archive')).toBeNull();
+    expect(toasts.some((t) => t.text === 'The e-mail is archived.')).toBe(true);
+    const unprocessed = (await api.listEmails()).filter((row) => row.state === '' || row.state === 'suggested');
+    expect(unprocessed.some((row) => row.id === 'mail-5')).toBe(false);
+    await fireEvent.click(ui('email-detail.unarchive')!);
+    await waitFor(async () => expect((await api.getEmail('mail-5')).state).not.toBe('archived'));
+  });
+
+  it('asks before it deletes a mail for good, and Cancel keeps it', async () => {
+    const backend = useDevBackend();
+    await loadApp();
+    backend.container.emails.update('mail-5', { state: '' });
+    render(EmailDetail, { id: 'mail-5' });
+    await waitFor(() => expect(ui('email-detail.delete')).not.toBeNull());
+    await fireEvent.click(ui('email-detail.delete')!);
+    await waitFor(() => expect(ui('email-delete.confirm')).not.toBeNull());
+    await fireEvent.click(ui('email-delete.cancel')!);
+    await waitFor(() => expect(ui('email-delete.confirm')).toBeNull());
+    expect((await api.listEmails()).some((row) => row.id === 'mail-5')).toBe(true);
+    await fireEvent.click(ui('email-detail.delete')!);
+    await waitFor(() => expect(ui('email-delete.confirm')).not.toBeNull());
+    await fireEvent.click(ui('email-delete.confirm')!);
+    await waitFor(async () => expect((await api.listEmails()).some((row) => row.id === 'mail-5')).toBe(false));
+    expect(toasts.some((t) => t.text === 'The e-mail was deleted.')).toBe(true);
+  });
+});
 
 describe('EmailsList refresh', () => {
   it('has a Refresh button after Parse e-mails that reads the list again and says nothing is new', async () => {

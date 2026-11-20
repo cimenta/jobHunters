@@ -338,6 +338,24 @@ export function createApplicationHandlers(c: Container): Record<string, Handler>
       );
     },
 
+    archiveEmail: (args) => {
+      const id = requireString(asRecord(args, 'archiveEmail'), 'id', 'archiveEmail');
+      return c.lock.run(() => c.emailService.archive(id));
+    },
+
+    unarchiveEmail: (args) => {
+      const id = requireString(asRecord(args, 'unarchiveEmail'), 'id', 'unarchiveEmail');
+      return c.lock.run(() => c.emailService.unarchive(id));
+    },
+
+    deleteEmail: (args) => {
+      const id = requireString(asRecord(args, 'deleteEmail'), 'id', 'deleteEmail');
+      return c.lock.run(() => {
+        c.emailService.remove(id);
+        return null;
+      });
+    },
+
     relinkEmail: (args) => {
       const input = asRecord(args, 'relinkEmail');
       const id = requireString(input, 'id', 'relinkEmail');

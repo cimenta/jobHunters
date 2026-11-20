@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ApplicationService } from './application-service';
 import { CommunicationService } from './applications/communication-service';
 import { compileEmailRules, effectiveEmailRules } from './email-rules';
-import { composeDetails, EmailService, suggestStatus } from './email-service';
+import { composeDetails, EmailService, emailMarkKey, suggestStatus } from './email-service';
 import { InMemoryAppendLog, InMemoryRepository } from './repository';
 import { DEFAULT_TRANSITIONS } from './status';
 import { errorOf } from './testing/errors';
@@ -215,6 +215,55 @@ describe('EmailService.confirm', () => {
     service.parseAll();
     const entry = service.confirm('e1', { applicationId: 'a1', kind: 'meeting', direction: 'incoming', channel: 'video', at: '2026-11-02T14:30' });
     expect(entry.datetime).toBe('2026-11-02T14:30');
+  });
+});
+
+describe('EmailService archive, unarchive and remove', () => {
+  it('archives a new, a suggested and an ignored mail, keeps what parsing found, and puts it back where it was', () => {
+    const { service, emails } = setup();
+    expect(service.archive('e1')).toMatchObject({ state: 'archived' });
+    expect(service.unarchive('e1')).toMatchObject({ state: '' });
+    service.parseAll();
+    const suggested = emails.get('e1')!;
+    expect(suggested.state).toBe('suggested');
+    expect(service.archive('e1')).toMatchObject({ state: 'archived', type: suggested.type, signals: suggested.signals });
+    expect(service.unarchive('e1')).toMatchObject({ state: 'suggested', signals: suggested.signals });
+    service.ignore('e1');
+    expect(service.archive('e1').state).toBe('archived');
+  });
+
+  it('keeps an archived mail out of parsing and out of saving, and refuses to archive a saved or an archived one', () => {
+    const { service, communications } = setup();
+    service.archive('e1');
+    expect(service.parseAll().parsed).toBe(0);
+    expect(errorOf(() => service.confirm('e1', { applicationId: 'a1', kind: 'message', direction: 'incoming' }))).toMatchObject({ code: 'email_state_invalid' });
+    expect(errorOf(() => service.archive('e1'))).toMatchObject({ code: 'email_state_invalid' });
+    expect(errorOf(() => service.unarchive('ghost'))).toMatchObject({ code: 'email_not_found' });
+    service.unarchive('e1');
+    expect(errorOf(() => service.unarchive('e1'))).toMatchObject({ code: 'email_not_archived' });
+    service.parseAll();
+    service.confirm('e1', { applicationId: 'a1', kind: 'message', direction: 'incoming' });
+    expect(errorOf(() => service.archive('e1'))).toMatchObject({ code: 'email_state_invalid' });
+    expect(communications.list()).toHaveLength(1);
+  });
+
+  it('gives an archived mail its own mark', () => {
+    const { service, emails } = setup();
+    service.archive('e1');
+    expect(emailMarkKey(emails.get('e1')!)).toBe('archived');
+  });
+
+  it('deletes a mail in any state and leaves the entry it made', () => {
+    const { service, emails, communications } = setup({ emails: [mail(), mail({ id: 'e2' })] });
+    service.parseAll();
+    service.confirm('e1', { applicationId: 'a1', kind: 'message', direction: 'incoming' });
+    service.remove('e1');
+    expect(emails.get('e1')).toBeUndefined();
+    expect(communications.list()).toHaveLength(1);
+    service.archive('e2');
+    service.remove('e2');
+    expect(emails.list()).toHaveLength(0);
+    expect(errorOf(() => service.remove('e2'))).toMatchObject({ code: 'email_not_found' });
   });
 });
 

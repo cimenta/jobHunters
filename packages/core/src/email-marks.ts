@@ -2,7 +2,7 @@
  * The mark in the upper left of a mail in the list: one per kind of mail, each with an icon and a color the user can change
  * in Settings. The choice is remembered with the other interface settings (ui_state.email_marks).
  */
-export const EMAIL_MARK_KEYS = ['new', 'confirmation', 'meeting', 'after_meeting', 'message', 'homework', 'rejection', 'offer', 'ignored'] as const;
+export const EMAIL_MARK_KEYS = ['new', 'confirmation', 'meeting', 'after_meeting', 'message', 'homework', 'rejection', 'offer', 'ignored', 'archived'] as const;
 export type EmailMarkKey = (typeof EMAIL_MARK_KEYS)[number];
 
 /** The icons the user may choose from (names of the icons of the interface). */
@@ -22,6 +22,7 @@ export const DEFAULT_EMAIL_MARK_ICONS: Readonly<Record<EmailMarkKey, EmailMarkIc
   rejection: 'reject',
   offer: 'sparkle',
   ignored: 'eye-off',
+  archived: 'archive',
 };
 
 /** An empty icon or color means "the default". */

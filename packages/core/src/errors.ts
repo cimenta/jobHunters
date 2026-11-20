@@ -46,6 +46,7 @@ export const ERROR_CODES = [
   'email_not_found',
   'email_state_invalid',
   'email_not_saved',
+  'email_not_archived',
   'email_target_missing',
   'company_name_required',
   'company_website_invalid',

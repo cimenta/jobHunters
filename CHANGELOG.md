@@ -2,6 +2,12 @@
 
 All notable changes are documented here. The format follows Keep a Changelog and the project uses Semantic Versioning.
 
+## [0.27.4] - 2026-11-20
+
+- An e-mail can be **archived**: the new button **Archive** (on a new, suggested or ignored e-mail) gives it its own state, **Archived**, with its own mark. An archived e-mail is not in the **Unprocessed** list, is not counted in **Parse e-mails** and is not parsed or saved; **Unarchive** puts it back where it was (suggested if it had been parsed, otherwise new).
+- An e-mail can be **deleted** with the new button **Delete** after a confirmation. It is removed from the sheet for good; the entry it made in the communication stays. The script that copies mail from the mailbox may add the e-mail again.
+- No Setup is needed for this update (running it only refreshes the list of states offered in the Emails sheet).
+
 ## [0.27.3] - 2026-11-17
 
 - New **Refresh** button next to **Parse e-mails** in the E-mails list. It reads the list of e-mails again from the sheet (the script that copies mail from the mailbox adds new ones meanwhile), shows a spinner while it works and says how many e-mails are new; the new ones keep a frame and a "new" mark for a while. It does not parse or save anything.
